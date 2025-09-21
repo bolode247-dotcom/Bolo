@@ -1,0 +1,118 @@
+{
+  "onboarding": {
+    "slides": [
+      {
+        "title": "Trouvez des emplois près de chez vous et ailleurs",
+        "description": "Découvrez facilement des opportunités d'emploi dans votre région et au-delà, pour décrocher le poste idéal où que vous soyez."
+      },
+      {
+        "title": "Connexions rapides pour recruteurs et candidats",
+        "description": "Les recruteurs peuvent rapidement embaucher les bons talents, tandis que les candidats se connectent instantanément avec les employeurs — accélérant ainsi tout le processus."
+      },
+      {
+        "title": "Boostez votre potentiel de revenus",
+        "description": "Accédez à une large gamme d’opportunités dans l’application pour développer votre carrière et augmenter vos revenus sans effort."
+      }
+    ],
+    "skip": "Ignorer",
+    "next": "Suivant",
+    "getStarted": "Commencer"
+  },
+
+  "signIn": {
+    "headerTitle": "Connexion",
+    "submit": "Se connecter",
+    "noAccount": "Vous n’avez pas de compte ?",
+    "signUpLink": "S’inscrire"
+  },
+
+  "signUp": {
+    "headerTitle": "Créez votre compte",
+    "submit": "Continuer",
+    "footerText": "Vous avez déjà un compte ?",
+    "footerLink": "Se connecter"
+  },
+
+  "formLabels": {
+    "fullName": {
+      "label": "Nom complet",
+      "placeholder": "Entrez votre nom légal complet"
+    },
+    "password": {
+      "label": "Mot de passe",
+      "placeholder": "Entrez votre mot de passe"
+    },
+    "confirmPassword": {
+      "label": "Confirmer le mot de passe",
+      "placeholder": "Saisissez à nouveau votre mot de passe"
+    },
+    "email": {
+      "label": "E-mail",
+      "placeholder": "Entrez votre adresse e-mail"
+    },
+    "phoneNumber": {
+      "label": "Numéro de téléphone",
+      "placeholder": "Entrez votre numéro de téléphone"
+    },
+    "location": {
+      "label": "Lieu",
+      "placeholder": "Sélectionnez votre lieu"
+    },
+    "otpCode": {
+      "label": "Code OTP",
+      "placeholder": "Entrez le code de vérification"
+    }
+  },
+
+  "validation": {
+    "titleRequired": "Le titre est requis",
+    "titleMin": "Le titre est trop court",
+    "titleMax": "Le titre est trop long",
+    "descriptionRequired": "La description est requise",
+    "categoryRequired": "La catégorie est requise",
+    "thumbnailRequired": "La miniature est requise",
+    "pdfRequired": "Le fichier PDF est requis",
+    "fullName": "Le nom complet est requis",
+    "fullNameTwoWords": "Entrez au moins deux noms",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordMin": "Le mot de passe doit contenir au moins 8 caractères",
+    "confirmPasswordRequired": "Vous devez confirmer votre mot de passe",
+    "passwordsNotMatch": "Les mots de passe ne correspondent pas",
+    "emailInvalid": "Entrez une adresse e-mail valide",
+    "emailRequired": "L’adresse e-mail est requise",
+    "phoneRequired": "Le numéro de téléphone est requis",
+    "phoneFormat": "Format de numéro de téléphone invalide",
+    "locationRequired": "Veuillez sélectionner un lieu"
+  },
+
+  "authCommon": {
+    "signingIn": "Connexion en cours {{phoneNumber}}"
+  },
+
+  "userRole": {
+    "title": "Choisissez votre rôle",
+    "subtitle": "Cherchez-vous à recruter des talents ou à trouver votre prochaine opportunité ?",
+    "recruiter": {
+      "title": "Recruteur",
+      "description": "Publiez des offres, gérez les candidatures et trouvez les meilleurs talents."
+    },
+    "jobSeeker": {
+      "title": "Chercheur d'emploi",
+      "description": "Trouvez l'emploi de vos rêves et postulez facilement à plusieurs postes."
+    },
+    "continue": "Continuer"
+  },
+
+  "verification": {
+    "title": "Vérification",
+    "subtitle": "Nous avons envoyé un code de vérification à {{phoneNumber}}.",
+    "submit": "Vérifier",
+    "resend": "Renvoyer le code",
+    "resendIn": "Renvoyer le code dans {{timer}}s"
+  },
+  "languageSelection": {
+    "title": "Sélectionnez votre langue",
+    "subtitle": "Choisissez votre langue préférée pour l’application.",
+    "continue": "Continuer"
+  }
+}

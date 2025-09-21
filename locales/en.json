@@ -1,0 +1,120 @@
+{
+  "onboarding": {
+    "slides": [
+      {
+        "title": "Find Jobs Near and Far",
+        "description": "Easily discover job opportunities around your local area and beyond, making it simple to land the perfect role wherever you are."
+      },
+      {
+        "title": "Fast Connections for Recruiters & Seekers",
+        "description": "Recruiters can quickly hire the right talent, while job seekers connect instantly with employers—speeding up the entire process."
+      },
+      {
+        "title": "Boost Your Income Potential",
+        "description": "Access a wide range of opportunities within the app to grow your career and increase your earnings effortlessly."
+      }
+    ],
+    "skip": "Skip",
+    "next": "Next",
+    "getStarted": "Get Started"
+  },
+
+  "signIn": {
+    "headerTitle": "Sign In",
+    "submit": "Sign In",
+    "noAccount": "Don't have an account?",
+    "signUpLink": "Sign Up"
+  },
+
+  "signUp": {
+    "headerTitle": "Create Your Account",
+    "submit": "Continue",
+    "footerText": "Already have an account?",
+    "footerLink": "Sign In"
+  },
+
+  "formLabels": {
+    "fullName": {
+      "label": "Full name",
+      "placeholder": "Enter your full legal name",
+      "fullNameTwoWords": "Enter at least two names"
+    },
+    "password": {
+      "label": "Password",
+      "placeholder": "Enter your password"
+    },
+    "confirmPassword": {
+      "label": "Confirm Password",
+      "placeholder": "Re-enter your password"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "Enter your email address"
+    },
+    "phoneNumber": {
+      "label": "Phone Number",
+      "placeholder": "Enter your phone number"
+    },
+    "location": {
+      "label": "Location",
+      "placeholder": "Select your location"
+    },
+    "otpCode": {
+      "label": "OTP Code",
+      "placeholder": "Enter verification code"
+    }
+  },
+
+  "validation": {
+    "titleRequired": "Title is required",
+    "titleMin": "Title is too short",
+    "titleMax": "Title is too long",
+    "descriptionRequired": "Description is required",
+    "categoryRequired": "Category is required",
+    "thumbnailRequired": "Thumbnail is required",
+    "pdfRequired": "PDF file is required",
+    "fullName": "Full name is required",
+    "fullNameTwoWords": "Enter at least two names",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 8 characters",
+    "confirmPasswordRequired": "You must confirm your password",
+    "passwordsNotMatch": "Passwords do not match",
+    "emailInvalid": "Enter a valid email address",
+    "emailRequired": "Email is required",
+    "phoneRequired": "Phone number is required",
+    "phoneFormat": "Invalid phone number format",
+    "locationRequired": "Please select a location"
+  },
+
+  "authCommon": {
+    "signingIn": "Signing in {{phoneNumber}}"
+  },
+
+  "userRole": {
+    "title": "Choose Your Role",
+    "subtitle": "Are you looking to hire talent or find your next opportunity?",
+    "recruiter": {
+      "title": "Recruiter",
+      "description": "Post jobs, manage applicants, and find the best talent."
+    },
+    "jobSeeker": {
+      "title": "Job Seeker",
+      "description": "Find your dream job and apply easily to multiple positions."
+    },
+    "continue": "Continue"
+  },
+
+  "verification": {
+    "title": "Verification",
+    "subtitle": "We've sent a verification code to {{phoneNumber}}.",
+    "submit": "Verify",
+    "resend": "Resend Code",
+    "resendIn": "Resend Code in {{timer}}s"
+  },
+
+  "languageSelection": {
+    "title": "Select Your Language",
+    "subtitle": "Choose your preferred language for the app.",
+    "continue": "Continue"
+  }
+}
