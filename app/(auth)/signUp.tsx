@@ -51,7 +51,7 @@ const SignUp = () => {
       await OtpVerification(userId, otpCode);
       setShowVerification(false);
       await fetchData();
-      router.replace('/(tabs)/');
+      router.replace('/');
     } catch (error: any) {
       setOtpError(error.message);
       return;

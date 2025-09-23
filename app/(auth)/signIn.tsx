@@ -10,7 +10,7 @@ import VerificationModal from '@/component/VerificationsModal';
 import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { signInValidationSchema } from '@/Utils/ValidationShema';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -68,12 +68,9 @@ const SignIn = () => {
         setShowVerification(true);
         return;
       }
-
-      // ✅ Signed in and verified → navigate or fetch data
-      console.log('✅ Signed in successfully:', res);
-      // router.replace('/(tabs)/');
+      router.replace('/');
     } catch (err: any) {
-      setError(err.message); // ✅ Use error state for messages
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }

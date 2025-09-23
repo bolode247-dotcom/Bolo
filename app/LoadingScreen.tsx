@@ -48,12 +48,13 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     position: 'absolute',
-    bottom: Sizes.x3l, // Position at the bottom of the screen
+    bottom: '10%', // Position at the bottom of the screen
     alignItems: 'center',
   },
   footerText: {
     fontSize: 14,
-    color: Colors.gray300, // Lighter gray text
+    color: Colors.gray500,
+    fontFamily: 'PoppinsBold',
   },
 });
 

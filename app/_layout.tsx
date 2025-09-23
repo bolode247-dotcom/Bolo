@@ -57,9 +57,6 @@ const AppRouter = () => {
 
       <Stack.Protected guard={session && hasCompletedOnboarding}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(book)" options={{ headerShown: false }} />
-        <Stack.Screen name="(profile)" options={{ headerShown: false }} />
-        <Stack.Screen name="search/[query]" options={{ headerShown: false }} />
       </Stack.Protected>
 
       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
