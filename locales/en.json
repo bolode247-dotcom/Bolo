@@ -22,13 +22,14 @@
   "signIn": {
     "headerTitle": "Sign In",
     "submit": "Sign In",
-    "noAccount": "Don't have an account?",
-    "signUpLink": "Sign Up"
+    "forgottenPassword": "Forgotten Password?",
+    "noAccount": "Create a new account",
+    "signUpLink": "Create a new account"
   },
 
   "signUp": {
     "headerTitle": "Create Your Account",
-    "submit": "Continue",
+    "submit": "Sign Up",
     "footerText": "Already have an account?",
     "footerLink": "Sign In"
   },
@@ -106,10 +107,14 @@
 
   "verification": {
     "title": "Verification",
-    "subtitle": "We've sent a verification code to {{phoneNumber}}.",
+    "subtitle": "We've sent a verification code to {{email}}.",
     "submit": "Verify",
     "resend": "Resend Code",
     "resendIn": "Resend Code in {{timer}}s"
+  },
+  "emailVerification": {
+    "title": "Verify your email address",
+    "submit": "Send Code"
   },
 
   "languageSelection": {

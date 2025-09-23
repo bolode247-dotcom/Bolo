@@ -24,7 +24,7 @@ export type SignUpPayload = Pick<
   'fullName' | 'email' | 'password' | 'phoneNumber' | 'location' | 'role'
 >;
 export type SignUpVerificationPayload = Pick<User, 'phoneNumber' | 'location'>;
-export type SignInPayload = Pick<User, 'phoneNumber' | 'password'>;
+export type SignInPayload = Pick<User, 'email' | 'password'>;
 
 export type UpdateUserPayload = Partial<
   Pick<User, 'fullName' | 'phoneNumber' | 'location' | 'email'>

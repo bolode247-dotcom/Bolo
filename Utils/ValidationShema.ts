@@ -1,53 +1,47 @@
-import i18n from 'i18next'; // directly use the i18n instance
 import * as Yup from 'yup';
-
-// Simple wrapper so you don't repeat i18n.t everywhere
-const tt = (key: string) => i18n.t(key);
 
 export const signupValidationSchema = Yup.object().shape({
   fullName: Yup.string()
-    .required(tt('validation.fullNameRequired'))
-    .test(
-      'is-full-name',
-      tt('validation.fullNameTwoWords'), // add this new translation
-      (value) => {
-        if (!value) return false;
-        return value.trim().split(/\s+/).length >= 2;
-      },
-    )
-    .label(tt('formLabels.fullName.label')),
-  password: Yup.string()
-    .required(tt('validation.passwordRequired'))
-    .min(8, tt('validation.passwordMin'))
-    .max(20, tt('validation.passwordMax'))
-    .label(tt('formLabels.password.label')),
-  confirmPassword: Yup.string()
-    .required(tt('validation.confirmPasswordRequired'))
-    .oneOf([Yup.ref('password')], tt('validation.passwordsNotMatch'))
-    .label(tt('formLabels.confirmPassword.label')),
+    .required('Full name is required')
+    .test('is-full-name', 'Enter at least two names', (value) => {
+      if (!value) return false;
+      return value.trim().split(/\s+/).length >= 2;
+    })
+    .label('Full name'),
   email: Yup.string()
-    .email(tt('validation.emailInvalid'))
-    .required(tt('validation.emailRequired'))
-    .label(tt('formLabels.email.label')),
+    .email('Invalid email address')
+    .required('Email is required')
+    .label('Email'),
+  phoneNumber: Yup.string()
+    .required('Phone number is required')
+    .matches(/^6\d{8}$/, 'Invalid phone number format')
+    .label('Phone Number'),
+  // location: Yup.string().required('Please select a location').label('Location'),
+  password: Yup.string()
+    .required('Password is required')
+    .min(8, 'Password must be at least 8 characters')
+    .label('Password'),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('password')], 'Passwords must match')
+    .required('Please confirm your password')
+    .label('Confirm Password'),
 });
 
 export const signupVerificationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
-    .required(tt('validation.phoneRequired'))
-    .matches(/^6\d{8}$/, tt('validation.phoneFormat'))
-    .label(tt('formLabels.phoneNumber')),
-  location: Yup.string()
-    .required(tt('validation.locationRequired'))
-    .label(tt('formLabels.location')),
+    .required('Phone number is required')
+    .matches(/^6\d{8}$/, 'Invalid phone number format')
+    .label('Phone Number'),
+  location: Yup.string().required('Please select a location').label('Location'),
 });
 
 export const signInValidationSchema = Yup.object().shape({
-  phoneNumber: Yup.string()
-    .required(tt('validation.phoneRequired'))
-    .matches(/^6\d{8}$/, tt('validation.phoneFormat'))
-    .label(tt('formLabels.phoneNumber.label')),
+  email: Yup.string()
+    .email('Invalid email address')
+    .required('Email is required')
+    .label('Email'),
   password: Yup.string()
-    .required(tt('validation.passwordRequired'))
-    .min(8, tt('validation.passwordMin'))
-    .label(tt('formLabels.password.label')),
+    .required('Password is required')
+    .min(8, 'Password must be at least 8 characters')
+    .label('Password'),
 });

@@ -22,13 +22,14 @@
   "signIn": {
     "headerTitle": "Connexion",
     "submit": "Se connecter",
-    "noAccount": "Vous n’avez pas de compte ?",
+    "forgottenPassword": "Mot de passe oublié ?",
+    "noAccount": "Créer un nouveau compte",
     "signUpLink": "S’inscrire"
   },
 
   "signUp": {
     "headerTitle": "Créez votre compte",
-    "submit": "Continuer",
+    "submit": "S’inscrire",
     "footerText": "Vous avez déjà un compte ?",
     "footerLink": "Se connecter"
   },
@@ -105,10 +106,14 @@
 
   "verification": {
     "title": "Vérification",
-    "subtitle": "Nous avons envoyé un code de vérification à {{phoneNumber}}.",
+    "subtitle": "Nous avons envoyé un code de vérification à {{email}}.",
     "submit": "Vérifier",
     "resend": "Renvoyer le code",
     "resendIn": "Renvoyer le code dans {{timer}}s"
+  },
+    "emailVerification": {
+    "title": "Vérifiez votre adresse e-mail",
+    "submit": "Envoyer le code"
   },
   "languageSelection": {
     "title": "Sélectionnez votre langue",

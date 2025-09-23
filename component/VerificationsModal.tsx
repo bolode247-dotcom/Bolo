@@ -5,7 +5,7 @@ import ReactNativeModal from 'react-native-modal';
 import * as Yup from 'yup';
 import { Colors, Sizes } from '../constants';
 import AppForm from './Form/AppForm';
-import FormField from './Form/FormField';
+import FormikOTPField from './Form/FormikFormField';
 import SubmitButton from './Form/SubmitButton';
 
 export const validationSchema = Yup.object().shape({
@@ -22,7 +22,8 @@ interface VerificationModalProps {
   onSubmit: (values: { otpCode: string }) => void | Promise<void>;
   onResend: () => void;
   isLoading: boolean;
-  phoneNumber?: string;
+  email?: string;
+  errorMessage?: string;
 }
 
 const VerificationModal: React.FC<VerificationModalProps> = ({
@@ -31,16 +32,19 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
   onSubmit,
   onResend,
   isLoading,
-  phoneNumber,
+  email,
+  errorMessage,
 }) => {
   const { t } = useTranslation();
   const [timer, setTimer] = useState(30);
   const [isResendDisabled, setIsResendDisabled] = useState(true);
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
 
   useEffect(() => {
     if (visible) {
       setTimer(30);
       setIsResendDisabled(true);
+      setOtp(Array(6).fill(''));
     }
   }, [visible]);
 
@@ -56,30 +60,23 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
   if (!visible) return null;
 
   return (
-    <ReactNativeModal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      style={{ flex: 1 }}
-    >
+    <ReactNativeModal isVisible={visible} onBackdropPress={onClose}>
       <View style={styles.container}>
         <Text style={styles.title}>{t('verification.title')}</Text>
         <Text style={styles.subtitle}>
-          {t('verification.subtitle', { phoneNumber })}
+          {t('verification.subtitle', { email })}
         </Text>
+        {errorMessage && (
+          <Text style={styles.errorMessage}>{errorMessage}</Text>
+        )}
 
         <AppForm
           initialValues={{ otpCode: '' }}
           validationSchema={validationSchema}
-          onSubmit={onSubmit}
+          onSubmit={(values) => onSubmit({ otpCode: values.otpCode })}
         >
-          <FormField
-            name="otpCode"
-            label={t('formLabels.otpCode.label')}
-            placeholder={t('formLabels.otpCode.placeholder')}
-            placeholderTextColor={Colors.gray400}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
+          <FormikOTPField name="otpCode" length={6} />
+
           <SubmitButton
             title={t('verification.submit')}
             isLoading={isLoading}
@@ -125,8 +122,10 @@ const styles = StyleSheet.create({
     color: Colors.gray600,
     marginBottom: Sizes.md,
   },
-  fieldStyle: {
-    backgroundColor: Colors.gray500,
+  errorMessage: {
+    fontSize: Sizes.sm,
+    color: Colors.danger,
+    // marginBottom: Sizes.sm,
   },
   btn: {
     marginTop: Sizes.md,

@@ -1,6 +1,9 @@
+import { Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/context/authContex';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,16 +15,13 @@ const FLAG_IMAGES = {
 };
 
 const LanguageSelection = () => {
+  const { selectedLanguage, setSelectedLanguage } = useAuth();
   const { t } = useTranslation();
-  const [selectedLanguage, setSelectedLanguage] = useState<'fr' | 'en' | null>(
-    null,
-  );
+
   const router = useRouter();
 
   const handleContinue = () => {
     if (!selectedLanguage) return;
-
-    // Save language to AsyncStorage or AuthContext here
     router.push('/(auth)/signIn');
   };
 
@@ -33,7 +33,6 @@ const LanguageSelection = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('languageSelection.title')}</Text>
         <Text style={styles.subtitle}>{t('languageSelection.subtitle')}</Text>
       </View>
 
@@ -45,7 +44,7 @@ const LanguageSelection = () => {
               styles.optionCard,
               selectedLanguage === lang.code && styles.selectedCard,
             ]}
-            onPress={() => setSelectedLanguage(lang.code as 'fr' | 'en')}
+            onPress={() => setSelectedLanguage(lang.code)}
           >
             <Image
               source={lang.image}
@@ -62,7 +61,8 @@ const LanguageSelection = () => {
         disabled={!selectedLanguage}
         onPress={handleContinue}
       >
-        <Text style={styles.continueText}>Continue</Text>
+        <Text style={styles.continueText}>{t('onboarding.next')}</Text>
+        <Ionicons name="arrow-forward" size={28} color={Colors.white} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -72,22 +72,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingVertical: 40,
+    alignItems: 'center',
   },
   header: {
     alignItems: 'center',
     marginHorizontal: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: 'PoppinsExtraBold',
-    color: Colors.black,
-    marginBottom: 10,
+    justifyContent: 'center',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'PoppinsRegular',
+    fontFamily: 'PoppinsBold',
     color: Colors.gray800,
     textAlign: 'center',
   },
@@ -95,7 +92,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginHorizontal: 20,
-    marginTop: 50,
+    marginTop: 10,
   },
   optionCard: {
     flex: 1,
@@ -122,11 +119,17 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   continueButton: {
-    backgroundColor: Colors.primary,
-    marginHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: Colors.primaryDark,
+    paddingVertical: Sizes.sm,
     borderRadius: 9999,
+    marginHorizontal: 20,
     alignItems: 'center',
+    marginBottom: 30,
+    flexDirection: 'row',
+    gap: Sizes.xsm,
+    justifyContent: 'center',
+    width: '90%',
+    marginVertical: Sizes.x6l,
   },
   continueText: {
     color: Colors.white,

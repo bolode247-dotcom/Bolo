@@ -1,4 +1,4 @@
-import { images } from '@/constants';
+import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -76,14 +76,16 @@ const UserRole = () => {
               onPress={() => setSelectedRole(role.id as any)}
               activeOpacity={0.8}
             >
-              <View style={styles.iconWrapper}>
-                <Ionicons
-                  name={role.icon as any}
-                  size={40}
-                  color={Colors.primary}
-                />
+              <View style={styles.roleHeader}>
+                <View style={styles.iconWrapper}>
+                  <Ionicons
+                    name={role.icon as any}
+                    size={40}
+                    color={Colors.primary}
+                  />
+                </View>
+                <Text style={styles.roleTitle}>{role.title}</Text>
               </View>
-              <Text style={styles.roleTitle}>{role.title}</Text>
               <Text style={styles.roleDescription}>{role.description}</Text>
             </TouchableOpacity>
           ))}
@@ -98,6 +100,7 @@ const UserRole = () => {
           onPress={handleContinue}
         >
           <Text style={styles.continueText}>{t('userRole.continue')}</Text>
+          <Ionicons name="arrow-forward" size={28} color={Colors.white} />
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -126,20 +129,21 @@ const styles = StyleSheet.create({
     color: Colors.gray800,
     fontFamily: 'PoppinsRegular',
   },
+  // 🔽 Updated for column layout
   rolesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'center',
     marginHorizontal: 20,
     marginTop: 30,
     marginBottom: 40,
   },
   roleCard: {
-    flex: 1,
+    width: '100%', // full width within container
     backgroundColor: Colors.gray100,
     borderRadius: 20,
     padding: 20,
-    marginHorizontal: 5,
-    alignItems: 'center',
+    marginBottom: 20, // spacing between cards
+    alignItems: 'flex-start',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
@@ -152,31 +156,38 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     borderRadius: 20,
   },
+  roleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10, // space below header before description
+  },
   iconWrapper: {
     backgroundColor: Colors.gray200,
-    padding: 15,
+    padding: 10,
     borderRadius: 50,
-    marginBottom: 15,
+    marginRight: 10, // space between icon and title
   },
   roleTitle: {
     fontSize: 18,
     fontFamily: 'PoppinsSemiBold',
     color: Colors.black,
-    marginBottom: 5,
   },
   roleDescription: {
     fontSize: 14,
     fontFamily: 'PoppinsRegular',
-    color: Colors.gray500,
-    textAlign: 'center',
+    color: Colors.gray600,
+    textAlign: 'left',
   },
   continueButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 16,
+    backgroundColor: Colors.primaryDark,
+    paddingVertical: Sizes.sm,
     borderRadius: 9999,
     marginHorizontal: 20,
     alignItems: 'center',
     marginBottom: 30,
+    flexDirection: 'row',
+    gap: Sizes.xsm,
+    justifyContent: 'center',
   },
   continueText: {
     color: Colors.white,

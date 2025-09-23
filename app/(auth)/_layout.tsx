@@ -5,19 +5,11 @@ export default function AuthLayout() {
   return (
     <Stack>
       <Stack.Screen
-        name="welcome"
-        options={{ headerShown: false, animation: 'slide_from_right' }}
-      />
-      <Stack.Screen
         name="signIn"
         options={{ headerShown: false, animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="signUp"
-        options={{ headerShown: false, animation: 'slide_from_right' }}
-      />
-      <Stack.Screen
-        name="phoneVerification"
         options={{ headerShown: false, animation: 'slide_from_right' }}
       />
       <Stack.Screen
@@ -27,6 +19,14 @@ export default function AuthLayout() {
       <Stack.Screen
         name="languageSelection"
         options={{ headerShown: false, animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="EmailVerification"
+        options={{
+          headerShown: true,
+          animation: 'slide_from_right',
+          title: 'Forgotten Password',
+        }}
       />
     </Stack>
   );

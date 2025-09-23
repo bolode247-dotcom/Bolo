@@ -1,6 +1,7 @@
 import CustomButton from '@/component/CustomButton';
 import { Colors } from '@/constants';
 import { useOnBoardingData } from '@/constants/onBoarding';
+import { useAuth } from '@/context/authContex';
 // import { useAuth } from '@/context/authContext';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
@@ -15,14 +16,14 @@ const OnBoarding = () => {
   const swiperRef = useRef<Swiper>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const isLastSlide = activeIndex === onBoarding.length - 1;
-  // const { markOnboardingComplete } = useAuth();
+  const { markOnboardingComplete } = useAuth();
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Skip Button */}
       <TouchableOpacity
         onPress={async () => {
-          // await markOnboardingComplete();
+          await markOnboardingComplete();
           router.replace('/(auth)/signIn');
         }}
         style={styles.skipButton}
@@ -65,7 +66,7 @@ const OnBoarding = () => {
         textVariant="default"
         onPress={async () => {
           if (isLastSlide) {
-            // await markOnboardingComplete();
+            await markOnboardingComplete();
             router.replace('/(auth)/languageSelection');
           } else {
             swiperRef.current?.scrollBy(1);

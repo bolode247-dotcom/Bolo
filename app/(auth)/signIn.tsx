@@ -1,13 +1,20 @@
+import {
+  OtpVerification,
+  sendOTP,
+  SignInUser,
+} from '@/appwriteFuncs/usersFunc';
 import AppForm from '@/component/Form/AppForm';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
-import { images } from '@/constants';
+import VerificationModal from '@/component/VerificationsModal';
+import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { signInValidationSchema } from '@/Utils/ValidationShema';
 import { Link } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -20,10 +27,56 @@ import {
 
 const SignIn = () => {
   const { t } = useTranslation();
-  const handleSignIn = (values: { phoneNumber: string; password: string }) => {
-    console.log('Sign-In values:', values);
-    // Simulate API call
-    alert(`Signing in ${values.phoneNumber}`);
+  const [showVerification, setShowVerification] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [email, setEmail] = React.useState('');
+  const [userId, setUserId] = React.useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [otpError, setOtpError] = React.useState<string | null>(null);
+
+  const handleOtpSubmit = async (values: { otpCode: string }) => {
+    const { otpCode } = values;
+    console.log('otp code', otpCode);
+    if (!userId) {
+      Alert.alert('Error', 'User ID is missing.');
+      return;
+    }
+    setIsVerifying(true);
+    setError(null);
+    try {
+      await OtpVerification(userId, otpCode);
+      setShowVerification(false);
+      Alert.alert('Success', 'Email verified successfully!');
+    } catch (err: any) {
+      setOtpError(err.message); // ✅ Use error state, not email
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleSignIn = async (values: { email: string; password: string }) => {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const res = await SignInUser(values);
+      console.log('user response:', res);
+
+      if ('unverified' in res && res.unverified) {
+        setUserId(res.userId);
+        setEmail(res.email);
+        setShowVerification(true);
+        return;
+      }
+
+      // ✅ Signed in and verified → navigate or fetch data
+      console.log('✅ Signed in successfully:', res);
+      // router.replace('/(tabs)/');
+    } catch (err: any) {
+      setError(err.message); // ✅ Use error state for messages
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -50,21 +103,23 @@ const SignIn = () => {
             />
             <View style={styles.headerTextWrapper}>
               <Text style={styles.headerTitle}>{t('signIn.headerTitle')}</Text>
+              <Text style={styles.headerSubtitle}>{error}</Text>
             </View>
           </View>
 
           <AppForm
-            initialValues={{ phoneNumber: '', password: '' }}
+            initialValues={{ email: '', password: '' }}
             onSubmit={handleSignIn}
             validationSchema={signInValidationSchema}
           >
             <View style={styles.inputContainer}>
               <FormField
-                label={t('formLabels.phoneNumber.label')}
-                name="phoneNumber"
-                icon="call"
-                placeholder={t('formLabels.phoneNumber.placeholder')}
-                keyboardType="phone-pad"
+                label={t('formLabels.email.label')}
+                name="email"
+                icon="mail"
+                placeholder={t('formLabels.email.placeholder')}
+                keyboardType="email-address"
+                autoComplete="email"
               />
               <FormField
                 label={t('formLabels.password.label')}
@@ -74,6 +129,26 @@ const SignIn = () => {
                 secureTextEntry
               />
             </View>
+            <View
+              style={{
+                paddingTop: Sizes.sm,
+                paddingHorizontal: 20,
+                flexDirection: 'row',
+                gap: Sizes.xsm,
+                justifyContent: 'flex-end',
+              }}
+            >
+              <Link
+                style={{
+                  fontSize: Sizes.md,
+                  color: Colors.primary,
+                  fontWeight: '400',
+                }}
+                href="./EmailVerification"
+              >
+                {t('signIn.forgottenPassword')}
+              </Link>
+            </View>
             <SubmitButton
               title={t('signIn.submit')}
               style={{
@@ -81,11 +156,11 @@ const SignIn = () => {
                 marginHorizontal: 'auto',
                 marginVertical: 20,
               }}
+              isLoading={isSubmitting}
             />
           </AppForm>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>{t('signIn.noAccount')}</Text>
             <TouchableOpacity>
               <Link href={'./userRole'} style={styles.footerLink}>
                 {t('signIn.signUpLink')}
@@ -94,6 +169,22 @@ const SignIn = () => {
           </View>
         </View>
       </ScrollView>
+      <VerificationModal
+        visible={showVerification}
+        email={email} // Pass the updated phone number
+        onClose={() => setShowVerification(false)}
+        isLoading={isVerifying}
+        onSubmit={handleOtpSubmit}
+        errorMessage={otpError || ''}
+        onResend={async () => {
+          try {
+            const newOtp = await sendOTP(email);
+            setUserId(newOtp);
+          } catch {
+            Alert.alert('Error', 'Could not resend OTP');
+          }
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -129,9 +220,16 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontFamily: 'PoppinsSemiBold',
   },
+  headerSubtitle: {
+    fontSize: 15, // text-md
+    color: Colors.danger,
+    fontFamily: 'PoppinsSemiBold',
+    marginTop: 2,
+  },
   inputContainer: {
     paddingHorizontal: 20,
     paddingTop: 10,
+    marginTop: 40,
   },
   footer: {
     flexDirection: 'row',

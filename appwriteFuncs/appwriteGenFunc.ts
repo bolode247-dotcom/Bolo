@@ -46,3 +46,17 @@ export const getLocations = async (): Promise<LocationOption[]> => {
     throw new Error('Failed to fetch locations');
   }
 };
+
+export const formatCameroonPhone = (phone: string) => {
+  const trimmed = phone.replace(/\D/g, ''); // remove non-digits
+  if (trimmed.startsWith('237')) {
+    return `+${trimmed}`;
+  }
+  if (trimmed.startsWith('6')) {
+    return `+237${trimmed}`;
+  }
+  if (trimmed.startsWith('0')) {
+    return `+237${trimmed.slice(1)}`; // remove leading zero
+  }
+  return `+237${trimmed}`;
+};

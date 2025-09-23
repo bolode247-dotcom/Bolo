@@ -53,6 +53,7 @@ function SearchablePicker<T>({
   const [filtered, setFiltered] = useState<PickerItem<T>[]>([]);
   const [showList, setShowList] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<PickerItem<T> | null>(null);
 
   // console.log('data', data);
 
@@ -88,6 +89,7 @@ function SearchablePicker<T>({
 
   const handleSelect = (item: PickerItem<T>) => {
     setQuery(item.label);
+    setSelectedItem(item);
     setShowList(false);
     const idToStore = item.id;
     console.log('Selected item:', idToStore);
@@ -100,11 +102,17 @@ function SearchablePicker<T>({
   const formValue =
     name && formik?.values && name in formik.values ? formik.values[name] : '';
   useEffect(() => {
-    // If Formik changes value externally, update query
-    if (formValue && formValue !== query) {
-      setQuery(formValue);
+    if (formValue) {
+      const match = data.find((d) => d.id === formValue);
+      if (match) {
+        setSelectedItem(match);
+        setQuery(match.label); // Display label
+      }
+    } else {
+      setSelectedItem(null);
+      setQuery('');
     }
-  }, [formValue]);
+  }, [formValue, data]);
 
   const displayError =
     error || (name && formik?.touched[name] && formik?.errors[name]);

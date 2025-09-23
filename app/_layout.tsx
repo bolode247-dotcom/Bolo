@@ -2,8 +2,12 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
-import '../i18n';
 
+import { AuthProvider, useAuth } from '@/context/authContex';
+import '../i18n';
+import LoadingScreen from './LoadingScreen';
+
+// Prevent splash screen auto-hide until fonts are loaded
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -12,7 +16,7 @@ export default function RootLayout() {
     PoppinsExtraBold: require('../assets/fonts/Poppins-ExtraBold.ttf'),
     PoppinsExtraLight: require('../assets/fonts/Poppins-ExtraLight.ttf'),
     PoppinsLight: require('../assets/fonts/Poppins-Light.ttf'),
-    PoppinsMedium: require('../assets/fonts/Poppins-Medium.ttf'), // fixed typo
+    PoppinsMedium: require('../assets/fonts/Poppins-Medium.ttf'),
     PoppinsRegular: require('../assets/fonts/Poppins-Regular.ttf'),
     PoppinsSemiBold: require('../assets/fonts/Poppins-SemiBold.ttf'),
   });
@@ -26,13 +30,39 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <>
-      <Stack>
-        <Stack.Screen name="welcome" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+    <AuthProvider>
+      <AppRouter />
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-    </>
+    </AuthProvider>
   );
 }
+
+const AppRouter = () => {
+  const { session, isLoading, hasCompletedOnboarding } = useAuth();
+
+  console.log('Session:', session);
+  console.log('Loading:', isLoading);
+  console.log('Onboarding Completed:', hasCompletedOnboarding);
+  if (isLoading) return <LoadingScreen />;
+
+  return (
+    <Stack>
+      <Stack.Protected guard={!hasCompletedOnboarding}>
+        <Stack.Screen name="Welcome" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={session && hasCompletedOnboarding}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(book)" options={{ headerShown: false }} />
+        <Stack.Screen name="(profile)" options={{ headerShown: false }} />
+        <Stack.Screen name="search/[query]" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+    </Stack>
+  );
+};
