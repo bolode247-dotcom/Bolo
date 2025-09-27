@@ -17,7 +17,7 @@ i18next.use(initReactI18next).init({
 
   interpolation: { escapeValue: false }, // react already safes from xss
   resources,
-  lng: 'fr', // default language
+  lng: 'en', // default language
 });
 
 export default i18next;

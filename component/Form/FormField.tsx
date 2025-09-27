@@ -7,7 +7,7 @@ import ErrorMessage from './ErrorMessage';
 
 interface AppFormFieldProps {
   name: string;
-  label: string;
+  label?: string;
   [key: string]: any;
 }
 

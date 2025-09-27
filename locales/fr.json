@@ -24,7 +24,7 @@
     "submit": "Se connecter",
     "forgottenPassword": "Mot de passe oublié ?",
     "noAccount": "Créer un nouveau compte",
-    "signUpLink": "S’inscrire"
+    "signUpLink": "Créer un nouveau compte"
   },
 
   "signUp": {
@@ -59,6 +59,10 @@
       "label": "Lieu",
       "placeholder": "Sélectionnez votre lieu"
     },
+    "skills": {
+      "label": "Métier",
+      "placeholder": "Choisissez votre métier"
+    },
     "otpCode": {
       "label": "Code OTP",
       "placeholder": "Entrez le code de vérification"
@@ -83,7 +87,8 @@
     "emailRequired": "L’adresse e-mail est requise",
     "phoneRequired": "Le numéro de téléphone est requis",
     "phoneFormat": "Format de numéro de téléphone invalide",
-    "locationRequired": "Veuillez sélectionner un lieu"
+    "locationRequired": "Veuillez sélectionner un lieu",
+    "professionRequired": "Veuillez choisir un métier"
   },
 
   "authCommon": {

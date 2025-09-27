@@ -1,4 +1,4 @@
-import { Colors } from '@/constants';
+import { Colors, Sizes } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 
 type InputFieldProps = {
-  label: string;
+  label?: string;
   labelStyle?: object;
   icon?: keyof typeof Ionicons.glyphMap;
   iconStyle?: object;
@@ -46,9 +46,9 @@ const InputField = ({
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={[styles.container]}>
-          <Text style={[styles.label, labelStyle]}>{label}</Text>
+          {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
           <View style={styles.inputWrapper}>
-            {icon && <Ionicons name={icon} size={24} color="#6B7280" />}
+            {icon && <Ionicons name={icon} size={20} color="#6B7280" />}
             <TextInput
               style={[styles.input, inputStyle]}
               secureTextEntry={isPasswordField ? !showPassword : false}
@@ -102,10 +102,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 12,
     fontSize: 15,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: 'PoppinsRegular',
     textAlign: 'left',
+    alignSelf: 'center',
     color: Colors.black,
   },
 });

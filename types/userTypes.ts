@@ -7,6 +7,7 @@ export interface User {
   confirmPassword?: string;
   phoneNumber?: string;
   location?: string;
+  skills?: string;
   role?: 'worker' | 'recruiter';
 
   createdAt?: string;
@@ -15,13 +16,18 @@ export interface User {
 export interface currentUser {
   $id: string;
   accountId: string;
-  userRole: 'worker' | 'recruiter';
   [key: string]: any;
 }
 
 export type SignUpPayload = Pick<
   User,
-  'fullName' | 'email' | 'password' | 'phoneNumber' | 'location' | 'role'
+  | 'fullName'
+  | 'email'
+  | 'password'
+  | 'phoneNumber'
+  | 'location'
+  | 'role'
+  | 'skills'
 >;
 export type SignUpVerificationPayload = Pick<User, 'phoneNumber' | 'location'>;
 export type SignInPayload = Pick<User, 'email' | 'password'>;

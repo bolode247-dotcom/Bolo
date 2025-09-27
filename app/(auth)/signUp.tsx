@@ -1,18 +1,23 @@
+import { getLocations, getSkills } from '@/appwriteFuncs/appwriteGenFunc';
 import {
   createAccount,
   OtpVerification,
   sendOTP,
 } from '@/appwriteFuncs/usersFunc';
+import CustomPickerModal from '@/component/CustomPickerModal';
 import AppForm from '@/component/Form/AppForm';
+import CustomPickerField from '@/component/Form/CurstomPickerField';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
 import VerificationModal from '@/component/VerificationsModal';
-import { images } from '@/constants';
+import { images, Sizes } from '@/constants';
 // Ensure images.signUpImg is imported as require('...') or an object, not a string
 import Colors from '@/constants/Colors'; // Assuming you have the colors object
 import { useAuth } from '@/context/authContex';
+import useAppwrite from '@/lib/useAppwrite';
 import { signupValidationSchema } from '@/Utils/ValidationShema';
 import { Link, router, useLocalSearchParams } from 'expo-router';
+import { FormikConsumer } from 'formik';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -36,9 +41,15 @@ const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [userId, setUserId] = React.useState<string | null>(null);
+  const [accountId, setAccountId] = React.useState<string | null>(null);
   const [isVerirying, setIsVerifying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [otpError, setOtpError] = React.useState<string | null>(null);
+  const [showLocModal, setShowLocModal] = React.useState(false);
+  const [showSkillsModal, setShowSkillsModal] = React.useState(false);
+
+  const { data: locations = [] } = useAppwrite(() => getLocations());
+  const { data: skills = [] } = useAppwrite(() => getSkills());
 
   const handleOtpSubmit = async (values: { otpCode: string }) => {
     const { otpCode } = values;
@@ -49,8 +60,8 @@ const SignUp = () => {
     setIsVerifying(true);
     try {
       await OtpVerification(userId, otpCode);
-      setShowVerification(false);
       await fetchData();
+      setShowVerification(false);
       router.replace('/');
     } catch (error: any) {
       setOtpError(error.message);
@@ -64,7 +75,8 @@ const SignUp = () => {
     fullName: string;
     email: string;
     phoneNumber: string;
-    // location: string;
+    location: string;
+    skills: string;
     password: string;
     confirmPassword: string;
   }) => {
@@ -72,6 +84,7 @@ const SignUp = () => {
     try {
       const res = await createAccount({ ...values, role } as any);
       setUserId(res.userId);
+      setAccountId(res.user.$id);
       setEmail(values.email);
       setShowVerification(true);
     } catch (error: any) {
@@ -83,7 +96,10 @@ const SignUp = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: Colors.white }}
+      edges={['top', 'right', 'left']}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -120,6 +136,8 @@ const SignUp = () => {
                 phoneNumber: '',
                 password: '',
                 confirmPassword: '',
+                location: '',
+                skills: '',
               }}
               onSubmit={handleSignup}
               validationSchema={signupValidationSchema}
@@ -128,46 +146,48 @@ const SignUp = () => {
               <View style={styles.inputContainer}>
                 <FormField
                   name="fullName"
-                  label={t('formLabels.fullName.label')}
                   icon="person"
-                  placeholder={t('formLabels.fullName.placeholder')}
+                  placeholder={t('formLabels.fullName.label')}
                 />
                 <FormField
                   name="email"
-                  label={t('formLabels.email.label')}
                   icon="mail"
-                  placeholder={t('formLabels.email.placeholder')}
+                  placeholder={t('formLabels.email.label')}
                   keyboardType="email-address"
                   autoComplete="email"
                 />
                 <FormField
-                  label={t('formLabels.phoneNumber.label')}
                   name="phoneNumber"
                   icon="call"
-                  placeholder={t('formLabels.phoneNumber.placeholder')}
+                  placeholder={t('formLabels.phoneNumber.label')}
                   keyboardType="phone-pad"
                 />
+                <CustomPickerField
+                  name="location"
+                  icon="location"
+                  placeholder={t('formLabels.location.label')}
+                  openModal={() => setShowLocModal(true)}
+                  data={locations || []}
+                />
+                <CustomPickerField
+                  name="skills"
+                  icon="flash"
+                  placeholder={t('formLabels.skills.label')}
+                  openModal={() => setShowSkillsModal(true)}
+                  data={skills || []}
+                />
                 <FormField
-                  label={t('formLabels.password.label')}
                   name="password"
                   icon="lock-closed"
-                  placeholder={t('formLabels.password.placeholder')}
+                  placeholder={t('formLabels.password.label')}
                   secureTextEntry
                 />
                 <FormField
-                  label={t('formLabels.confirmPassword.label')}
                   name="confirmPassword"
                   icon="lock-closed"
-                  placeholder={t('formLabels.confirmPassword.placeholder')}
+                  placeholder={t('formLabels.confirmPassword.label')}
                   secureTextEntry
                 />
-                {/* <SearchablePicker
-                  name="location"
-                  label={t('formLabels.location.label')}
-                  icon="location"
-                  placeholder={t('formLabels.location.placeholder')}
-                  data={locations ?? []}
-                /> */}
               </View>
               <SubmitButton
                 title={t('signUp.submit')}
@@ -178,6 +198,32 @@ const SignUp = () => {
                 }}
                 isLoading={isSubmitting}
               />
+              <FormikConsumer>
+                {({ setFieldValue, values }) => (
+                  <CustomPickerModal
+                    visible={showLocModal}
+                    onClose={() => setShowLocModal(false)}
+                    data={locations || []}
+                    title="Select Location"
+                    showSearch
+                    initialSelectedId={values.location}
+                    onSelect={(item) => setFieldValue('location', item.id)}
+                  />
+                )}
+              </FormikConsumer>
+              <FormikConsumer>
+                {({ setFieldValue, values }) => (
+                  <CustomPickerModal
+                    visible={showSkillsModal}
+                    onClose={() => setShowSkillsModal(false)}
+                    data={skills || []}
+                    title="Select Profession"
+                    showSearch
+                    initialSelectedId={values.skills}
+                    onSelect={(item) => setFieldValue('skills', item.id)}
+                  />
+                )}
+              </FormikConsumer>
             </AppForm>
             <View style={styles.footer}>
               <Text style={styles.footerText}>{t('signUp.footerText')}</Text>
@@ -254,7 +300,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   inputContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: Sizes.sm,
     paddingTop: 10,
     marginTop: 20,
   },

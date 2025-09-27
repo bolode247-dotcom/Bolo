@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const lang = await AsyncStorage.getItem('appLanguage');
       if (lang) setSelectedLanguageState(lang);
-      i18next.changeLanguage(lang || 'fr');
+      i18next.changeLanguage(lang || 'en');
     } catch (error) {
       console.log('Error loading language:', error);
     }

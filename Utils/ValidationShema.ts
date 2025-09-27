@@ -16,7 +16,10 @@ export const signupValidationSchema = Yup.object().shape({
     .required('Phone number is required')
     .matches(/^6\d{8}$/, 'Invalid phone number format')
     .label('Phone Number'),
-  // location: Yup.string().required('Please select a location').label('Location'),
+  location: Yup.string().required('Please select a location').label('Location'),
+  skills: Yup.string()
+    .required('Please select a profession')
+    .label('Profession'),
   password: Yup.string()
     .required('Password is required')
     .min(8, 'Password must be at least 8 characters')

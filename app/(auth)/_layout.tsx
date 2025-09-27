@@ -28,6 +28,13 @@ export default function AuthLayout() {
           title: 'Forgotten Password',
         }}
       />
+      <Stack.Screen
+        name="accountInfo"
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack>
   );
 }

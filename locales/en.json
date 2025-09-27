@@ -60,6 +60,10 @@
       "label": "Location",
       "placeholder": "Select your location"
     },
+    "skills": {
+      "label": "Profession",
+      "placeholder": "Select your profession"
+    },
     "otpCode": {
       "label": "OTP Code",
       "placeholder": "Enter verification code"
@@ -84,7 +88,8 @@
     "emailRequired": "Email is required",
     "phoneRequired": "Phone number is required",
     "phoneFormat": "Invalid phone number format",
-    "locationRequired": "Please select a location"
+    "locationRequired": "Please select a location",
+    "professionRequired": "Please select a profession"
   },
 
   "authCommon": {

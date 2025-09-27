@@ -40,9 +40,7 @@ export default function RootLayout() {
 const AppRouter = () => {
   const { session, isLoading, hasCompletedOnboarding } = useAuth();
 
-  console.log('Session:', session);
-  console.log('Loading:', isLoading);
-  console.log('Onboarding Completed:', hasCompletedOnboarding);
+
   if (isLoading) return <LoadingScreen />;
 
   return (
