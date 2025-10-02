@@ -9,6 +9,7 @@ import SubmitButton from '@/component/Form/SubmitButton';
 import VerificationModal from '@/component/VerificationsModal';
 import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/context/authContex';
 import { signInValidationSchema } from '@/Utils/ValidationShema';
 import { Link, router } from 'expo-router';
 import React from 'react';
@@ -27,6 +28,7 @@ import {
 
 const SignIn = () => {
   const { t } = useTranslation();
+  const { fetchData } = useAuth();
   const [showVerification, setShowVerification] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [email, setEmail] = React.useState('');
@@ -46,8 +48,8 @@ const SignIn = () => {
     setError(null);
     try {
       await OtpVerification(userId, otpCode);
+      await fetchData();
       setShowVerification(false);
-      Alert.alert('Success', 'Email verified successfully!');
     } catch (err: any) {
       setOtpError(err.message); // ✅ Use error state, not email
     } finally {
@@ -68,6 +70,7 @@ const SignIn = () => {
         setShowVerification(true);
         return;
       }
+      await fetchData();
       router.replace('/');
     } catch (err: any) {
       setError(err.message);

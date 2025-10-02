@@ -11,7 +11,7 @@ export default function TabsLayout() {
 
   // Full list of possible tabs
   const allTabs = [
-    { name: '(home)', title: 'Home', icon: 'home' as const },
+    { name: 'index', title: 'Home', icon: 'home' as const },
     { name: 'workers', title: 'Workers', icon: 'people' as const },
     { name: 'jobs', title: 'Jobs', icon: 'briefcase' as const },
     { name: 'applications', title: 'Applications', icon: 'document' as const },
@@ -23,11 +23,11 @@ export default function TabsLayout() {
   // Helper: determine if a tab should be visible for this user
   const isVisible = (tabName: string) => {
     if (isRecruiter) {
-      return ['(home)', 'workers', 'myJobs', 'chats', 'profile'].includes(
+      return ['index', 'workers', 'myJobs', 'chats', 'profile'].includes(
         tabName,
       );
     }
-    return ['(home)', 'jobs', 'applications', 'chats', 'profile'].includes(
+    return ['index', 'jobs', 'applications', 'chats', 'profile'].includes(
       tabName,
     );
   };

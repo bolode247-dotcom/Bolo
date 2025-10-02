@@ -8,6 +8,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    ViewStyle,
 } from 'react-native';
 import { Colors } from '../../constants';
 import ErrorMessage from './ErrorMessage';
@@ -16,6 +17,7 @@ type DropDownFormFieldProps = {
   name?: string;
   label?: string;
   placeholder: string;
+  inputContainer?: ViewStyle;
   openModal: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   data?: { id: string | number; label: string }[];
@@ -25,6 +27,7 @@ const CustomPickerField: React.FC<DropDownFormFieldProps> = ({
   label,
   name,
   placeholder,
+  inputContainer,
   openModal,
   icon,
   data = [],
@@ -39,7 +42,7 @@ const CustomPickerField: React.FC<DropDownFormFieldProps> = ({
       style={styles.container}
     >
       {label && <Text style={styles.label}>{label}</Text>}
-      <View style={styles.inputWrapper}>
+      <View style={[styles.inputWrapper, inputContainer]}>
         {icon && (
           <Ionicons
             name={icon}

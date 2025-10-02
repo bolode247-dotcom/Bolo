@@ -19,6 +19,16 @@
     "getStarted": "Get Started"
   },
 
+  "buttons": {
+    "SignIn": "Sign In",
+    "SignUp": "Sign Up",
+    "postJob": "Post Job",
+    "continue": "Continue",
+    "getStarted": "Get Started",
+    "viewDetails": "View details",
+    "backToHome": "Back to home"
+  },
+
   "signIn": {
     "headerTitle": "Sign In",
     "submit": "Sign In",
@@ -67,6 +77,40 @@
     "otpCode": {
       "label": "OTP Code",
       "placeholder": "Enter verification code"
+    },
+    "jobTitle": { 
+      "label": "Job Title", 
+      "placeholder": "e.g Electricien Needed" 
+    },
+      "workerType": { 
+      "label": "Type of worker", 
+      "placeholder": "Select type of worker" 
+    }, 
+    "jobType": { 
+      "label": "Job Nature", 
+      "placeholder": "Select a job type..." 
+    }, 
+    "jobLocation": { 
+      "label": "Location", 
+      "placeholder": "Select job location" 
+    }, 
+    "JobDescription": { 
+      "label": "Full Description", 
+      "placeholder": "Input job description..."
+    }, 
+    "salary": { 
+      "label": "Payment Value", 
+      "budgetLabel": "Contract Budget", 
+      "placeholder": "e.g., 55000", 
+      "budgetPlaceholder": "e.g., 1000000" 
+    }, 
+    "salaryType": { 
+      "label": "Payment Rate", 
+      "placeholder": "Select..."
+    },
+    "maxApplicants": { 
+      "label": "Max Applicants", 
+      "placeholder": "Maximum number of applicants" 
     }
   },
 
@@ -126,5 +170,22 @@
     "title": "Select Your Language",
     "subtitle": "Choose your preferred language for the app.",
     "continue": "Continue"
+  },
+  "successModal": {
+    "jobPostingSuccessful": "Job posting successful",
+    "jobPostingSubtitle": "You have successfully created a job posting. Choose from the applicants who you want to hire."
+  },
+  "home": {
+    "seeAll": "See all",
+    "recommendedWorkers": "Recommended Workers",
+    "jobOffers": "Job Offers",
+    "recommendedForYou": "Recommended for you",
+    "searchPlaceholder": "Search for workers...",
+    "createJob": "Create Job",
+    "worker": "Worker",
+    "worker_plural": "Workers",
+    "workerByCat": "Workers By Category",
+    "categories": "Categories",
+    "noWorkersFound": "No workers found"
   }
 }

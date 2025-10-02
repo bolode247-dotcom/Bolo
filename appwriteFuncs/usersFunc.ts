@@ -33,14 +33,12 @@ export const createAccount = async (values: SignUpPayload) => {
         role,
         accountId: newAccount.$id,
         isVerified: false,
-        skills: [skills],
+        skills,
         locations: location,
         recruiters: null,
         workers: null,
       },
     });
-
-    console.log('after user creation: ', newUser);
 
     if (role === 'recruiter') {
       const recruiterRow = await tables.createRow({
@@ -75,8 +73,6 @@ export const createAccount = async (values: SignUpPayload) => {
     } else {
       throw new Error('Invalid role');
     }
-
-    console.log('Reached before subscription creation');
 
     // 5️⃣ Setup subscription
     let planId: string;
@@ -130,7 +126,7 @@ export const SignInUser = async (values: SignInPayload) => {
   const { email, password } = values;
 
   try {
-    // 1️⃣ Check if email exists in your user table userId
+    // 1️⃣ Check if account exists in your custom user table
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.userCol,
@@ -138,39 +134,22 @@ export const SignInUser = async (values: SignInPayload) => {
     });
 
     if (!res.total) {
-      throw new Error('No account found. Please create an account');
+      throw new Error('No account found. Please create a Bolo account');
     }
 
-    // 2️⃣ Try to get an existing session
-    let existingSession = null;
+    // 2️⃣ Always clear current session if it exists
     try {
-      existingSession = await account.getSession({ sessionId: 'current' });
-    } catch {
-      // No active session found — safe to ignore
-    }
-
-    // 3️⃣ If a session exists, check verification
-    if (existingSession) {
       await account.deleteSession({ sessionId: 'current' });
-      await account.createEmailPasswordSession({ email, password });
-      const currentUser = await getCurrentUser();
-      if (!currentUser.account.emailVerification) {
-        const otpResponse = await sendOTP(email);
-        return {
-          userId: otpResponse,
-          email,
-          unverified: true,
-        };
-      }
-      // ✅ Already verified → return user
-      return currentUser;
+    } catch {
+      // No active session found → safe to ignore
     }
 
-    // 4️⃣ No session → create a new one
+    // 3️⃣ Create a new session
     await account.createEmailPasswordSession({ email, password });
 
-    // 5️⃣ Fetch the user again and check verification
+    // 4️⃣ Get user and handle verification
     const currentUser = await getCurrentUser();
+
     if (!currentUser.account.emailVerification) {
       const otpResponse = await sendOTP(email);
       return {
@@ -180,10 +159,10 @@ export const SignInUser = async (values: SignInPayload) => {
       };
     }
 
-    // ✅ Verified user → return
+    // ✅ Verified user
     return currentUser;
   } catch (error) {
-    console.error('Error during sign in:', error);
+    console.error('❌ SignIn error:', error);
     throw error;
   }
 };

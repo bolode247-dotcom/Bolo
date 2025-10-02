@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/authContex';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../i18n';
 import LoadingScreen from './LoadingScreen';
 
@@ -31,15 +33,18 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <AppRouter />
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <GestureHandlerRootView>
+        <BottomSheetModalProvider>
+          <AppRouter />
+          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        </BottomSheetModalProvider>
+      </GestureHandlerRootView>
     </AuthProvider>
   );
 }
 
 const AppRouter = () => {
   const { session, isLoading, hasCompletedOnboarding } = useAuth();
-
 
   if (isLoading) return <LoadingScreen />;
 
@@ -55,6 +60,7 @@ const AppRouter = () => {
 
       <Stack.Protected guard={session && hasCompletedOnboarding}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(screens)" options={{ headerShown: false }} />
       </Stack.Protected>
 
       <Stack.Screen name="+not-found" options={{ headerShown: false }} />

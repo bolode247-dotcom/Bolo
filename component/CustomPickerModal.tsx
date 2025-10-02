@@ -111,6 +111,7 @@ function CustomPickerModal<T>({
             data={filteredData}
             keyExtractor={(item) => item.id.toString()}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
             style={{ flexGrow: 0 }}
             renderItem={({ item }) => (
               <TouchableOpacity

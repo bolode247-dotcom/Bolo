@@ -1,14 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-const recommended = () => {
+const JobDetails = () => {
   return (
     <View>
-      <Text>recommended</Text>
+      <Text>Profile</Text>
     </View>
   );
 };
 
-export default recommended;
+export default JobDetails;
 
 const styles = StyleSheet.create({});

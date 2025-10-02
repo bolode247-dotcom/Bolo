@@ -48,12 +48,12 @@ const SearchInputField = ({
     >
       <View style={[styles.inputWrapper, style]}>
         {/* Search Icon */}
-        <Ionicons
+        {/* <Ionicons
           name="search-outline"
           size={22}
           color={Colors.gray600}
           style={{ marginRight: 8 }}
-        />
+        /> */}
 
         {/* Input */}
         <TextInput

@@ -1,6 +1,7 @@
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -92,7 +93,12 @@ const AppHeader = () => {
       </TouchableOpacity>
 
       {/* Notifications */}
-      <TouchableOpacity style={styles.notifyWrapper}>
+      <TouchableOpacity
+        style={styles.notifyWrapper}
+        onPress={() => {
+          router.push('/(screens)/notifications');
+        }}
+      >
         <MaterialCommunityIcons
           name="bell-outline"
           size={25}

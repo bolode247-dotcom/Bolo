@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-const useAppwrite = <T>(fetchFunction: () => Promise<T>) => {
+const useAppwrite = <T>(fetchFunction: () => Promise<T>, deps: any[] = []) => {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    setData(null);
     try {
       const response = await fetchFunction();
       setData(response);
@@ -18,11 +17,11 @@ const useAppwrite = <T>(fetchFunction: () => Promise<T>) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchFunction]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData, ...deps]); // re-run when deps change
 
   return {
     data,

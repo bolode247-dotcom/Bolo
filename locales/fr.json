@@ -33,6 +33,15 @@
     "footerText": "Vous avez déjà un compte ?",
     "footerLink": "Se connecter"
   },
+   "buttons": {
+    "SignIn": "S’inscrire",
+    "SignUp": "S’inscrire",
+    "postJob": "Publier l’offre",
+    "continue": "Continuer",
+    "getStarted": "Commencer",
+    "viewDetails": "Voir les détails",
+    "backToHome": "Retour à l'accueil"
+  },
 
   "formLabels": {
     "fullName": {
@@ -66,6 +75,40 @@
     "otpCode": {
       "label": "Code OTP",
       "placeholder": "Entrez le code de vérification"
+    },
+    "jobTitle": { 
+      "label": "Titre du poste", 
+      "placeholder": "ex. Électricien recherché" 
+    }, 
+    "workerType": { 
+      "label": "Type de travailleur", 
+      "placeholder": "Choisir le type de travailleur" 
+    }, 
+    "jobType": { 
+      "label": "Nature du travail", 
+      "placeholder": "Choisir un type de travail..." 
+    }, 
+    "jobLocation": { 
+      "label": "Lieu", 
+      "placeholder": "Choisir le lieu du travail" 
+    }, 
+    "JobDescription": { 
+      "label": "Description complète", 
+      "placeholder": "Entrer la description du travail..." 
+    }, 
+    "salary": { 
+      "label": "Valeur du paiement", 
+      "budgetLabel": "Budget du contrat", 
+      "placeholder": "ex. : 55000", 
+      "budgetPlaceholder": "ex. : 1000000" 
+    }, 
+    "salaryType": { 
+      "label": "Taux de paiement", 
+      "placeholder": "Sélectionner..."
+    },
+    "maxApplicants": { 
+      "label": "Max candidats", 
+      "placeholder": "Nombre maximum de candidats" 
     }
   },
 
@@ -124,5 +167,24 @@
     "title": "Sélectionnez votre langue",
     "subtitle": "Choisissez votre langue préférée pour l’application.",
     "continue": "Continuer"
+  },
+  "successModal": {
+    "jobPostingSuccessful": "Offre d'emploi publiée avec succès",
+    "jobPostingSubtitle": "Vous avez créé une offre d'emploi avec succès. Choisissez parmi les candidats ceux que vous souhaitez embaucher."
+  },
+  
+  "home": {
+    "category": "Catégorie",
+    "seeAll": "Voir tout",
+    "recommendedWorkers": "Travailleurs recommandés",
+    "jobOffers": "Offres d'emploi",
+    "recommendedForYou": "Recommandé pour vous",
+    "searchPlaceholder": "Rechercher des travailleurs...",
+    "createJob": "Créer une offre",
+    "worker": "Travailleur",
+    "worker_plural": "Travailleurs",
+    "workerByCat": "Travailleurs par catégorie",
+    "categories": "Catégories",
+    "noWorkersFound": "Aucun travailleur trouvé"
   }
 }

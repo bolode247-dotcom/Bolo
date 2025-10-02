@@ -11,8 +11,7 @@ import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
 import VerificationModal from '@/component/VerificationsModal';
 import { images, Sizes } from '@/constants';
-// Ensure images.signUpImg is imported as require('...') or an object, not a string
-import Colors from '@/constants/Colors'; // Assuming you have the colors object
+import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { signupValidationSchema } from '@/Utils/ValidationShema';
@@ -41,7 +40,6 @@ const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [userId, setUserId] = React.useState<string | null>(null);
-  const [accountId, setAccountId] = React.useState<string | null>(null);
   const [isVerirying, setIsVerifying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [otpError, setOtpError] = React.useState<string | null>(null);
@@ -84,7 +82,6 @@ const SignUp = () => {
     try {
       const res = await createAccount({ ...values, role } as any);
       setUserId(res.userId);
-      setAccountId(res.user.$id);
       setEmail(values.email);
       setShowVerification(true);
     } catch (error: any) {

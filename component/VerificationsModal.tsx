@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import ReactNativeModal from 'react-native-modal';
 import * as Yup from 'yup';
 import { Colors, Sizes } from '../constants';
@@ -59,8 +65,15 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
 
   if (!visible) return null;
 
+  const deviceWidth = Dimensions.get('screen').width;
+  const deviceHeight = Dimensions.get('screen').height;
+
   return (
-    <ReactNativeModal isVisible={visible} onBackdropPress={onClose}>
+    <ReactNativeModal
+      isVisible={visible}
+      deviceHeight={deviceHeight}
+      deviceWidth={deviceWidth}
+    >
       <View style={styles.container}>
         <Text style={styles.title}>{t('verification.title')}</Text>
         <Text style={styles.subtitle}>

@@ -1,6 +1,7 @@
 import { Colors, Sizes } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   StyleSheet,
@@ -13,30 +14,35 @@ type Category = {
   id: string;
   name: string;
   icon: any;
-  workers: number;
+  count: number;
 };
 
 type Props = {
+  catWidth?: number;
   category: Category;
   onSelect: (id: string) => void;
 };
 
 const screenWidth = Dimensions.get('window').width;
-const categoryItemWidth = screenWidth / 2.5;
 
-const CategorySection = ({ category, onSelect }: Props) => {
+const CategorySection = ({ category, onSelect, catWidth = 2.5 }: Props) => {
+  const { t } = useTranslation();
+  const categoryItemWidth = screenWidth / catWidth;
   return (
     <TouchableOpacity
-      style={styles.categoryItem}
+      style={[styles.categoryItem, { width: categoryItemWidth }]}
       onPress={() => onSelect(category.id)}
     >
       <View style={styles.iconWrapper}>
-        <Ionicons name={category.icon} size={50} color={Colors.gray700} />
+        <Ionicons name={category.icon} size={40} color={Colors.gray700} />
       </View>
       <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode="tail">
         {category.name}
       </Text>
-      <Text style={styles.categoryDetails}>{category.workers} Workers</Text>
+      <Text style={styles.categoryDetails}>
+        {category.count}{' '}
+        {category.count > 1 ? t('home.worker_plural') : t('home.worker')}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -44,36 +50,19 @@ const CategorySection = ({ category, onSelect }: Props) => {
 export default CategorySection;
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: Sizes.md,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Sizes.sm,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  seeAll: {
-    color: Colors.primary,
-    fontWeight: '500',
-  },
   categoryItem: {
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
-    padding: Sizes.lg,
+    backgroundColor: Colors.gray100,
+    // padding: Sizes.md,
     borderRadius: Sizes.xsm,
     justifyContent: 'center',
-    width: categoryItemWidth,
-    height: 200,
+    height: 150,
   },
   iconWrapper: {
-    borderRadius: Sizes.lg,
+    borderRadius: 999,
     padding: Sizes.sm,
     marginBottom: Sizes.xsm,
+    backgroundColor: Colors.white,
   },
   icon: {
     width: 30,

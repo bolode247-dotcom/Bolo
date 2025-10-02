@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
+
 export interface SubmitButtonProps {
   title: string;
   isLoading?: boolean;
   style?: object;
-  iconRight?: string;
-  iconLeft?: string;
+  IconRight?: keyof typeof Ionicons.glyphMap;
+  IconLeft?: React.ElementType;
   disabled?: boolean;
 }

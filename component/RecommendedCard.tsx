@@ -3,12 +3,33 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+// Types for normalized user
+type UserSkill = {
+  $id: string;
+  name: string;
+  icon?: string;
+};
+
+type UserLocation = {
+  $id: string;
+  division?: string;
+  subdivision?: string;
+  region?: string;
+};
+
+type User = {
+  $id: string;
+  name: string;
+  avatar?: string | null;
+  skills: UserSkill[];
+  locations?: UserLocation | null;
+};
+
 type RecommendedCardProps = {
-  users: object;
+  users: User;
   payRate: string;
   rating: number;
   location: string;
-  avatar?: string;
 };
 
 type Props = {
@@ -17,42 +38,38 @@ type Props = {
 };
 
 const RecommendedWorkerCard = ({ worker, onPress }: Props) => {
-  const { users, payRate, rating, location, avatar } = worker;
-  console.log('top worker', users.locations);
+  const { users: user, payRate, rating } = worker;
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       {/* Top row: avatar + rate */}
       <View style={styles.headerRow}>
         <Image
           source={
-            avatar ? { uri: avatar } : require('@/assets/icons/profile.png')
+            user?.avatar
+              ? { uri: user.avatar }
+              : require('@/assets/icons/profile.png')
           }
           style={styles.avatar}
         />
-        <Text style={styles.rate}>{payRate}</Text>
+        <View style={styles.row}>
+          <Ionicons name="star" size={14} color="gold" />
+          <Text style={styles.rating}>{rating}</Text>
+        </View>
       </View>
 
       {/* Info below */}
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
-          {users?.name}
+          {user?.name}
         </Text>
         <Text style={styles.role} numberOfLines={1} ellipsizeMode="tail">
-          {users.skills[0]?.name}
+          {user.skills[0]?.name}
         </Text>
-        <View style={styles.row}>
-          <Ionicons name="star" size={14} color="gold" />
-          <Text style={styles.rating}>{rating} (ratings)</Text>
-        </View>
+        <Text style={styles.rate}>{payRate}</Text>
         <View style={styles.locationRow}>
-          <Ionicons
-            name="location-outline"
-            size={16}
-            color={Colors.gray600}
-            style={styles.icon}
-          />
+          <Ionicons name="location-outline" size={16} color={Colors.gray600} />
           <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
-            {users.locations.division}, {users.locations.subdivision}
+            {user?.locations?.division}, {user?.locations?.subdivision}
           </Text>
         </View>
       </View>
@@ -115,7 +132,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
     color: Colors.gray700,
-    fontFamily: 'PoppinsRegular',
+    // fontFamily: 'PoppinsRegular',
   },
   locationRow: {
     flexDirection: 'row',
