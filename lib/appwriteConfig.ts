@@ -11,6 +11,7 @@ export const appwriteConfig = {
   workerCol: process.env.EXPO_PUBLIC_APPWRITE_WORKER_COL_ID!,
   recruiterCol: process.env.EXPO_PUBLIC_APPWRITE_RECRUITER_COL_ID!,
   jobsCol: process.env.EXPO_PUBLIC_APPWRITE_JOBS_COL_ID!,
+  jobOffersCol: process.env.EXPO_PUBLIC_APPWRITE_JOBOFFERS_COL_ID!,
   applicationsCol: process.env.EXPO_PUBLIC_APPWRITE_APPLICATIONS_COL_ID!,
   industriesCol: process.env.EXPO_PUBLIC_APPWRITE_INDUSTRIES_COL_ID!,
   locationsCol: process.env.EXPO_PUBLIC_APPWRITE_LOCATIONS_COL_ID!,

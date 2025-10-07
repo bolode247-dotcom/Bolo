@@ -1,19 +1,24 @@
-import {
-  getTopSkillsAndWorkers,
-  getWorkerJobs,
-} from '@/appwriteFuncs/appwriteGenFunc';
+import { getTopSkillsAndWorkers } from '@/appwriteFuncs/appwriteGenFunc';
+import { getWorkerFeed } from '@/appwriteFuncs/appwriteJobsFuncs';
 import AppHeader from '@/component/AppHeader';
 import BannerSection from '@/component/BanerSection';
 import CategorySection from '@/component/CategorySection';
 import HomeSkeleton from '@/component/HomeSkeleton';
+import JobCard from '@/component/JobCard';
+import JobOfferCard from '@/component/OfferCard';
 import RecommendedWorkerCard from '@/component/RecommendedCard';
 import SearchInputField from '@/component/SearchField';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
+import {
+  HomeFeedData,
+  RecruiterFeedData,
+  WorkerFeedData,
+} from '@/types/genTypes';
 import { AntDesign } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FlatList,
@@ -27,90 +32,115 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const Index = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const [isFetching, setIsFetchgin] = useState(true);
 
+  // --- Fetch function
   const fetchFunction = () => {
-    if (user?.role === 'recruiter') {
+    if (!user) return Promise.resolve([]);
+    if (user.role === 'recruiter') {
       return getTopSkillsAndWorkers(user?.locations?.$id, user?.skills);
+    } else if (user?.workers?.$id) {
+      return getWorkerFeed(user);
     } else {
-      return getWorkerJobs();
+      return Promise.resolve([]);
     }
   };
 
-  const { data, isLoading, error, refetch } = useAppwrite(fetchFunction);
+  // --- Fetch data with Appwrite hook
+  const { data, isLoading, error, refetch } =
+    useAppwrite<HomeFeedData>(fetchFunction);
 
-  const onSelect = (categoryId: string) => {
+  // --- Navigation handler
+  const onSelectCategory = (categoryId: string) => {
     router.push({ pathname: '/workerByCat', params: { categoryId } });
   };
 
-  const renderHeader = () => (
-    <View style={styles.bgStyles}>
-      <BannerSection />
+  // --- Memoized header for performance
+  const renderHeader = useMemo(() => {
+    if (!data) return null;
 
-      {user?.role === 'recruiter' ? (
-        <>
-          {/* Recruiter view: Skills Categories */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('home.categories')}</Text>
-            <TouchableOpacity onPress={() => router.push('/categories')}>
-              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
-            </TouchableOpacity>
-          </View>
+    const isRecruiter = user?.role === 'recruiter';
+
+    const renderSectionHeader = (title: string, onPress?: () => void) => (
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {onPress && (
+          <TouchableOpacity onPress={onPress}>
+            <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+
+    const renderCategoryList = () => {
+      if (!data) return null;
+      if (isRecruiter) {
+        const recruiterData = data as RecruiterFeedData;
+        return (
           <FlatList
-            data={data?.topSkills || []}
+            data={recruiterData?.topSkills || []}
             horizontal
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryList}
-            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
             renderItem={({ item }) => (
-              <CategorySection onSelect={onSelect} category={item} />
+              <CategorySection onSelect={onSelectCategory} category={item} />
             )}
+            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
           />
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {t('home.recommendedForYou')}
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/recombWorkers')}>
-              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      ) : (
-        <>
-          {/* Worker view: Job Categories */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('home.jobOffers')}</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
-            </TouchableOpacity>
-          </View>
+        );
+      } else {
+        const workerData = data as WorkerFeedData;
+        return (
           <FlatList
-            data={data?.topSkills || []}
+            data={
+              workerData.offers.length > 0
+                ? workerData.offers
+                : workerData.jobsByPlan || []
+            }
             horizontal
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item?.job?.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryList}
-            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
             renderItem={({ item }) => (
-              <CategorySection onSelect={onSelect} category={item} />
+              <JobOfferCard
+                job={item.job}
+                onPress={() =>
+                  router.push({
+                    pathname: '/jobDetails',
+                    params: {
+                      jobId: item.job.id,
+                      isOffer: workerData.offers.length > 0 ? 'true' : 'false',
+                    },
+                  })
+                }
+              />
             )}
           />
+        );
+      }
+    };
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {t('home.recommendedForYou')}
-            </Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-    </View>
-  );
+    return (
+      <View style={styles.bgStyles}>
+        <BannerSection />
 
+        {/* Categories / Job Offers Section */}
+        {renderSectionHeader(
+          isRecruiter ? t('home.categories') : t('home.jobOffers'),
+          isRecruiter ? () => router.push('/categories') : undefined,
+        )}
+        {renderCategoryList()}
+
+        {/* Recommended Section */}
+        {renderSectionHeader(
+          t('home.recommendedForYou'),
+          isRecruiter ? () => router.push('/recombWorkers') : undefined,
+        )}
+      </View>
+    );
+  }, [data, user, t]);
+
+  // --- Main render
   return (
     <SafeAreaView style={styles.container} edges={['top', 'right', 'left']}>
       <AppHeader />
@@ -118,13 +148,16 @@ const Index = () => {
         placeholder={t('home.searchPlaceholder')}
         style={styles.searchFieldStyles}
       />
+
       {isLoading ? (
         <HomeSkeleton />
       ) : (
         <>
           <FlatList
             data={
-              user?.role === 'recruiter' ? data?.topWorkers : data?.topWorkers
+              user?.role === 'recruiter'
+                ? data?.topWorkers || []
+                : data?.recommended || []
             }
             ListHeaderComponent={renderHeader}
             numColumns={user?.role === 'recruiter' ? 2 : 1}
@@ -133,11 +166,30 @@ const Index = () => {
                 ? { justifyContent: 'space-between' }
                 : undefined
             }
+            keyExtractor={(item) =>
+              item.job.id || item.users?.$id || Math.random().toString()
+            }
             renderItem={({ item }) =>
               user?.role === 'recruiter' ? (
-                <RecommendedWorkerCard worker={item} />
+                <RecommendedWorkerCard
+                  worker={item}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(screens)/workerProfile',
+                      params: { workerId: item.users?.$id },
+                    })
+                  }
+                />
               ) : (
-                <RecommendedWorkerCard job={item} />
+                <JobCard
+                  job={item.job}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/jobDetails',
+                      params: { jobId: item?.job?.id, isOffer: 'false' },
+                    });
+                  }}
+                />
               )
             }
             showsVerticalScrollIndicator={false}
@@ -147,18 +199,15 @@ const Index = () => {
             }}
           />
 
+          {/* Floating Action Button for Recruiters */}
           {user?.role === 'recruiter' && (
             <View style={styles.fabContainer}>
-              {/* Hint Badge */}
               <View style={styles.hintWrapper}>
                 <View style={styles.hintContainer}>
                   <Text style={styles.hintText}>{t('home.createJob')}</Text>
                 </View>
-                {/* Triangle pointer */}
                 <View style={styles.triangle} />
               </View>
-
-              {/* Floating Button */}
               <TouchableOpacity
                 style={styles.fabButton}
                 activeOpacity={0.8}
@@ -178,7 +227,7 @@ export default Index;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.gray200,
+    backgroundColor: Colors.gray100,
     flex: 1,
   },
   bgStyles: {
@@ -245,8 +294,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 8, // ✅ inverted
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: Colors.primary, // same as badge background
-    marginBottom: -1, // attach to badge
+    borderTopColor: Colors.primary,
+    marginBottom: -1,
   },
   fabButton: {
     backgroundColor: 'green',

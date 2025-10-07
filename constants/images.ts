@@ -1,10 +1,11 @@
+import bannerImage from '../assets/images/banner.png';
 import logo from '../assets/images/logo.png';
 import onboading1 from '../assets/images/onboarding1.png';
 import onboading2 from '../assets/images/onboarding2.png';
 import onboading3 from '../assets/images/onboarding3.png';
 import recruiterBarner from '../assets/images/recruiterBarner.png';
-import workerbarner from '../assets/images/workerBarner.png';
 import signUpImg from '../assets/images/signUpImg.png';
+import workerbarner from '../assets/images/workerBarner.png';
 
 export default {
   logo,
@@ -14,5 +15,6 @@ export default {
   signUpImg,
   recruiterBarner,
   workerbarner,
+  bannerImage,
 };
 // export default { profile, thumbnail, cards, path, logo, empty, placeholder, failed, MTN, Orange };

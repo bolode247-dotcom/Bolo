@@ -373,10 +373,31 @@ export const getRecommendedWorkers = async (
   }
 };
 
-export const getWorkerById =  async (workerId: string) => {
+export const getWorkerById = async (workerId: string) => {
+  console.log('user id: ', workerId);
   try {
-    
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      queries: [
+        Query.equal('$id', workerId),
+        Query.select([
+          '*',
+          'skills.*',
+          'locations.*',
+          'workers.*',
+          'recruiters.*',
+        ]),
+      ],
+    });
+
+    if (!res.rows.length) throw new Error('worker_not_found');
+
+    console.log('worker: ', res.rows[0].locations);
+
+    return res.rows[0];
   } catch (error) {
-    
+    console.log('error getting user by id: ', error);
+    throw error;
   }
-}
+};

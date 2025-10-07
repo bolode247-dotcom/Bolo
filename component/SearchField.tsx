@@ -1,6 +1,5 @@
 import { Colors } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
-import { router, usePathname } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,26 +16,23 @@ import {
 type SearchInputFieldProps = {
   placeholder?: string;
   initialQuery?: string;
-  isLoading?: boolean;
+  isSearching?: boolean;
   style?: ViewStyle;
+  onSearch?: (query: string) => void;
 };
 
 const SearchInputField = ({
   placeholder = 'Search...',
   initialQuery = '',
-  isLoading = false,
+  isSearching = false,
   style,
+  onSearch,
 }: SearchInputFieldProps) => {
-  const pathName = usePathname();
   const [query, setQuery] = useState(initialQuery);
 
   const handleSearch = () => {
     if (!query.trim()) return;
-    if (pathName.startsWith('/search')) {
-      router.setParams({ query });
-    } else {
-      // router.push(`/search/${query}`);
-    }
+    onSearch?.(query.trim());
     setTimeout(() => Keyboard.dismiss(), 50);
   };
 
@@ -47,15 +43,6 @@ const SearchInputField = ({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.inputWrapper, style]}>
-        {/* Search Icon */}
-        {/* <Ionicons
-          name="search-outline"
-          size={22}
-          color={Colors.gray600}
-          style={{ marginRight: 8 }}
-        /> */}
-
-        {/* Input */}
         <TextInput
           style={styles.input}
           placeholder={placeholder}
@@ -69,7 +56,7 @@ const SearchInputField = ({
 
         {/* Loading or Submit */}
         <Pressable onPress={delayedSearch} hitSlop={10}>
-          {isLoading ? (
+          {isSearching ? (
             <ActivityIndicator size="small" color={Colors.primary} />
           ) : (
             <Ionicons name="search-circle" size={40} color={Colors.primary} />

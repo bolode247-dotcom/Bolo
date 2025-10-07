@@ -15,8 +15,13 @@ import {
 interface CustomButtonProps {
   onPress?: () => void;
   title: string;
-  bgVariant?: 'primary' | 'secondary' | 'outline' | 'danger';
-  textVariant?: 'default' | 'outline' | 'secondary' | 'danger';
+  bgVariant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'danger-outline';
+  textVariant?:
+    | 'default'
+    | 'outline'
+    | 'secondary'
+    | 'danger'
+    | 'danger-outline';
   IconLeft?: React.ElementType;
   IconRight?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
@@ -49,6 +54,12 @@ const CustomButton: React.FC<CustomButtonProps> = ({
           borderWidth: 1,
           borderColor: Colors.primaryDark,
         };
+      case 'danger-outline':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: Colors.danger,
+        };
       case 'danger':
         return { backgroundColor: Colors.danger };
       default:
@@ -64,6 +75,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
       case 'secondary':
         return Colors.gray100;
       case 'danger':
+      case 'danger-outline':
         return Colors.danger;
       default:
         return Colors.white;

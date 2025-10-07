@@ -1,6 +1,6 @@
 import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
-import { JobFormValues } from '@/types/genTypes';
+import { job } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
 
@@ -9,7 +9,7 @@ export interface LocationOption {
   label: string;
 }
 
-export const createJob = async (values: JobFormValues) => {
+export const createJob = async (values: job) => {
   const {
     title,
     description,
