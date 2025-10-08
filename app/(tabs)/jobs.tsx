@@ -5,8 +5,14 @@ import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, StatusBar, StyleSheet, Text } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const JObs = () => {
@@ -15,6 +21,7 @@ const JObs = () => {
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchJobs = async (query = '') => {
     try {
@@ -48,6 +55,15 @@ const JObs = () => {
       setIsSearching(false);
     }
   };
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      setIsRefreshing(true);
+      await fetchJobs(searchQuery); // reload using current search term
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [searchQuery]);
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
@@ -87,6 +103,14 @@ const JObs = () => {
             >
               No jobs found.
             </Text>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary} // iOS spinner color
+              colors={[Colors.primary]} // Android spinner color
+            />
           }
         />
       )}

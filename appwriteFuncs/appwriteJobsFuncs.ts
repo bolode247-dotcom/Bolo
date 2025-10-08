@@ -379,11 +379,7 @@ export const getJobsByRegionOrSkill = async (
       if (search && search.trim()) {
         const s = search.trim();
         skillQueries.push(
-          Query.or([
-            Query.search('title', s),
-            Query.search('description', s),
-            Query.search(`skills.name_${lang}`, s),
-          ]),
+          Query.or([Query.search('title', s), Query.search('description', s)]),
         );
       }
 
@@ -403,11 +399,7 @@ export const getJobsByRegionOrSkill = async (
       if (search && search.trim()) {
         const s = search.trim();
         randomQueries.push(
-          Query.or([
-            Query.search('title', s),
-            Query.search('description', s),
-            Query.search(`skills.name_${lang}`, s),
-          ]),
+          Query.or([Query.search('title', s), Query.search('description', s)]),
         );
       }
 
