@@ -1,19 +1,30 @@
 import { Colors, Sizes } from '@/constants';
-import React from 'react';
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import SearchInputField from './SearchField';
+
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
 
 const ExploreHeader = ({
   title,
   search,
-  onSearch,
+  initialQuery,
   isSearching,
 }: {
   title: string;
   search: string;
-  onSearch?: (query: string) => void;
+  initialQuery?: string;
   isSearching?: boolean;
 }) => {
+  const [notification, setNotification] = useState(10);
   return (
     <ImageBackground
       source={require('@/assets/images/banner.png')}
@@ -21,11 +32,30 @@ const ExploreHeader = ({
       imageStyle={styles.bannerImage}
     >
       <View style={styles.overlayContent}>
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.notificationContainer}>
+          <Text style={styles.title}>{title}</Text>
+          <TouchableOpacity
+            style={styles.notifyWrapper}
+            onPress={() => {
+              router.push('/(screens)/notifications');
+            }}
+          >
+            <MaterialCommunityIcons
+              name="bell-outline"
+              size={25}
+              color={Colors.white}
+            />
+            {notification > 0 && (
+              <Text style={styles.notifyBadge}>
+                {notification > 9 ? '9+' : notification}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
         <SearchInputField
           placeholder={search}
           style={styles.searchInput}
-          onSearch={onSearch}
+          initialQuery={initialQuery}
           isSearching={isSearching}
         />
       </View>
@@ -54,6 +84,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Sizes.md,
     borderTopRightRadius: Sizes.md,
     overflow: 'hidden',
+    position: 'relative',
   },
   bannerImage: {
     borderTopLeftRadius: Sizes.md,
@@ -68,5 +99,28 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 25,
     fontFamily: 'PoppinsSemiBold',
+  },
+  notificationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  notifyWrapper: {
+    position: 'relative',
+  },
+  notifyBadge: {
+    backgroundColor: 'red',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    textAlign: 'center',
+    width: Sizes.md,
+    height: Sizes.md,
+    borderRadius: Sizes.sm,
+    fontSize: Sizes.xsm,
+    color: '#fff',
+    fontWeight: 'bold',
+    lineHeight: Sizes.md,
   },
 });

@@ -1,10 +1,9 @@
 import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Query } from 'react-native-appwrite';
+import { ID, Query } from 'react-native-appwrite';
 
 export const getJobOffers = async (workerId: string) => {
-  console.log('workerker skill id: ', workerId);
   try {
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
@@ -455,6 +454,204 @@ export const getJobsByRegionOrSkill = async (
     }));
   } catch (error) {
     console.error('Error fetching jobs by region or skill:', error);
+    throw error;
+  }
+};
+
+export const getApplicationsByWorkerId = async (workerId: string) => {
+  try {
+    // Step 1: Fetch applications with jobs and recruiter references
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      queries: [
+        Query.equal('workers', workerId),
+        Query.select([
+          '$id',
+          '$createdAt',
+          'status',
+          'instructions',
+          'jobs.$id',
+          'jobs.title',
+          'jobs.recruiters.$id', // only recruiter ID reference
+          'jobs.recruiters.companyName', // only recruiter ID reference
+        ]),
+      ],
+    });
+
+    // Step 2: Collect recruiter IDs
+    const recruiterIds = Array.from(
+      new Set(
+        res.rows.map((app: any) => app.jobs?.recruiters?.$id).filter(Boolean),
+      ),
+    );
+
+    // Step 3: Fetch recruiter users from users table
+    const usersMap: Record<string, string> = {};
+
+    if (recruiterIds.length) {
+      const usersRes = await tables.listRows({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.userCol,
+        queries: [Query.equal('recruiters', recruiterIds)],
+      });
+
+      usersRes.rows.forEach((user: any) => {
+        if (user.recruiters) {
+          usersMap[user.recruiters] = user.name || 'Unknown Recruiter';
+        }
+      });
+    }
+
+    return res.rows.map((app: any) => ({
+      id: app.$id,
+      createdAt: app.$createdAt,
+      status: app.status,
+      instructions: app.instructions || null,
+      job: app.jobs
+        ? {
+            id: app.jobs.$id,
+            title: app.jobs.title,
+            recruiter: {
+              name: usersMap[app.jobs.recruiters?.$id] || 'Unknown Recruiter',
+              companyName:
+                app.jobs.recruiters?.companyName || 'Unknown Company',
+            },
+          }
+        : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching applications by workerId:', error);
+    throw error;
+  }
+}; // adjust paths
+
+export const applyForJob = async (
+  jobId: string,
+  workerId: string,
+  reason: string,
+) => {
+  try {
+    // 1️⃣ Check if user already applied
+    const existing = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      queries: [Query.equal('jobs', jobId), Query.equal('workers', workerId)],
+    });
+
+    if (existing.total > 0) {
+      throw new Error('You have already applied for this job.');
+    }
+
+    // 2️⃣ Fetch job details
+    const job = await tables.getRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: jobId,
+    });
+
+    if (!job) {
+      throw new Error('Job not found.');
+    }
+
+    const { applicantsCount = 0, maxApplicants = 0, status } = job;
+
+    // 3️⃣ Check if job is still open
+    if (status === 'closed') {
+      throw new Error('This job is already closed.');
+    }
+
+    // 4️⃣ Check if max applicants reached
+    if (applicantsCount >= maxApplicants) {
+      // Close the job if not already closed
+      await tables.updateRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.jobsCol,
+        rowId: jobId,
+        data: { status: 'closed' },
+      });
+      throw new Error(
+        'Maximum number of applicants reached. The job is now closed.',
+      );
+    }
+
+    // 5️⃣ Create new application
+    await tables.createRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      rowId: ID.unique(),
+      data: {
+        jobs: jobId,
+        workers: workerId,
+        reason,
+        status: 'applied',
+      },
+    });
+
+    // 6️⃣ Increment applicant count
+    const newApplicantCount = applicantsCount + 1;
+    const shouldClose = newApplicantCount >= maxApplicants;
+
+    const updatedJob = await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: jobId,
+      data: {
+        applicantsCount: newApplicantCount,
+        status: shouldClose ? 'closed' : 'active',
+      },
+    });
+
+    return updatedJob;
+  } catch (error) {
+    console.error('❌ Error applying for job:', error);
+    throw error;
+  }
+};
+
+export const withdrawApp = async (appId: string, jobId: string) => {
+  try {
+    await tables.deleteRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      rowId: appId,
+    });
+
+    const job = await tables.getRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: jobId,
+    });
+
+    if (!job) {
+      throw new Error('Job not found.');
+    }
+
+    console.log('applicants count: ', job.applicantsCount);
+    console.log('max applicants: ', job.maxApplicants);
+
+    const { applicantsCount = 0, maxApplicants = 0, status } = job;
+
+    const newApplicantCount = Math.max(applicantsCount - 1, 0);
+    console.log('new applicants count: ', newApplicantCount);
+
+    const shouldReopen =
+      status === 'closed' && newApplicantCount < maxApplicants;
+
+    // 5️⃣ Update the job
+    const updatedJob = await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: jobId,
+      data: {
+        applicantsCount: newApplicantCount,
+        status: shouldReopen ? 'active' : status,
+      },
+    });
+
+    return updatedJob;
+  } catch (error) {
+    console.error('❌ Error withdrawing application:', error);
     throw error;
   }
 };

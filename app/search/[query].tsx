@@ -5,39 +5,37 @@ import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
-import { router } from 'expo-router';
-import React from 'react';
-import {
-  FlatList,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect } from 'react';
+import { FlatList, StatusBar, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const JObs = () => {
+const Search = () => {
   const { user } = useAuth();
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const { query: rawQuery } = useLocalSearchParams();
+  const query = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery;
 
   const {
     data: jobs,
     isLoading,
     refetch,
   } = useAppwrite(() =>
-    getJobsByRegionOrSkill(user.locations.region, user.skills.$id),
+    getJobsByRegionOrSkill(user.locations.region, user.skills.$id, query),
   );
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
+  useEffect(() => {
+    refetch();
+  }, [query]);
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
       <StatusBar barStyle="light-content" />
-      <ExploreHeader title="Explore Jobs" search="Search for Jobs..." />
+      <ExploreHeader
+        title="Explore Jobs"
+        search="Search for Jobs..."
+        isSearching={isLoading}
+        initialQuery={query}
+      />
       {isLoading ? (
         <JobWorkerSkeleton />
       ) : (
@@ -68,21 +66,13 @@ const JObs = () => {
               No jobs found.
             </Text>
           }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.primary} // iOS spinner color
-              colors={[Colors.primary]} // Android spinner color
-            />
-          }
         />
       )}
     </SafeAreaView>
   );
 };
 
-export default JObs;
+export default Search;
 
 const styles = StyleSheet.create({
   container: {

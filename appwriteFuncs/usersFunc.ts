@@ -147,20 +147,7 @@ export const SignInUser = async (values: SignInPayload) => {
     // 3️⃣ Create a new session
     await account.createEmailPasswordSession({ email, password });
 
-    // 4️⃣ Get user and handle verification
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser.account.emailVerification) {
-      const otpResponse = await sendOTP(email);
-      return {
-        userId: otpResponse,
-        email,
-        unverified: true,
-      };
-    }
-
-    // ✅ Verified user
-    return currentUser;
+    return { success: true };
   } catch (error) {
     console.error('❌ SignIn error:', error);
     throw error;

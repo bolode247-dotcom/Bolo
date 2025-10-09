@@ -1,12 +1,7 @@
-import {
-  OtpVerification,
-  sendOTP,
-  SignInUser,
-} from '@/appwriteFuncs/usersFunc';
+import { SignInUser } from '@/appwriteFuncs/usersFunc';
 import AppForm from '@/component/Form/AppForm';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
-import VerificationModal from '@/component/VerificationsModal';
 import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/authContex';
@@ -15,7 +10,6 @@ import { Link, router } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -31,31 +25,7 @@ const SignIn = () => {
   const { fetchData } = useAuth();
   const [showVerification, setShowVerification] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [email, setEmail] = React.useState('');
-  const [userId, setUserId] = React.useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [otpError, setOtpError] = React.useState<string | null>(null);
-
-  const handleOtpSubmit = async (values: { otpCode: string }) => {
-    const { otpCode } = values;
-    console.log('otp code', otpCode);
-    if (!userId) {
-      Alert.alert('Error', 'User ID is missing.');
-      return;
-    }
-    setIsVerifying(true);
-    setError(null);
-    try {
-      await OtpVerification(userId, otpCode);
-      await fetchData();
-      setShowVerification(false);
-    } catch (err: any) {
-      setOtpError(err.message); // ✅ Use error state, not email
-    } finally {
-      setIsVerifying(false);
-    }
-  };
 
   const handleSignIn = async (values: { email: string; password: string }) => {
     setIsSubmitting(true);
@@ -63,13 +33,6 @@ const SignIn = () => {
     try {
       const res = await SignInUser(values);
       console.log('user response:', res);
-
-      if ('unverified' in res && res.unverified) {
-        setUserId(res.userId);
-        setEmail(res.email);
-        setShowVerification(true);
-        return;
-      }
       await fetchData();
       router.replace('/');
     } catch (err: any) {
@@ -169,22 +132,6 @@ const SignIn = () => {
           </View>
         </View>
       </ScrollView>
-      <VerificationModal
-        visible={showVerification}
-        email={email} // Pass the updated phone number
-        onClose={() => setShowVerification(false)}
-        isLoading={isVerifying}
-        onSubmit={handleOtpSubmit}
-        errorMessage={otpError || ''}
-        onResend={async () => {
-          try {
-            const newOtp = await sendOTP(email);
-            setUserId(newOtp);
-          } catch {
-            Alert.alert('Error', 'Could not resend OTP');
-          }
-        }}
-      />
     </KeyboardAvoidingView>
   );
 };

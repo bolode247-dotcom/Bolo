@@ -7,17 +7,17 @@ import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
 import { Colors, Sizes } from '@/constants';
 import useAppwrite from '@/lib/useAppwrite';
-import { job } from '@/types/genTypes';
+import { Job } from '@/types/genTypes';
 import { createJobSchema } from '@/Utils/ValidationShema';
 import { router } from 'expo-router';
 import { FormikConsumer } from 'formik';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,7 +36,7 @@ const Craete = () => {
   const { data: locations = [] } = useAppwrite(() => getLocations());
   const { data: skills = [] } = useAppwrite(() => getSkills());
 
-  const handleSubmit = async (values: job) => {
+  const handleSubmit = async (values: Job) => {
     // Navigate to the next screen with query params
     router.push({
       pathname: '/(screens)/jobComfirm',

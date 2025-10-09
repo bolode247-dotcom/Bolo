@@ -1,13 +1,26 @@
-import { getJobById } from '@/appwriteFuncs/appwriteJobsFuncs';
+import { applyForJob, getJobById } from '@/appwriteFuncs/appwriteJobsFuncs';
 import CustomButton from '@/component/CustomButton';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
+import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { formatJobType, getTimeAgo, salaryType } from '@/Utils/Formatting';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const pastelColors = [
@@ -25,17 +38,38 @@ const pastelColors = [
 ];
 
 const JobDetails = () => {
-  const { jobId, isOffer } = useLocalSearchParams<{
+  const { user } = useAuth();
+  const { jobId, isOffer, isApp } = useLocalSearchParams<{
     jobId: string;
     isOffer: string;
+    isApp: string;
   }>();
 
-  const {
-    data: job,
-    isLoading,
-    error,
-    refetch,
-  } = useAppwrite(() => getJobById(jobId));
+  const [showReasonModal, setShowReasonModal] = React.useState(false);
+  const [applyReason, setApplyReason] = React.useState('');
+  const [isApplying, setIsApplying] = React.useState(false);
+
+  const fetchJob = useCallback(() => getJobById(jobId), [jobId]);
+
+  const { data: job, isLoading, error, refetch } = useAppwrite(fetchJob);
+
+  const handleJobApplication = async () => {
+    if (applyReason.trim() === '') {
+      Alert.alert('Please enter a valid reason.');
+      return;
+    }
+    try {
+      setIsApplying(true);
+      await applyForJob(jobId, user?.workers?.$id, applyReason);
+      setShowReasonModal(false);
+      Alert.alert('Success', 'You have successfully applied for the job.');
+      await refetch();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to apply for job.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   const renderAvatar = () => {
     if (job?.recruiter?.avatar || job?.recruiter?.logo) {
@@ -177,26 +211,85 @@ const JobDetails = () => {
               </Text>
             </View>
           </View>
-          <View style={styles.btnSection}>
-            {isOffer === 'true' ? (
-              <View style={styles.btnRow}>
+
+          {isApp !== 'true' && (
+            <View style={styles.btnSection}>
+              {isOffer === 'true' ? (
+                <View style={styles.btnRow}>
+                  <CustomButton
+                    title="Decline"
+                    onPress={() => {}}
+                    style={styles.btnOutline}
+                    bgVariant="danger-outline"
+                    textVariant="danger-outline"
+                  />
+                  <CustomButton
+                    title="Accept"
+                    onPress={() => setShowReasonModal(true)}
+                    style={styles.btn}
+                  />
+                </View>
+              ) : (
                 <CustomButton
-                  title="Decline"
-                  onPress={() => {}}
-                  style={styles.btnOutline}
-                  bgVariant="danger-outline"
-                  textVariant="danger-outline"
+                  title="Apply"
+                  onPress={() => setShowReasonModal(true)}
                 />
-                <CustomButton
-                  title="Accept"
-                  onPress={() => {}}
-                  style={styles.btn}
+              )}
+            </View>
+          )}
+          <Modal
+            visible={showReasonModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowReasonModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Reason for Applying</Text>
+
+                <Text style={styles.modalSubtitle}>
+                  Why should we hire you?
+                </Text>
+
+                <TextInput
+                  value={applyReason}
+                  onChangeText={setApplyReason}
+                  placeholder={'Tell the recruiter why you are applying...'}
+                  placeholderTextColor={Colors.gray600}
+                  multiline
+                  style={styles.input}
                 />
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.reasonBtn,
+                      { backgroundColor: Colors.gray400 },
+                    ]}
+                    onPress={() => {
+                      setShowReasonModal(false);
+                      setApplyReason('');
+                    }}
+                  >
+                    <Text style={styles.btnText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.reasonBtn,
+                      { backgroundColor: Colors.success },
+                    ]}
+                    onPress={() => handleJobApplication()}
+                  >
+                    <Text style={styles.btnText}>Submit</Text>
+                    {isApplying && (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-            ) : (
-              <CustomButton title="Apply" onPress={() => {}} />
-            )}
-          </View>
+            </View>
+          </Modal>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -299,5 +392,72 @@ const styles = StyleSheet.create({
   btnOutline: {
     backgroundColor: Colors.white,
     width: '48%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  reasonBtn: {
+    flex: 1,
+    marginHorizontal: 5,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Sizes.xsm,
+    justifyContent: 'center',
+  },
+  btnText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  instructionsContainer: {
+    backgroundColor: Colors.gray100,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  instructionsTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+    color: Colors.gray700,
+  },
+  instructionsText: {
+    fontSize: 15,
+    color: Colors.gray600,
+    lineHeight: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    color: Colors.gray700,
+    marginBottom: 20,
   },
 });

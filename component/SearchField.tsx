@@ -1,5 +1,6 @@
 import { Colors } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
+import { router, usePathname } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -28,15 +29,26 @@ const SearchInputField = ({
   style,
   onSearch,
 }: SearchInputFieldProps) => {
-  const [query, setQuery] = useState(initialQuery);
+  const pathName = usePathname();
+  const [query, setQuery] = useState(initialQuery || '');
 
   const handleSearch = () => {
-    if (!query.trim()) return;
-    onSearch?.(query.trim());
+    if (!query) return;
+
+    if (pathName.startsWith('/search')) {
+      router.setParams({ query });
+    } else {
+      router.push(`/search/${query}`);
+    }
+
     setTimeout(() => Keyboard.dismiss(), 50);
   };
 
-  const delayedSearch = () => requestAnimationFrame(handleSearch);
+  const delayedSearch = () => {
+    requestAnimationFrame(() => {
+      handleSearch();
+    });
+  };
 
   return (
     <KeyboardAvoidingView

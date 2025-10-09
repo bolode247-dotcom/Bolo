@@ -6,23 +6,23 @@ import SubmitButton from '@/component/Form/SubmitButton';
 import SuccessModal from '@/component/SuccessModal';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
-import { job } from '@/types/genTypes';
+import { Job } from '@/types/genTypes';
 import {
-    confirmationJobSchemaThreeFields,
-    confirmationJobSchemaTwoFields,
+  confirmationJobSchemaThreeFields,
+  confirmationJobSchemaTwoFields,
 } from '@/Utils/ValidationShema';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -31,6 +31,7 @@ const salaryTypes = [
   { label: 'Per Day', id: 'day' },
   { label: 'Per Month', id: 'month' },
   { label: 'Per Year', id: 'year' },
+  { label: 'Not Disclosed', id: 'notDisclosed' },
 ];
 
 type SalaryFormValues = {
@@ -47,7 +48,7 @@ export default function JobComfirmation() {
   const [isModalVisible, seIsModalVisible] = useState(false);
 
   const handleSubmit = async (values: SalaryFormValues) => {
-    const fullJobData: job = {
+    const fullJobData: Job = {
       title: Array.isArray(params.jobTitle)
         ? params.jobTitle[0]
         : params.jobTitle || '',
