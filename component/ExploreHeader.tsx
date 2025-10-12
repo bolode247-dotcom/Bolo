@@ -10,7 +10,6 @@ import {
 import SearchInputField from './SearchField';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
 import { router } from 'expo-router';
 
 const ExploreHeader = ({
@@ -18,11 +17,13 @@ const ExploreHeader = ({
   search,
   initialQuery,
   isSearching,
+  isRecruiter,
 }: {
   title: string;
   search: string;
   initialQuery?: string;
   isSearching?: boolean;
+  isRecruiter?: boolean;
 }) => {
   const [notification, setNotification] = useState(10);
   return (
@@ -57,6 +58,7 @@ const ExploreHeader = ({
           style={styles.searchInput}
           initialQuery={initialQuery}
           isSearching={isSearching}
+          isRecruiter={isRecruiter}
         />
       </View>
     </ImageBackground>

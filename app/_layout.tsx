@@ -6,6 +6,7 @@ import { StatusBar } from 'react-native';
 import { AuthProvider, useAuth } from '@/context/authContex';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import '../i18n';
 import LoadingScreen from './LoadingScreen';
 
@@ -32,14 +33,16 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <AuthProvider>
-      <GestureHandlerRootView>
-        <BottomSheetModalProvider>
-          <AppRouter />
-          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        </BottomSheetModalProvider>
-      </GestureHandlerRootView>
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <GestureHandlerRootView>
+          <BottomSheetModalProvider>
+            <AppRouter />
+            {/* <StatusBar barStyle="dark-content" /> */}
+          </BottomSheetModalProvider>
+        </GestureHandlerRootView>
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }
 
@@ -61,7 +64,14 @@ const AppRouter = () => {
       <Stack.Protected guard={session && hasCompletedOnboarding}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(screens)" options={{ headerShown: false }} />
-        <Stack.Screen name="search/[query]" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="searchJob/[query]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="searchWorker/[query]"
+          options={{ headerShown: false }}
+        />
       </Stack.Protected>
 
       <Stack.Screen name="+not-found" options={{ headerShown: false }} />

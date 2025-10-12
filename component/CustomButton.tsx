@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   ActivityIndicator,
+  StyleProp,
   StyleSheet,
   Text,
   TextStyle,
@@ -15,16 +16,23 @@ import {
 interface CustomButtonProps {
   onPress?: () => void;
   title: string;
-  bgVariant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'danger-outline';
+  bgVariant?:
+    | 'primary'
+    | 'secondary'
+    | 'secondary-outline'
+    | 'outline'
+    | 'danger'
+    | 'danger-outline';
   textVariant?:
     | 'default'
     | 'outline'
     | 'secondary'
+    | 'secondary-outline'
     | 'danger'
     | 'danger-outline';
   IconLeft?: React.ElementType;
   IconRight?: keyof typeof Ionicons.glyphMap;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   textStyle?: TextStyle;
   isLoading?: boolean;
 }
@@ -48,6 +56,12 @@ const CustomButton: React.FC<CustomButtonProps> = ({
         return { backgroundColor: Colors.primaryDark };
       case 'secondary':
         return { backgroundColor: Colors.secondaryDark };
+      case 'secondary-outline':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: Colors.secondaryDark,
+        };
       case 'outline':
         return {
           backgroundColor: 'transparent',
@@ -73,7 +87,8 @@ const CustomButton: React.FC<CustomButtonProps> = ({
       case 'outline':
         return Colors.primaryDark;
       case 'secondary':
-        return Colors.gray100;
+      case 'secondary-outline':
+        return Colors.secondaryDark;
       case 'danger':
       case 'danger-outline':
         return Colors.danger;
@@ -91,6 +106,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
         getBgVariantStyle(),
         style,
       ]}
+      disabled={isLoading}
       {...props}
     >
       {IconLeft && (
@@ -132,7 +148,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 18,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'PoppinsSemiBold',
     marginHorizontal: 8,
   },
   iconLeft: {

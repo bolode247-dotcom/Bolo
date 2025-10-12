@@ -1,31 +1,18 @@
 import { Colors, Sizes } from '@/constants';
+import { Location, Skill } from '@/types/genTypes';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-// Types for normalized user
-type UserSkill = {
-  $id: string;
-  name: string;
-  icon?: string;
-};
-
-type UserLocation = {
-  $id: string;
-  division?: string;
-  subdivision?: string;
-  region?: string;
-};
 
 type User = {
   $id: string;
   name: string;
   avatar?: string | null;
-  skills: UserSkill[];
-  locations?: UserLocation | null;
+  skills: Skill[];
+  locations?: Location | null;
 };
 
-type RecommendedCardProps = {
+export type RecommendedCardProps = {
   users: User;
   payRate: string;
   rating: number;
@@ -46,7 +33,7 @@ const RecommendedWorkerCard = ({ worker, onPress }: Props) => {
         <Image
           source={
             user?.avatar
-              ? { uri: user.avatar }
+              ? { uri: user?.avatar }
               : require('@/assets/icons/profile.png')
           }
           style={styles.avatar}

@@ -9,7 +9,13 @@ import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const WorkerProfileScreen = () => {
-  const { workerId } = useLocalSearchParams<{ workerId: string }>();
+  const { workerId, isRecruiter, reason } = useLocalSearchParams<{
+    workerId: string;
+    isRecruiter: string;
+    reason: string;
+  }>();
+
+  console.log('workerId', workerId);
 
   const {
     data: worker,
@@ -51,7 +57,7 @@ const WorkerProfileScreen = () => {
   // ✅ Work samples
   const renderSamples = () => {
     if (worker?.resume?.length > 0) {
-      return worker?.resume.map((img, index) => (
+      return worker?.resume.map((img: string, index: number) => (
         <Image key={index} source={{ uri: img }} style={styles.sampleImg} />
       ));
     }
@@ -69,8 +75,6 @@ const WorkerProfileScreen = () => {
     <>
       <Stack.Screen
         options={{
-          title: 'Profile',
-          headerTitleAlign: 'center',
           headerRight: () => (
             <Ionicons
               name="heart-outline"
@@ -81,7 +85,10 @@ const WorkerProfileScreen = () => {
           ),
         }}
       />
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <SafeAreaView
+        style={styles.container}
+        edges={['bottom', 'left', 'right']}
+      >
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <View style={styles.header}>
@@ -124,6 +131,12 @@ const WorkerProfileScreen = () => {
               <Text style={styles.sectionTitle}>{worker?.skills.name_en}</Text>
             </View>
           </View>
+          {isRecruiter === 'true' && reason && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Why you should hire me</Text>
+              <Text style={styles.bio}>{reason}</Text>
+            </View>
+          )}
 
           {/* Proof of Work (instead of "Why you should hire me") */}
           <View style={styles.section}>

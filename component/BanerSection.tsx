@@ -65,7 +65,8 @@ const styles = StyleSheet.create({
     height: 180,
     marginVertical: Sizes.md,
     justifyContent: 'center',
-    overflow: 'hidden', // no peek
+    overflow: 'hidden',
+    borderRadius: Sizes.sm,
   },
   overlayContent: {
     flex: 1,

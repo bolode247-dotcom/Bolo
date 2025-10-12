@@ -1,378 +1,182 @@
 import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
+import { RecruiterFeedData, Skill, Worker } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Query } from 'react-native-appwrite';
-import { normalizeWorkerSkills } from './appwriteGenFunc';
-
-export const getWorkersByCategory = async ({
-  categoryId,
-  locationId,
-}: {
-  categoryId: string;
-  locationId: string | null;
-}) => {
-  try {
-    const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
-
-    // 1️⃣ Fetch all workers
-    const res = await tables.listRows({
-      databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
-      queries: [Query.limit(500)],
-    });
-
-    let workers = res?.rows || [];
-
-    // 2️⃣ Hydrate workers with user, skills, and location
-    workers = await Promise.all(
-      workers.map(async (worker: any) => {
-        try {
-          let skills: any[] = [];
-          let location = null;
-
-          // Fetch user
-          const user = await tables.getRow({
-            databaseId: appwriteConfig.dbId,
-            tableId: appwriteConfig.userCol,
-            rowId: worker.users,
-          });
-
-          // Fetch skill(s)
-          if (user.skills) {
-            const skill = await tables.getRow({
-              databaseId: appwriteConfig.dbId,
-              tableId: appwriteConfig.skillsCol,
-              rowId: user.skills,
-            });
-            skills = [
-              {
-                ...skill,
-                name: lang === 'fr' ? skill.name_fr : skill.name_en,
-              },
-            ];
-          }
-
-          // Fetch location
-          if (user.locations) {
-            location = await tables.getRow({
-              databaseId: appwriteConfig.dbId,
-              tableId: appwriteConfig.locationsCol,
-              rowId: user.locations,
-            });
-          }
-
-          return {
-            ...worker,
-            users: {
-              ...user,
-              skills,
-              locations: location,
-            },
-          };
-        } catch (err) {
-          console.error('Failed hydrating worker:', worker.$id, err);
-          return worker;
-        }
-      }),
-    );
-
-    // 3️⃣ Normalize skills for translation
-    workers = workers.map((worker) => ({
-      ...worker,
-      users: {
-        ...worker.users,
-        skills:
-          worker.users?.skills?.map((s: any) => ({
-            ...s,
-            name: lang === 'fr' ? s.name_fr : s.name_en,
-          })) || [],
-      },
-    }));
-
-    // 4️⃣ Filter by categoryId (worker type)
-    workers = workers.filter((worker) => {
-      const skillIds = worker.users?.skills?.map((s: any) => s.$id) || [];
-      return skillIds.includes(categoryId);
-    });
-
-    // 5️⃣ Optional filter by locationId
-    if (locationId) {
-      workers = workers.filter(
-        (worker) => worker.users?.locations?.$id === locationId,
-      );
-    }
-
-    return workers;
-  } catch (error) {
-    console.error('Error fetching workers by category:', error);
-    throw error;
-  }
-};
-
-export const getTopSkills = async () => {
-  try {
-    const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
-
-    // 1️⃣ Fetch workers (same way as in getTopSkillsAndWorkers)
-    const res = await tables.listRows({
-      databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
-      queries: [Query.limit(500)],
-    });
-
-    let workers = res?.rows || [];
-
-    // 2️⃣ Hydrate workers with user + skills
-    workers = await Promise.all(
-      workers.map(async (worker: any) => {
-        try {
-          let skills: any[] = [];
-
-          // Fetch user
-          const user = await tables.getRow({
-            databaseId: appwriteConfig.dbId,
-            tableId: appwriteConfig.userCol,
-            rowId: worker.users,
-          });
-
-          // 🔹 Fetch skill (string id)
-          if (user.skills) {
-            const skill = await tables.getRow({
-              databaseId: appwriteConfig.dbId,
-              tableId: appwriteConfig.skillsCol,
-              rowId: user.skills,
-            });
-            skills = [
-              {
-                $id: skill.$id,
-                name: lang === 'fr' ? skill.name_fr : skill.name_en,
-                icon: skill.icon,
-              },
-            ];
-          }
-
-          return {
-            ...worker,
-            users: {
-              ...user,
-              skills,
-            },
-          };
-        } catch (err) {
-          console.error('Failed hydrating worker:', worker.$id, err);
-          return worker;
-        }
-      }),
-    );
-
-    // 3️⃣ Normalize worker skills
-    workers = normalizeWorkerSkills(workers, lang);
-
-    // 4️⃣ Compute top 25 skills
-    const topSkills = computeTopSkills25(workers);
-    console.log('top skills: ', topSkills);
-    return { topSkills };
-  } catch (error) {
-    console.log('error fetching top skills: ', error);
-    throw error;
-  }
-};
-
-// 🔹 New function (slice 25 instead of 5)
-const computeTopSkills25 = (workers: any[]) => {
-  const skillCounts: Record<
-    string,
-    { id: string; name: string; count: number; icon: string }
-  > = {};
-
-  for (const worker of workers) {
-    const userSkills = worker.users?.skills || [];
-    for (const skill of userSkills) {
-      if (!skillCounts[skill.$id]) {
-        skillCounts[skill.$id] = {
-          id: skill.$id,
-          name: skill.name,
-          count: 0,
-          icon: skill.icon || 'help-circle',
-        };
-      }
-      skillCounts[skill.$id].count++;
-    }
-  }
-
-  return Object.values(skillCounts)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 25);
-};
-
-// 🚀 Build Recommended Workers (max 25)
-const computeRecommendedWorkers = (
-  workers: any[],
-  recruiter: any,
-  recruiterSkills: string[], // list of skill ids
-) => {
-  const recommended: any[] = [];
-  const usedIds = new Set<string>();
-
-  const addWorkers = (list: any[], count: number) => {
-    for (const worker of list) {
-      if (recommended.length >= 25) break;
-      if (!usedIds.has(worker.$id)) {
-        recommended.push(worker);
-        usedIds.add(worker.$id);
-      }
-      if (recommended.length >= count) break;
-    }
-  };
-
-  // 1️⃣ From same industry
-  if (recruiterSkills?.length > 0) {
-    const industryWorkers = workers.filter((w) => {
-      const wIndustry = w.users?.skills?.industry;
-      return recruiter.industry && wIndustry === recruiter.industry;
-    });
-    addWorkers(industryWorkers, recommended.length + 5);
-  }
-
-  // 2️⃣ From same skill(s)
-  if (recruiterSkills?.length > 0) {
-    const skillWorkers = workers.filter((w) =>
-      recruiterSkills.includes(w.users?.skills?.$id),
-    );
-    addWorkers(skillWorkers, recommended.length + 5);
-  }
-
-  // 3️⃣ From same region
-  if (recruiter.locations?.region) {
-    const regionWorkers = workers.filter(
-      (w) => w.users?.locations?.region === recruiter.locations.region,
-    );
-    addWorkers(regionWorkers, recommended.length + 5);
-  }
-
-  // 4️⃣ From same subdivision
-  if (recruiter.locations?.subdivision) {
-    const subdivisionWorkers = workers.filter(
-      (w) =>
-        w.users?.locations?.subdivision === recruiter.locations.subdivision,
-    );
-    addWorkers(subdivisionWorkers, recommended.length + 5);
-  }
-
-  // 5️⃣ Most jobs completed
-  const topByJobs = [...workers].sort(
-    (a, b) => (b.jobsCompleted || 0) - (a.jobsCompleted || 0),
-  );
-  addWorkers(topByJobs, recommended.length + 5);
-
-  // 6️⃣ Fill remaining up to 25
-  if (recommended.length < 25) {
-    for (const worker of workers) {
-      if (recommended.length >= 25) break;
-      if (!usedIds.has(worker.$id)) {
-        recommended.push(worker);
-        usedIds.add(worker.$id);
-      }
-    }
-  }
-
-  return recommended;
-};
 
 export const getRecommendedWorkers = async (
-  recruiterLocationId: string,
-  recruiterSkills: string[] = [],
-) => {
+  recruiterRegion: string,
+  recruiterSkillId?: string,
+  industryId?: string,
+): Promise<Worker[]> => {
   try {
     const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
 
-    // 1️⃣ Fetch recruiter location
-    const recruiterLocation = await tables.getRow({
-      databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.locationsCol,
-      rowId: recruiterLocationId,
-    });
+    // 1️⃣ Base query (expand user, skill, and location)
+    const baseQueries = [
+      industryId ? Query.equal('users.skills.industry', industryId) : null,
+      Query.select([
+        '$id',
+        'payRate',
+        'rating',
+        'users.$id',
+        'users.name',
+        'users.avatar',
+        'users.skills.$id',
+        'users.skills.icon',
+        'users.skills.name_en',
+        'users.skills.name_fr',
+        'users.skills.industry',
+        'users.locations.region',
+        'users.locations.division',
+        'users.locations.subdivision',
+      ]),
+      Query.limit(100),
+    ].filter(Boolean) as any[];
 
-    // 2️⃣ Fetch workers (without deep expansion, just base worker records)
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.workerCol,
-      queries: [Query.limit(500)],
+      queries: baseQueries,
     });
 
-    let workers = res?.rows || [];
+    if (!res?.rows?.length) return [];
 
-    // 3️⃣ Hydrate workers with user, skills, and location
-    workers = await Promise.all(
-      workers.map(async (worker: any) => {
-        try {
-          let skills: any[] = []; // always an array
-          let location = null;
+    // 2️⃣ Filter by region or skill match
+    const filtered = res.rows.filter((worker) => {
+      const regionMatch = worker.users?.locations?.region === recruiterRegion;
+      const skillMatch =
+        !recruiterSkillId || worker.users?.skills?.$id === recruiterSkillId;
+      return regionMatch || skillMatch;
+    });
 
-          // Fetch user
-          const user = await tables.getRow({
-            databaseId: appwriteConfig.dbId,
-            tableId: appwriteConfig.userCol,
-            rowId: worker.users, // worker.users holds the userId
-          });
+    // 3️⃣ Fallback: same industry
+    const finalWorkers =
+      filtered.length > 0 ? filtered.slice(0, 10) : res.rows.slice(0, 10);
 
-          // 🔹 Fetch skill (string id)
-          if (user.skills) {
-            const skill = await tables.getRow({
-              databaseId: appwriteConfig.dbId,
-              tableId: appwriteConfig.skillsCol,
-              rowId: user.skills,
-            });
-
-            skills.push({
-              $id: skill.$id,
-              name: lang === 'fr' ? skill.name_fr : skill.name_en,
-              icon: skill.icon,
-              industry: skill.industry,
-            });
+    // 4️⃣ Format result
+    return finalWorkers.map((worker) => ({
+      id: worker.$id,
+      rating: worker.rating,
+      payRate: worker.payRate,
+      name: worker.users?.name,
+      avatar: worker.users?.avatar,
+      skill: worker.users?.skills
+        ? {
+            id: worker.users.skills.$id,
+            name:
+              lang === 'fr'
+                ? worker.users.skills.name_fr
+                : worker.users.skills.name_en,
+            icon: worker.users.skills.icon,
           }
-
-          // 🔹 Fetch location
-          if (user.locations) {
-            location = await tables.getRow({
-              databaseId: appwriteConfig.dbId,
-              tableId: appwriteConfig.locationsCol,
-              rowId: user.locations,
-            });
+        : null,
+      location: worker.users?.locations
+        ? {
+            region: worker.users.locations.region,
+            division: worker.users.locations.division,
+            subdivision: worker.users.locations.subdivision,
           }
-
-          return {
-            ...worker,
-            users: {
-              ...user,
-              skills, // ✅ always array
-              locations: location,
-            },
-          };
-        } catch (err) {
-          console.error('Failed hydrating worker:', worker.$id, err);
-          return worker; // fallback if hydration fails
-        }
-      }),
-    );
-
-    // 4️⃣ Normalize skills for translation
-    workers = normalizeWorkerSkills(workers, lang);
-
-    // 5️⃣ Compute top skills & workers
-    const topWorkers = computeRecommendedWorkers(
-      workers,
-      recruiterLocation,
-      recruiterSkills,
-    );
-
-    return topWorkers;
+        : null,
+    }));
   } catch (error) {
-    console.log('error fetching top skills and top workers: ', error);
-    throw error;
+    console.error('Error fetching recommended workers:', error);
+    return [];
   }
 };
 
+export const getMustHaveSkills = async (
+  recruiterRegion: string,
+): Promise<Skill[]> => {
+  try {
+    const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+
+    // 1️⃣ Fetch workers with expanded user, skills, and locations
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workerCol,
+      queries: [
+        Query.select([
+          '$id',
+          'users.$id',
+          'users.skills.$id',
+          'users.skills.name_en',
+          'users.skills.name_fr',
+          'users.skills.icon',
+          'users.locations.region',
+        ]),
+        Query.limit(100),
+      ],
+    });
+
+    if (!res?.total || !res.rows?.length) return [];
+
+    // 2️⃣ Filter by region (only valid if both region values exist)
+    const regionalWorkers = res.rows.filter(
+      (worker) =>
+        worker?.users?.locations?.region &&
+        worker.users.locations.region === recruiterRegion,
+    );
+
+    // Helper to count skill frequencies
+    const buildSkillMap = (workers: any[]) => {
+      const map: Record<string, { count: number; data: any }> = {};
+      for (const worker of workers) {
+        const skill = worker?.users?.skills;
+        if (skill?.$id) {
+          if (!map[skill.$id]) map[skill.$id] = { count: 0, data: skill };
+          map[skill.$id].count++;
+        }
+      }
+      return map;
+    };
+
+    // 3️⃣ Start with regional skills if any
+    let skillMap = buildSkillMap(regionalWorkers);
+
+    // 4️⃣ Fallback: if fewer than 5 skills found, expand to all workers
+    if (Object.keys(skillMap).length < 5) {
+      const allWorkersSkillMap = buildSkillMap(res.rows);
+      const allSkills = Object.values(allWorkersSkillMap);
+
+      // Shuffle randomly
+      const shuffled = allSkills.sort(() => 0.5 - Math.random());
+      // Take 5–10 random unique skills
+      const randomSubset = shuffled.slice(0, Math.max(5, 10 - shuffled.length));
+      skillMap = Object.fromEntries(randomSubset.map((s) => [s.data.$id, s]));
+    }
+
+    // 5️⃣ Sort by frequency and map to Skill[]
+    const sortedSkills = Object.values(skillMap)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map((s) => ({
+        id: s.data.$id,
+        name: lang === 'fr' ? s.data.name_fr : s.data.name_en,
+        icon: s.data.icon,
+        count: s.count,
+      }));
+
+    return sortedSkills;
+  } catch (error) {
+    console.error('❌ Error fetching must-have skills:', error);
+    return [];
+  }
+};
+
+export const getRecruiterFeed = async (
+  user: any,
+): Promise<RecruiterFeedData> => {
+  const recruiterRegion = user?.locations?.region;
+  const recruiterSkillId = user?.skills?.$id;
+  const industryId = user?.skills?.industry; // use region
+  const [mustHaveSkills, recommendedWorkers] = await Promise.all([
+    getMustHaveSkills(recruiterRegion),
+    getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId),
+  ]);
+
+  return { mustHaveSkills, recommendedWorkers };
+};
 export const getWorkerById = async (workerId: string) => {
   console.log('user id: ', workerId);
   try {
@@ -380,14 +184,8 @@ export const getWorkerById = async (workerId: string) => {
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.userCol,
       queries: [
-        Query.equal('$id', workerId),
-        Query.select([
-          '*',
-          'skills.*',
-          'locations.*',
-          'workers.*',
-          'recruiters.*',
-        ]),
+        Query.equal('workers', workerId),
+        Query.select(['*', 'skills.*', 'locations.*', 'workers.*']),
       ],
     });
 
@@ -399,5 +197,303 @@ export const getWorkerById = async (workerId: string) => {
   } catch (error) {
     console.log('error getting user by id: ', error);
     throw error;
+  }
+};
+
+export const getWorkersBySkillRegion = async (
+  region?: string,
+  skillId?: string,
+  search?: string,
+) => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+
+  try {
+    // --- Fields to select from USERS ---
+    const userSelect = [
+      '$id',
+      'name',
+      'avatar',
+      'role',
+      'locations.region',
+      'locations.division',
+      'locations.subdivision',
+      'skills.$id',
+      'skills.icon',
+      `skills.name_${lang}`,
+      'workers.$id',
+      'workers.bio',
+      'workers.payRate',
+      'workers.$createdAt',
+    ];
+
+    const queries: any[] = [Query.select(userSelect), Query.limit(30)];
+
+    queries.push(Query.equal('role', 'worker'));
+
+    if (region) queries.push(Query.equal('locations.region', region));
+
+    if (skillId) queries.push(Query.equal('skills', skillId));
+
+    const userRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      queries,
+    });
+
+    let workers = userRes.rows.map((user: any) => ({
+      id: user.workers?.$id,
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.workers?.bio ?? null,
+      payRate: user.workers?.payRate ?? null,
+      rating: user.workers?.rating ?? null,
+      createdAt: user.workers?.$createdAt ?? null,
+      skill: user.skills
+        ? {
+            id: user.skills.$id,
+            icon: user.skills.icon,
+            name: user.skills[`name_${lang}`],
+          }
+        : null,
+      location: user.locations
+        ? {
+            region: user.locations.region,
+            division: user.locations.division,
+            subdivision: user.locations.subdivision,
+          }
+        : null,
+    }));
+
+    if (workers.length < 5) {
+      const moreQueries: any[] = [
+        Query.select(userSelect),
+        Query.limit(20),
+        Query.equal('role', 'worker'),
+      ];
+      const moreRes = await tables.listRows({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.userCol,
+        queries: moreQueries,
+      });
+
+      const seen = new Set(workers.map((w) => w.id));
+      for (const user of moreRes.rows) {
+        if (seen.has(user.$id)) continue;
+        seen.add(user.$id);
+
+        workers.push({
+          id: user.workers?.$id,
+          name: user.name,
+          avatar: user.avatar,
+          bio: user.workers?.bio ?? null,
+          payRate: user.workers?.payRate ?? null,
+          rating: user.workers?.rating ?? null,
+          createdAt: user.workers?.$createdAt ?? null,
+          skill: user.skills
+            ? {
+                id: user.skills.$id,
+                icon: user.skills.icon,
+                name: user.skills[`name_${lang}`],
+              }
+            : null,
+          location: user.locations
+            ? {
+                region: user.locations.region,
+                division: user.locations.division,
+                subdivision: user.locations.subdivision,
+              }
+            : null,
+        });
+      }
+    }
+
+    return workers;
+  } catch (error) {
+    console.error('Error fetching workers:', error);
+    throw error;
+  }
+};
+
+export const getWorkersBySearch = async (search?: string) => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+  console.log('🔍 Search function triggered with:', search);
+
+  try {
+    const userSelect = [
+      '$id',
+      'name',
+      'avatar',
+      'role',
+      'locations.region',
+      'locations.division',
+      'locations.subdivision',
+      'skills.$id',
+      'skills.icon',
+      `skills.name_${lang}`,
+      'workers.$id',
+      'workers.bio',
+      'workers.payRate',
+      'workers.rating',
+      'workers.$createdAt',
+    ];
+
+    let matchedSkillIds: string[] = [];
+    const s = search?.trim();
+    if (s) {
+      console.log('🔎 resolving skill ids for search:', s);
+      matchedSkillIds = await getSkillIdsByName(s);
+      console.log('🔎 matchedSkillIds:', matchedSkillIds);
+    }
+
+    // Base query for workers
+    const baseQueries = [
+      Query.select(userSelect),
+      Query.limit(30),
+      Query.equal('role', 'worker'),
+    ];
+
+    // Add name text search if possible
+    if (s) {
+      console.log('✅ adding Query.search for name:', s);
+      baseQueries.push(Query.search('name', s));
+    }
+
+    let userRes;
+
+    // If we have matched skill IDs, use OR queries for them
+    if (matchedSkillIds.length > 0) {
+      console.log('🎯 Searching by skill relation (manual merge logic)');
+
+      const queryResults = await Promise.all(
+        matchedSkillIds.map((id) => {
+          console.log('searching by skill id:', id);
+          return tables.listRows({
+            databaseId: appwriteConfig.dbId,
+            tableId: appwriteConfig.userCol,
+            queries: [...baseQueries],
+          });
+        }),
+      );
+
+      console.log('Query results', queryResults[0].rows);
+      // Merge results and remove duplicates
+      const allUsers = queryResults.flatMap((res) => res.rows || []);
+      const uniqueUsers = Object.values(
+        allUsers.reduce((acc, user) => ({ ...acc, [user.$id]: user }), {}),
+      );
+
+      userRes = { rows: uniqueUsers };
+    } else {
+      userRes = await tables.listRows({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.userCol,
+        queries: baseQueries,
+      });
+    }
+
+    console.log('📦 raw user rows returned:', userRes.rows?.length ?? 0);
+
+    let workers = userRes.rows.map((user: any) => ({
+      id: user.workers?.$id,
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.workers?.bio ?? null,
+      payRate: user.workers?.payRate ?? null,
+      rating: user.workers?.rating ?? null,
+      createdAt: user.workers?.$createdAt ?? null,
+      skill: user.skills
+        ? {
+            id: user.skills.$id,
+            icon: user.skills.icon,
+            name: user.skills[`name_${lang}`],
+          }
+        : null,
+      location: user.locations
+        ? {
+            region: user.locations.region,
+            division: user.locations.division,
+            subdivision: user.locations.subdivision,
+          }
+        : null,
+    }));
+
+    // Fallback if too few results
+    if (workers.length < 5) {
+      console.log('🔁 Fewer than 5 results, fetching generic workers...');
+      const moreRes = await tables.listRows({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.userCol,
+        queries: [
+          Query.select(userSelect),
+          Query.limit(10),
+          Query.equal('role', 'worker'),
+        ],
+      });
+
+      console.log('📦 Additional generic results:', moreRes.rows?.length || 0);
+
+      const seen = new Set(workers.map((w) => w.id));
+      for (const user of moreRes.rows) {
+        if (seen.has(user.workers?.$id)) continue;
+        seen.add(user.workers?.$id);
+
+        workers.push({
+          id: user.workers?.$id,
+          name: user.name,
+          avatar: user.avatar,
+          bio: user.workers?.bio ?? null,
+          payRate: user.workers?.payRate ?? null,
+          rating: user.workers?.rating ?? null,
+          createdAt: user.workers?.$createdAt ?? null,
+          skill: user.skills
+            ? {
+                id: user.skills.$id,
+                icon: user.skills.icon,
+                name: user.skills[`name_${lang}`],
+              }
+            : null,
+          location: user.locations
+            ? {
+                region: user.locations.region,
+                division: user.locations.division,
+                subdivision: user.locations.subdivision,
+              }
+            : null,
+        });
+      }
+    }
+
+    console.log('✅ Final worker count:', workers.length);
+    return workers;
+  } catch (error) {
+    console.error('❌ Error fetching workers:', error);
+    throw error;
+  }
+};
+
+export const getSkillIdsByName = async (
+  searchTerm: string,
+): Promise<string[]> => {
+  try {
+    const queries = [
+      Query.search('name_en', searchTerm),
+      Query.search('name_fr', searchTerm),
+    ];
+
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.skillsCol,
+      queries: [
+        Query.or(queries), // combine all localized searches
+        Query.limit(20),
+      ],
+    });
+
+    console.log('skills fetched ', res.rows);
+
+    return res.rows.map((skill) => skill.$id);
+  } catch (err) {
+    console.error('Error fetching skill IDs by name:', err);
+    return [];
   }
 };

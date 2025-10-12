@@ -1,38 +1,29 @@
-import { getWorkersBySkillRegion } from '@/appwriteFuncs/appwriteWorkFuncs';
+import { getWorkersBySearch } from '@/appwriteFuncs/appwriteWorkFuncs';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import WorkerCard from '@/component/WorkerCard';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
-import { router } from 'expo-router';
-import React from 'react';
-import {
-  FlatList,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect } from 'react';
+import { FlatList, StatusBar, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const Workers = () => {
+const Search = () => {
   const { user } = useAuth();
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const { query: rawQuery } = useLocalSearchParams();
+  const query = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery;
 
   const {
     data: workers,
     isLoading,
     refetch,
-  } = useAppwrite(() =>
-    getWorkersBySkillRegion(user.locations.region, user.skills.$id),
-  );
+  } = useAppwrite(() => getWorkersBySearch(query));
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
+  useEffect(() => {
+    refetch();
+  }, [query]);
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
@@ -40,7 +31,8 @@ const Workers = () => {
       <ExploreHeader
         title="Explore Workers"
         search="Search for Workers..."
-        isRecruiter
+        isSearching={isLoading}
+        initialQuery={query}
       />
       {isLoading ? (
         <JobWorkerSkeleton />
@@ -55,7 +47,7 @@ const Workers = () => {
               onPress={() => {
                 router.push({
                   pathname: '/workerProfile',
-                  params: { workerId: item?.id, isOffer: 'false' },
+                  params: { workerId: item?.id },
                 });
               }}
             />
@@ -69,16 +61,8 @@ const Workers = () => {
                 color: Colors.gray600,
               }}
             >
-              No jobs found.
+              No Worker found.
             </Text>
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.primary} // iOS spinner color
-              colors={[Colors.primary]} // Android spinner color
-            />
           }
         />
       )}
@@ -86,7 +70,7 @@ const Workers = () => {
   );
 };
 
-export default Workers;
+export default Search;
 
 const styles = StyleSheet.create({
   container: {

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 type Props = {
-  catWidth?: number;
+  cardWidth?: number;
   job: JobWithDetails;
   onPress?: () => void;
 };
@@ -20,7 +20,7 @@ type Props = {
 const pastelColors = ['#E0D7FF', '#D7F5E0', '#FFF3D7', '#FFD7E0'];
 const screenWidth = Dimensions.get('window').width;
 
-const JobOfferCard = ({ job, onPress, catWidth: cardWidth = 2.7 }: Props) => {
+const JobOfferCard = ({ job, onPress, cardWidth = 2.7 }: Props) => {
   const categoryItemWidth = screenWidth / cardWidth;
   const bgColor =
     pastelColors[Math.floor(Math.random() * pastelColors.length)] ||

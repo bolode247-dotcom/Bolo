@@ -18,8 +18,8 @@ type SearchInputFieldProps = {
   placeholder?: string;
   initialQuery?: string;
   isSearching?: boolean;
+  isRecruiter?: boolean;
   style?: ViewStyle;
-  onSearch?: (query: string) => void;
 };
 
 const SearchInputField = ({
@@ -27,7 +27,7 @@ const SearchInputField = ({
   initialQuery = '',
   isSearching = false,
   style,
-  onSearch,
+  isRecruiter,
 }: SearchInputFieldProps) => {
   const pathName = usePathname();
   const [query, setQuery] = useState(initialQuery || '');
@@ -38,7 +38,11 @@ const SearchInputField = ({
     if (pathName.startsWith('/search')) {
       router.setParams({ query });
     } else {
-      router.push(`/search/${query}`);
+      if (isRecruiter) {
+        router.push(`/searchWorker/${query}`);
+      } else {
+        router.push(`/searchJob/${query}`);
+      }
     }
 
     setTimeout(() => Keyboard.dismiss(), 50);

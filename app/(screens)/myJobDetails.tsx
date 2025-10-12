@@ -1,24 +1,25 @@
-import { applyForJob, getJobById } from '@/appwriteFuncs/appwriteJobsFuncs';
+import {
+    deleteJob,
+    getJobById,
+    togleJobStatus,
+} from '@/appwriteFuncs/appwriteJobsFuncs';
 import CustomButton from '@/component/CustomButton';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { formatJobType, formatTimestamp, salaryType } from '@/Utils/Formatting';
-import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useCallback } from 'react';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,35 +40,51 @@ const pastelColors = [
 
 const JobDetails = () => {
   const { user } = useAuth();
-  const { jobId, isOffer, isApp } = useLocalSearchParams<{
+  const { jobId } = useLocalSearchParams<{
     jobId: string;
     isOffer: string;
     isApp: string;
   }>();
 
-  const [showReasonModal, setShowReasonModal] = React.useState(false);
-  const [applyReason, setApplyReason] = React.useState('');
-  const [isApplying, setIsApplying] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const fetchJob = useCallback(() => getJobById(jobId), [jobId]);
 
   const { data: job, isLoading, error, refetch } = useAppwrite(fetchJob);
+  const [status, setStatus] = React.useState(job?.status || 'active');
 
-  const handleJobApplication = async () => {
-    if (applyReason.trim() === '') {
-      Alert.alert('Please enter a valid reason.');
-      return;
+  useEffect(() => {
+    if (job?.status) {
+      setStatus(job.status);
     }
+  }, [job?.status]);
+
+  const handleJobDeletion = async () => {
     try {
-      setIsApplying(true);
-      await applyForJob(jobId, user?.workers?.$id, applyReason);
-      setShowReasonModal(false);
-      Alert.alert('Success', 'You have successfully applied for the job.');
-      await refetch();
+      setIsDeleting(true);
+      await deleteJob(jobId);
+      Alert.alert('Success', 'Job deleted successfully.');
+      router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to apply for job.');
+      Alert.alert('Error', error.message || 'Oops! Failed to delete job.');
     } finally {
-      setIsApplying(false);
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleJobStatus = async () => {
+    try {
+      console.log('job status before toggle', status);
+      const newStatus = status === 'active' ? 'closed' : 'active';
+      setIsDeleting(true);
+      await togleJobStatus(jobId, newStatus);
+      Alert.alert('Success', 'Job status updated successfully.');
+      setStatus(newStatus);
+      console.log('job status after toggle', status);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update job status.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -98,17 +115,43 @@ const JobDetails = () => {
         options={{
           title: 'Details',
           headerTitleAlign: 'center',
+          animation: 'slide_from_bottom',
           headerRight: () => (
-            <Ionicons
-              name="help-circle-outline"
-              size={28}
-              color={Colors.text}
-              style={{ marginRight: 16 }}
-            />
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                Alert.alert(
+                  `${status === 'active' ? 'Close' : 'Open'} Job`,
+                  `Are you sure you want to ${status === 'active' ? 'close' : 'open'} this job?`,
+                  [
+                    {
+                      text: 'Cancel',
+                      onPress: () => console.log('Cancel Pressed'),
+                      style: 'cancel',
+                    },
+                    {
+                      text: `${status === 'active' ? 'Close' : 'Open'}`,
+                      onPress: () => {
+                        toggleJobStatus();
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <AntDesign
+                name={status === 'active' ? 'eye' : 'eye-invisible'}
+                size={24}
+                color={Colors.text}
+              />
+            </TouchableOpacity>
           ),
         }}
       />
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <SafeAreaView
+        style={styles.container}
+        edges={['right', 'left', 'bottom']}
+      >
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <View style={styles.header}>
@@ -119,9 +162,58 @@ const JobDetails = () => {
               {job?.location?.subdivision}
             </Text>
           </View>
-          {/* Stats */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.appContainer}
+            onPress={() =>
+              router.push({ pathname: '/applicants', params: { jobId: jobId } })
+            }
+          >
+            <View style={styles.applicants}>
+              <Text style={styles.appText}>Applicants</Text>
+              <Text style={styles.appCount}>
+                {job?.applicantsCount}{' '}
+                {job?.applicantsCount === 1 ? 'applicant' : 'applicants'}
+              </Text>
+            </View>
+            <View style={styles.appRight}>
+              <View style={styles.appAvatars}>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={30}
+                  color={Colors.gray300}
+                  style={{ marginLeft: 0 }}
+                />
+                <Ionicons
+                  name="person-circle-outline"
+                  size={30}
+                  color={Colors.gray300}
+                  style={{ marginLeft: -10 }}
+                />
+                <Ionicons
+                  name="person-circle-outline"
+                  size={30}
+                  color={Colors.gray300}
+                  style={{ marginLeft: -10 }}
+                />
+                <Ionicons
+                  name="person-circle-outline"
+                  size={30}
+                  color={Colors.gray300}
+                  style={{ marginLeft: -10 }}
+                />
+              </View>
+
+              <View style={styles.appArrow}>
+                <Ionicons
+                  name="arrow-forward-circle"
+                  size={35}
+                  color={Colors.gray300}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
           <View style={styles.statsRow}>
-            {/* Salary */}
             <View style={styles.statBox}>
               <View
                 style={[
@@ -173,7 +265,7 @@ const JobDetails = () => {
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>Status</Text>
                 <Text style={styles.statValue}>
-                  {job?.status === 'active' ? 'Open' : 'Closed'}
+                  {status === 'active' ? 'Open' : 'Closed'}
                 </Text>
               </View>
             </View>
@@ -207,91 +299,21 @@ const JobDetails = () => {
             <View style={styles.metaCol}>
               <Text style={styles.meta}>Date Posted:</Text>
               <Text style={styles.sectionTitle}>
-                {formatTimestamp(job?.createdAt || '')}
+                {formatTimestamp (job?.createdAt || '')}
               </Text>
             </View>
           </View>
 
-          {isApp !== 'true' && (
-            <View style={styles.btnSection}>
-              {isOffer === 'true' ? (
-                <View style={styles.btnRow}>
-                  <CustomButton
-                    title="Decline"
-                    onPress={() => {}}
-                    style={styles.btnOutline}
-                    textStyle={styles.cusBtnText}
-                    bgVariant="danger-outline"
-                    textVariant="danger-outline"
-                  />
-                  <CustomButton
-                    title="Accept"
-                    onPress={() => setShowReasonModal(true)}
-                    style={styles.btn}
-                    textStyle={styles.cusBtnText}
-                  />
-                </View>
-              ) : (
-                <CustomButton
-                  title="Apply"
-                  onPress={() => setShowReasonModal(true)}
-                />
-              )}
-            </View>
-          )}
-          <Modal
-            visible={showReasonModal}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowReasonModal(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContainer}>
-                <Text style={styles.modalTitle}>Reason for Applying</Text>
-
-                <Text style={styles.modalSubtitle}>
-                  Why should we hire you?
-                </Text>
-
-                <TextInput
-                  value={applyReason}
-                  onChangeText={setApplyReason}
-                  placeholder={'Tell the recruiter why you are applying...'}
-                  placeholderTextColor={Colors.gray600}
-                  multiline
-                  style={styles.input}
-                />
-
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={[
-                      styles.reasonBtn,
-                      { backgroundColor: Colors.gray400 },
-                    ]}
-                    onPress={() => {
-                      setShowReasonModal(false);
-                      setApplyReason('');
-                    }}
-                  >
-                    <Text style={styles.btnText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.reasonBtn,
-                      { backgroundColor: Colors.success },
-                    ]}
-                    onPress={() => handleJobApplication()}
-                  >
-                    <Text style={styles.btnText}>Submit</Text>
-                    {isApplying && (
-                      <ActivityIndicator size="small" color={Colors.white} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
+          <View style={styles.btnRow}>
+            <CustomButton
+              title="Delete Job"
+              onPress={() => handleJobDeletion()}
+              style={styles.btnOutline}
+              bgVariant="danger-outline"
+              textVariant="danger-outline"
+              isLoading={isDeleting}
+            />
+          </View>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -388,84 +410,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Sizes.sm,
   },
-  btn: {
-    width: '48%',
-    paddingVertical: 6,
-    paddingHorizontal: 5,
-  },
   btnOutline: {
     backgroundColor: Colors.white,
-    width: '48%',
+    paddingVertical: 10,
+    // width: '48%',
   },
-  cusBtnText: {
-    fontSize: 16,
-    paddingHorizontal: 2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '85%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  modalSubtitle: {
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
+  appContainer: {
+    backgroundColor: Colors.secondaryDark,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  reasonBtn: {
-    flex: 1,
-    marginHorizontal: 5,
-    paddingVertical: 10,
-    borderRadius: 10,
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: Sizes.xsm,
-    justifyContent: 'center',
+    padding: Sizes.sm,
+    borderRadius: Sizes.sm,
+    marginVertical: Sizes.sm,
   },
-  btnText: {
-    color: 'white',
-    fontWeight: 'bold',
+  applicants: {
+    flexDirection: 'column',
+    gap: Sizes.sm,
   },
-  instructionsContainer: {
-    backgroundColor: Colors.gray100,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 20,
+  appText: {
+    fontSize: 13,
+    fontFamily: 'PoppinsSemiBold',
+    color: Colors.gray400,
   },
-  instructionsTitle: {
-    fontWeight: 'bold',
+  appCount: {
     fontSize: 16,
-    marginBottom: 4,
-    color: Colors.gray700,
+    fontFamily: 'PoppinsSemiBold',
+    color: Colors.gray100,
   },
-  instructionsText: {
-    fontSize: 15,
-    color: Colors.gray600,
-    lineHeight: 20,
+  appRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.gray300,
-    borderRadius: 10,
-    padding: 10,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    color: Colors.gray700,
-    marginBottom: 20,
+  appAvatars: {
+    flexDirection: 'row',
+    marginRight: 6,
+  },
+  appArrow: {
+    marginLeft: 2,
   },
 });

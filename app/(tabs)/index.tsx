@@ -1,19 +1,24 @@
-import { getTopSkillsAndWorkers } from '@/appwriteFuncs/appwriteGenFunc';
 import { getWorkerFeed } from '@/appwriteFuncs/appwriteJobsFuncs';
+import { getRecruiterFeed } from '@/appwriteFuncs/appwriteWorkFuncs';
 import AppHeader from '@/component/AppHeader';
 import BannerSection from '@/component/BanerSection';
 import CategorySection from '@/component/CategorySection';
 import HomeSkeleton from '@/component/HomeSkeleton';
 import JobCard from '@/component/JobCard';
 import JobOfferCard from '@/component/OfferCard';
-import RecommendedWorkerCard from '@/component/RecommendedCard';
+import RecommendedWorkerCard, {
+  RecommendedCardProps,
+} from '@/component/RecommendedCard';
 import SearchInputField from '@/component/SearchField';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import {
   HomeFeedData,
+  Job,
+  Location,
   RecruiterFeedData,
+  Skill,
   WorkerFeedData,
 } from '@/types/genTypes';
 import { AntDesign } from '@expo/vector-icons';
@@ -34,14 +39,16 @@ const Index = () => {
   const { t } = useTranslation();
 
   // --- Fetch function
-  const fetchFunction = () => {
-    if (!user) return Promise.resolve([]);
+  const fetchFunction = (): Promise<HomeFeedData> => {
+    if (!user)
+      return Promise.resolve({ offers: [], recommended: [], jobsByPlan: [] });
+
     if (user.role === 'recruiter') {
-      return getTopSkillsAndWorkers(user?.locations?.$id, user?.skills);
+      return getRecruiterFeed(user);
     } else if (user?.workers?.$id) {
       return getWorkerFeed(user);
     } else {
-      return Promise.resolve([]);
+      return Promise.resolve({ offers: [], recommended: [], jobsByPlan: [] });
     }
   };
 
@@ -54,9 +61,9 @@ const Index = () => {
     router.push({ pathname: '/workerByCat', params: { categoryId } });
   };
 
-  // --- Memoized header for performance
+  // --- Memoized List Header ---
   const renderHeader = useMemo(() => {
-    if (!data) return null;
+    if (!data) return null; // ✅ Prevent null access
 
     const isRecruiter = user?.role === 'recruiter';
 
@@ -77,7 +84,7 @@ const Index = () => {
         const recruiterData = data as RecruiterFeedData;
         return (
           <FlatList
-            data={recruiterData?.topSkills || []}
+            data={recruiterData?.mustHaveSkills || []}
             horizontal
             keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
@@ -90,15 +97,25 @@ const Index = () => {
         );
       } else {
         const workerData = data as WorkerFeedData;
+        const offers = workerData.offers.map((offer) => ({
+          id: offer.id,
+          job: offer.job,
+        }));
+
+        const jobsByPlanAsOffers = workerData.jobsByPlan.map((job) => ({
+          id: job.job.id,
+          job: job.job,
+        }));
+
+        const listData = offers.length > 0 ? offers : jobsByPlanAsOffers;
+
         return (
           <FlatList
-            data={
-              workerData.offers.length > 0
-                ? workerData.offers
-                : workerData.jobsByPlan || []
-            }
+            data={listData}
             horizontal
-            keyExtractor={(item) => item?.job?.id}
+            keyExtractor={(item, index) =>
+              item.id ?? item.job.id ?? index.toString()
+            }
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryList}
             renderItem={({ item }) => (
@@ -140,66 +157,131 @@ const Index = () => {
     );
   }, [data, user, t]);
 
-  // --- Main render
+  type FeedItem =
+    | {
+        id: string;
+        job: Job; // for job items
+        type: 'job';
+      }
+    | {
+        id: string;
+        name: string;
+        skill?: Skill | null;
+        location?: Location | null;
+        type: 'worker';
+        payRate: string;
+        rating: number;
+      };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'right', 'left']}>
       <AppHeader />
+
       <SearchInputField
         placeholder={t('home.searchPlaceholder')}
         style={styles.searchFieldStyles}
+        isRecruiter={user?.role === 'recruiter' ? true : false}
       />
 
       {isLoading ? (
         <HomeSkeleton />
-      ) : (
+      ) : data ? (
         <>
-          <FlatList
-            data={
-              user?.role === 'recruiter'
-                ? data?.topWorkers || []
-                : data?.recommended || []
-            }
-            ListHeaderComponent={renderHeader}
-            numColumns={user?.role === 'recruiter' ? 2 : 1}
-            columnWrapperStyle={
-              user?.role === 'recruiter'
-                ? { justifyContent: 'space-between' }
-                : undefined
-            }
-            keyExtractor={(item) =>
-              item.job.id || item.users?.$id || Math.random().toString()
-            }
-            renderItem={({ item }) =>
-              user?.role === 'recruiter' ? (
-                <RecommendedWorkerCard
-                  worker={item}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(screens)/workerProfile',
-                      params: { workerId: item.users?.$id },
-                    })
-                  }
-                />
-              ) : (
-                <JobCard
-                  job={item.job}
-                  onPress={() => {
-                    router.push({
-                      pathname: '/jobDetails',
-                      params: { jobId: item?.job?.id, isOffer: 'false' },
-                    });
-                  }}
-                />
-              )
-            }
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: Sizes.md,
-              backgroundColor: Colors.background,
-            }}
-          />
+          {(() => {
+            const normalizedData: FeedItem[] = (() => {
+              if (!data) return [];
 
-          {/* Floating Action Button for Recruiters */}
+              if (user?.role === 'recruiter' && 'recommendedWorkers' in data) {
+                return data.recommendedWorkers.map((w) => ({
+                  id: w.id,
+                  name: w.name,
+                  skill: w.skill,
+                  location: w.location,
+                  payRate: w.payRate,
+                  rating: w.rating,
+                  type: 'worker' as const,
+                }));
+              } else if ('offers' in data) {
+                const offers = data.recommended.map((o) => ({
+                  id: o.id,
+                  job: o.job,
+                  type: 'job' as const,
+                }));
+                const jobsByPlan = data.jobsByPlan.map((j) => ({
+                  id: j.job.id,
+                  job: j.job,
+                  type: 'job' as const,
+                }));
+                return offers.length > 0 ? offers : jobsByPlan;
+              }
+
+              return [];
+            })();
+
+            return (
+              <FlatList
+                data={normalizedData}
+                keyExtractor={(item) => item.id}
+                numColumns={user?.role === 'recruiter' ? 2 : 1}
+                ListHeaderComponent={data ? renderHeader : null}
+                columnWrapperStyle={
+                  user?.role === 'recruiter'
+                    ? { justifyContent: 'space-between' }
+                    : undefined
+                }
+                renderItem={({ item }) => {
+                  if (item.type === 'worker') {
+                    // ✅ Normalize FeedItem -> RecommendedCardProps
+                    const workerProps: RecommendedCardProps = {
+                      users: {
+                        $id: item.id,
+                        name: item.name,
+                        avatar: null,
+                        skills: item.skill ? [item.skill] : [],
+                        locations: item.location ?? null,
+                      },
+                      payRate: item.payRate ?? 'N/A',
+                      rating: item.rating ?? 0,
+                      location:
+                        item.location?.division ??
+                        item.location?.region ??
+                        'Unknown',
+                    };
+
+                    return (
+                      <RecommendedWorkerCard
+                        worker={workerProps}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(screens)/workerProfile',
+                            params: { workerId: item.id },
+                          })
+                        }
+                      />
+                    );
+                  }
+
+                  // ✅ Render job card normally
+                  return (
+                    <JobCard
+                      job={item.job}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/jobDetails',
+                          params: { jobId: item.job.id, isOffer: 'false' },
+                        })
+                      }
+                    />
+                  );
+                }}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  backgroundColor: Colors.background,
+                }}
+              />
+            );
+          })()}
+
           {user?.role === 'recruiter' && (
             <View style={styles.fabContainer}>
               <View style={styles.hintWrapper}>
@@ -218,7 +300,7 @@ const Index = () => {
             </View>
           )}
         </>
-      )}
+      ) : null}
     </SafeAreaView>
   );
 };

@@ -119,153 +119,155 @@ const Applications = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'left']}>
+    <>
       <StatusBar barStyle="light-content" />
-      <ExploreHeader
-        title="Applications"
-        search="Search and apply for Jobs..."
-      />
-      {isLoading ? (
-        <JobWorkerSkeleton />
-      ) : (
-        <FlatList
-          data={applications}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ApplicationCard
-              application={item}
-              onActionPress={() => handleActionPress(item)}
-            />
-          )}
-          contentContainerStyle={{ padding: 16 }}
-          ListEmptyComponent={
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 20,
-                color: Colors.gray600,
-              }}
-            >
-              No Application found.
-            </Text>
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.primary} // iOS spinner color
-              colors={[Colors.primary]} // Android spinner color
-            />
-          }
+      <SafeAreaView style={styles.container} edges={['right', 'left']}>
+        <ExploreHeader
+          title="Applications"
+          search="Search and apply for Jobs..."
         />
-      )}
-      <Modal
-        visible={showModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
-              {selectedApp?.status === 'interview'
-                ? 'Interview Invitation'
-                : 'Hired'}
-            </Text>
-            <Text style={styles.modalSubtitle} numberOfLines={2}>
-              {selectedApp?.status === 'interview'
-                ? 'You have been invited to an interview for the job'
-                : 'You have been hired for the job'}{' '}
-              <Text style={{ fontWeight: 'bold' }}>
-                {selectedApp?.job?.title}
+        {isLoading ? (
+          <JobWorkerSkeleton />
+        ) : (
+          <FlatList
+            data={applications}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ApplicationCard
+                application={item}
+                onActionPress={() => handleActionPress(item)}
+              />
+            )}
+            contentContainerStyle={{ padding: 16 }}
+            ListEmptyComponent={
+              <Text
+                style={{
+                  textAlign: 'center',
+                  marginTop: 20,
+                  color: Colors.gray600,
+                }}
+              >
+                No Application found.
               </Text>
-            </Text>
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.primary} // iOS spinner color
+                colors={[Colors.primary]} // Android spinner color
+              />
+            }
+          />
+        )}
+        <Modal
+          visible={showModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>
+                {selectedApp?.status === 'interview'
+                  ? 'Interview Invitation'
+                  : 'Hired'}
+              </Text>
+              <Text style={styles.modalSubtitle} numberOfLines={2}>
+                {selectedApp?.status === 'interview'
+                  ? 'You have been invited to an interview for the job'
+                  : 'You have been hired for the job'}{' '}
+                <Text style={{ fontWeight: 'bold' }}>
+                  {selectedApp?.job?.title}
+                </Text>
+              </Text>
 
-            {selectedApp?.instructions ? (
-              <View style={styles.instructionsContainer}>
-                <Text style={styles.instructionsTitle}>Instructions</Text>
-                <ScrollView style={{ maxHeight: 200 }}>
-                  <Text style={styles.instructionsText}>
-                    {selectedApp.instructions}Notify the recruiter automatically
-                    when the worker responds
-                  </Text>
-                </ScrollView>
+              {selectedApp?.instructions ? (
+                <View style={styles.instructionsContainer}>
+                  <Text style={styles.instructionsTitle}>Instructions</Text>
+                  <ScrollView style={{ maxHeight: 200 }}>
+                    <Text style={styles.instructionsText}>
+                      {selectedApp.instructions}Notify the recruiter
+                      automatically when the worker responds
+                    </Text>
+                  </ScrollView>
+                </View>
+              ) : null}
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: Colors.danger }]}
+                  onPress={() => {
+                    setShowModal(false);
+                    setShowReasonModal(true); // open reason modal instead
+                  }}
+                >
+                  <Text style={styles.btnText}>Decline</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: Colors.primary }]}
+                  onPress={() => handleInterviewResponse('accepted')}
+                >
+                  <Text style={styles.btnText}>Accept</Text>
+                </TouchableOpacity>
               </View>
-            ) : null}
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: Colors.danger }]}
-                onPress={() => {
-                  setShowModal(false);
-                  setShowReasonModal(true); // open reason modal instead
-                }}
-              >
-                <Text style={styles.btnText}>Decline</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: Colors.primary }]}
-                onPress={() => handleInterviewResponse('accepted')}
-              >
-                <Text style={styles.btnText}>Accept</Text>
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
-      <Modal
-        visible={showReasonModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowReasonModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Reason for Declining</Text>
+        </Modal>
+        <Modal
+          visible={showReasonModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowReasonModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Reason for Declining</Text>
 
-            <Text style={styles.modalSubtitle}>
-              {selectedApp?.status === 'interview'
-                ? 'Please tell us why you are declining this interview.'
-                : selectedApp?.status === 'hired'
-                  ? 'Please tell us why you are declining this job offer.'
-                  : 'Please provide a reason for declining.'}
-            </Text>
+              <Text style={styles.modalSubtitle}>
+                {selectedApp?.status === 'interview'
+                  ? 'Please tell us why you are declining this interview.'
+                  : selectedApp?.status === 'hired'
+                    ? 'Please tell us why you are declining this job offer.'
+                    : 'Please provide a reason for declining.'}
+              </Text>
 
-            <TextInput
-              value={declineReason}
-              onChangeText={setDeclineReason}
-              placeholder={
-                selectedApp?.status === 'interview'
-                  ? 'Type your reason for declining the interview...'
-                  : 'Type your reason for declining the job offer...'
-              }
-              placeholderTextColor={Colors.gray600}
-              multiline
-              style={styles.input}
-            />
+              <TextInput
+                value={declineReason}
+                onChangeText={setDeclineReason}
+                placeholder={
+                  selectedApp?.status === 'interview'
+                    ? 'Type your reason for declining the interview...'
+                    : 'Type your reason for declining the job offer...'
+                }
+                placeholderTextColor={Colors.gray600}
+                multiline
+                style={styles.input}
+              />
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: Colors.gray400 }]}
-                onPress={() => {
-                  setShowReasonModal(false);
-                  setDeclineReason('');
-                }}
-              >
-                <Text style={styles.btnText}>Cancel</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: Colors.gray400 }]}
+                  onPress={() => {
+                    setShowReasonModal(false);
+                    setDeclineReason('');
+                  }}
+                >
+                  <Text style={styles.btnText}>Cancel</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: Colors.danger }]}
-                onPress={() => handleInterviewResponse('declined')}
-              >
-                <Text style={styles.btnText}>Submit</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: Colors.danger }]}
+                  onPress={() => handleInterviewResponse('declined')}
+                >
+                  <Text style={styles.btnText}>Submit</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </>
   );
 };
 

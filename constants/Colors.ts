@@ -1,5 +1,4 @@
 const Colors = {
-  // Neutrals / Grayscale
   white: '#ffffff',
   black: '#000000',
   gray50: '#fafafa',

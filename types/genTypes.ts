@@ -1,25 +1,34 @@
+import { Ionicons } from '@expo/vector-icons';
+
 export interface Job {
-  // --- System fields ---
-  $id?: string; // Optional for new jobs, required when fetched
+  id: string;
   $createdAt?: string;
   $updatedAt?: string;
 
-  // --- Core fields ---
-  title: string; // Job title
-  description: string; // Job description
-  type: string; // Job type ID (many-to-one)
-  skills: string; // Skill ID (many-to-one)
-  locations: string; // Location ID (many-to-one)
-  recruiters?: string; // Recruiter ID (many-to-one, optional on creation)
+  title?: string;
+  description?: string;
+  type?: string;
+  skill?: string;
+  location?: Location | null;
+  recruiters?: string;
 
   // --- Job details ---
-  salary?: number | string; // Can be string (form) or number (DB)
-  salaryType?: string; // e.g., "Monthly", "Hourly"
-  salaryPeriod?: string; // e.g., "per month", "per hour"
+  salary?: number | string;
+  salaryType?: string;
+  salaryPeriod?: string;
   maxApplicants?: number | string | null;
-  status?: string; // e.g., "Open", "Closed"
+  status?: string;
 
   [key: string]: any;
+}
+export interface Location {
+  // --- System fields ---
+  id?: string;
+  region: string;
+  division?: string;
+  subdivision?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
 }
 
 export type JobSkill = {
@@ -28,37 +37,93 @@ export type JobSkill = {
   icon?: any;
 };
 
-export type JobLocation = {
-  region?: string;
-  division?: string;
-  subdivision?: string;
-};
-
 export type JobWithDetails = Omit<Job, 'skills' | 'locations'> & {
   $id?: string; // ensure always defined
   skills?: JobSkill | null; // expanded skill object
-  location?: JobLocation | null; // expanded location object
+  location?: Location | null; // expanded location object
   startDate?: string;
 };
 
-export interface Offer {
-  offerId: string;
-  job: Job;
-}
 export type Skill = {
   id: string;
   name: string;
-  icon: any;
-  count: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  count?: number;
 };
+
+export interface Worker {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  skill: Skill | null;
+  location: Location | null;
+  payRate: string;
+  rating: number;
+  bio?: string;
+}
+
+export type User = {
+  $id: string;
+  name: string;
+  avatar?: string | null;
+  skills: Skill[];
+  locations?: Location | null;
+};
+
+export type ListItem =
+  | { id: string; job: Job } // for jobs
+  | {
+      id: string;
+      users: User;
+      payRate: string;
+      rating: number;
+      location: string;
+    }; // for recommended workers
+
+export interface Offer {
+  id: string;
+  job: Job;
+}
+export interface JobsWithSource {
+  id: string;
+  source?: string;
+  job: Job;
+}
+
 export interface RecruiterFeedData {
-  topSkills: Skill[];
-  topWorkers: Skill[];
+  mustHaveSkills: Skill[];
+  recommendedWorkers: Worker[];
 }
 
 export interface WorkerFeedData {
   offers: Offer[];
-  recommended: Offer[];
-  recent: Offer[];
+  recommended: JobsWithSource[];
+  jobsByPlan: JobsWithSource[];
 }
-export type HomeFeedData = WorkerFeedData | RecruiterFeedData;
+
+export type HomeFeedData = RecruiterFeedData | WorkerFeedData;
+
+export interface Chat {
+  $id: string;
+  participants: string[];
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadByRecruiter?: number;
+  unreadBySeeker?: number;
+  $createdAt: string;
+  $updatedAt: string;
+}
+
+export interface Message {
+  $id: string;
+  chats: string; // chat ID reference
+  message: string;
+  senderId: string;
+  $createdAt: string;
+}
+
+export interface ChatDetails {
+  chat: Chat;
+  participants: string[];
+  messages: Message[];
+}

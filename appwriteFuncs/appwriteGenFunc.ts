@@ -1,6 +1,6 @@
 import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
-import { Job } from '@/types/genTypes';
+import { Chat, ChatDetails, Message } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
 
@@ -8,44 +8,6 @@ export interface LocationOption {
   id: string;
   label: string;
 }
-
-export const createJob = async (values: Job) => {
-  const {
-    title,
-    description,
-    recruiters,
-    type,
-    salary,
-    salaryType,
-    maxApplicants,
-    skills,
-    locations,
-  } = values;
-
-  try {
-    await tables.createRow({
-      databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.jobsCol,
-      rowId: ID.unique(),
-      data: {
-        title,
-        description,
-        recruiters,
-        locations,
-        type,
-        salary: salary ? parseInt(salary.toString(), 10) : 0,
-        salaryType: salaryType || 'contract',
-        maxApplicants: maxApplicants
-          ? parseInt(maxApplicants.toString(), 10)
-          : 0,
-        skills,
-        status: 'active',
-      },
-    });
-  } catch (error) {
-    throw error;
-  }
-};
 
 export const getLocations = async (): Promise<LocationOption[]> => {
   const allLocations: LocationOption[] = [];
@@ -150,143 +112,232 @@ export const formatName = (fullName: string) => {
     .join(' ');
 };
 
-export const getRecommendedWorkers = async (
-  recruiterRegion: string,
-  recruiterSkillId?: string,
-  industryId?: string,
+export const getOrCreateChat = async (
+  recruiterId: string,
+  workerId: string,
+  jobId: string,
 ) => {
   try {
-    // 1️⃣ Always query by industry first for best performance
-    const baseQueries = [
-      industryId ? Query.equal('skills.industry', industryId) : null,
-      Query.select([
-        '$id',
-        'users.name',
-        'users.avatar',
-        'users.email',
-        'skills.$id',
-        'skills.icon',
-        'locations.region',
-        'locations.division',
-        'locations.subdivision',
-      ]),
-      Query.limit(100),
-    ].filter(Boolean) as any[];
-
+    // 1️⃣ Check if chat already exists
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
-      queries: baseQueries,
+      tableId: appwriteConfig.chatsCol,
+      queries: [
+        Query.equal('participants', recruiterId),
+        Query.equal('participants', workerId),
+        Query.equal('jobs', jobId),
+      ],
     });
 
-    if (!res?.rows?.length) return [];
+    let chat = res?.rows?.[0];
 
-    // 2️⃣ Filter by region and skills
-    const filtered = res.rows.filter((worker) => {
-      const regionMatch = worker.locations?.region === recruiterRegion;
-      const skillMatch =
-        !recruiterSkillId || worker.skills?.$id === recruiterSkillId;
-      return regionMatch || skillMatch;
-    });
+    // 2️⃣ If not found → create new one
+    if (!chat) {
+      const created = await tables.createRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.chatsCol,
+        rowId: ID.unique(),
+        data: {
+          participants: [recruiterId, workerId],
+          recruiters: recruiterId,
+          jobs: jobId,
+          lastMessage: 'Start a conversation',
+          lastMessageAt: new Date().toISOString(),
+          unreadByRecruiter: 0,
+          unreadBySeeker: 0,
+        },
+      });
 
-    // 3️⃣ Use fallback (workers in same industry)
-    const finalWorkers =
-      filtered.length > 0 ? filtered.slice(0, 10) : res.rows.slice(0, 10);
+      chat = created;
+    }
 
-    // 4️⃣ Format output
-    return finalWorkers.map((worker) => ({
-      id: worker.$id,
-      name: worker.users?.name,
-      avatar: worker.users?.avatar,
-      email: worker.users?.email,
-      skill: worker.skills
-        ? {
-            id: worker.skills.$id,
-            icon: worker.skills.icon,
-          }
-        : null,
-      location: worker.locations
-        ? {
-            region: worker.locations.region,
-            division: worker.locations.division,
-            subdivision: worker.locations.subdivision,
-          }
-        : null,
-    }));
-  } catch (error) {
-    console.error('Error fetching recommended workers:', error);
-    return [];
+    return chat;
+  } catch (err) {
+    console.error('❌ getOrCreateChat error:', err);
+    throw err;
   }
 };
 
-export const getMustHaveSkills = async (recruiterRegion: string) => {
-  try {
-    const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+type ChatPreview = {
+  id: string;
+  jobId: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  participant: {
+    id: string;
+    name: string;
+    avatar: string | null;
+  };
+};
 
-    // 1️⃣ Fetch workers and expand users → skills → locations
+export const getChats = async (
+  userId: string,
+  role: 'recruiter' | 'worker',
+): Promise<ChatPreview[]> => {
+  try {
+    // 1️⃣ Get chats where current user is in participants
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
+      tableId: appwriteConfig.chatsCol,
       queries: [
+        Query.search('participants', userId),
         Query.select([
           '$id',
-          'users.$id',
-          'users.skills.$id',
-          'users.skills.name_en',
-          'users.skills.name_fr',
-          'users.skills.icon',
-          'users.locations.region',
+          'participants',
+          'jobs.$id',
+          'lastMessage',
+          'lastMessageAt',
+          'recruiters.$id',
+          'unreadByRecruiter',
+          'unreadBySeeker',
         ]),
-        Query.limit(100),
       ],
     });
 
     if (!res?.rows?.length) return [];
 
-    // 2️⃣ Filter workers whose user is in the recruiter's region
-    const regionalWorkers = res.rows.filter(
-      (worker) => worker.users?.locations?.region === recruiterRegion,
+    // 2️⃣ Resolve each chat
+    const chats = await Promise.all(
+      res.rows.map(async (chat): Promise<ChatPreview | null> => {
+        const isRecruiter = role === 'recruiter';
+
+        // 🧩 Extract the other participant (not the current user)
+        const otherId = chat.participants?.find((p: string) => p !== userId);
+        if (!otherId) return null;
+
+        // Determine which table to query for the other participant
+        const otherTable = isRecruiter
+          ? appwriteConfig.workerCol
+          : appwriteConfig.recruiterCol;
+
+        const otherSelectFields = isRecruiter
+          ? ['$id', 'users.name', 'users.avatar']
+          : ['$id', 'companyName', 'logo', 'users.name', 'users.avatar'];
+
+        // 3️⃣ Fetch participant details
+        const otherRes = await tables.listRows({
+          databaseId: appwriteConfig.dbId,
+          tableId: otherTable,
+          queries: [
+            Query.equal('$id', otherId),
+            Query.select(otherSelectFields),
+          ],
+        });
+
+        const otherData = otherRes?.rows?.[0];
+
+        // 4️⃣ Graceful fallback for missing fields
+        const otherName = isRecruiter
+          ? otherData?.users?.name || 'Unknown'
+          : otherData?.companyName || otherData?.users?.name || 'Unknown';
+
+        const otherAvatar = isRecruiter
+          ? otherData?.users?.avatar || null
+          : otherData?.logo || otherData?.users?.avatar || null;
+
+        const unreadCount = isRecruiter
+          ? chat.unreadByRecruiter || 0
+          : chat.unreadBySeeker || 0;
+
+        return {
+          id: chat.$id,
+          jobId: chat.jobs.$id,
+          lastMessage: chat.lastMessage,
+          lastMessageAt: chat.lastMessageAt,
+          unreadCount,
+          participant: {
+            id: otherId,
+            name: otherName,
+            avatar: otherAvatar,
+          },
+        };
+      }),
     );
 
-    // 3️⃣ Count skills frequency
-    const skillMap: Record<string, { count: number; data: any }> = {};
-    for (const worker of regionalWorkers) {
-      const skill = worker.users?.skills;
-      if (skill?.$id) {
-        if (!skillMap[skill.$id]) {
-          skillMap[skill.$id] = { count: 0, data: skill };
-        }
-        skillMap[skill.$id].count++;
-      }
-    }
+    // 5️⃣ Filter & sort
+    const validChats = chats.filter((c): c is ChatPreview => c !== null);
+    const sortedChats = validChats.sort((a, b) => {
+      const dateA = new Date(a.lastMessageAt ?? 0).getTime();
+      const dateB = new Date(b.lastMessageAt ?? 0).getTime();
+      return dateB - dateA;
+    });
 
-    // 4️⃣ Sort and map
-    const sortedSkills = Object.values(skillMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
-      .map((s) => ({
-        id: s.data.$id,
-        name: lang === 'fr' ? s.data.name_fr : s.data.name_en,
-        icon: s.data.icon,
-        count: s.count,
-      }));
-
-    return sortedSkills;
+    return sortedChats;
   } catch (error) {
-    console.error('Error fetching must-have skills:', error);
+    console.error('❌ Error fetching chats:', error);
     return [];
   }
 };
 
-export const getRecruiterFeed = async (
-  recruiterRegion: string,
-  recruiterSkillId?: string,
-  industryId?: string,
-) => {
-  const [mustHaveSkills, recommendedWorkers] = await Promise.all([
-    getMustHaveSkills(recruiterRegion),
-    getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId),
-  ]);
+/**
+ * ✅ Fetch chat + messages safely and flatten fields
+ */
+export const getChatDetailsWithMessages = async (
+  chatId: string,
+): Promise<ChatDetails> => {
+  try {
+    // Step 1️⃣ Fetch the chat with required fields (include unread counts)
+    const chatRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.chatsCol,
+      queries: [
+        Query.equal('$id', chatId),
+        Query.select([
+          '$id',
+          'participants',
+          'lastMessage',
+          'lastMessageAt',
+          'unreadByRecruiter',
+          'unreadBySeeker',
+          '$createdAt',
+          '$updatedAt',
+        ]),
+      ],
+    });
 
-  return { mustHaveSkills, recommendedWorkers };
+    const rawChat = chatRes?.rows?.[0];
+    if (!rawChat) throw new Error('Chat not found');
+
+    // 🧩 Flatten and type the chat data
+    const chat: Chat = {
+      $id: rawChat.$id,
+      participants: rawChat.participants ?? [],
+      lastMessage: rawChat.lastMessage ?? '',
+      lastMessageAt: rawChat.lastMessageAt ?? null,
+      unreadByRecruiter: rawChat.unreadByRecruiter ?? 0,
+      unreadBySeeker: rawChat.unreadBySeeker ?? 0,
+      $createdAt: rawChat.$createdAt,
+      $updatedAt: rawChat.$updatedAt,
+    };
+
+    // Step 2️⃣ Fetch all messages under this chat
+    const msgRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.messagesCol,
+      queries: [
+        Query.equal('chats', chatId),
+        Query.orderAsc('$createdAt'),
+        Query.select(['$id', 'chats.$id', 'message', 'senderId', '$createdAt']),
+      ],
+    });
+
+    // 🧩 Flatten and type the messages
+    const messages: Message[] = (msgRes?.rows ?? []).map((msg) => ({
+      $id: msg.$id,
+      chats: msg.chats.$id,
+      message: msg.message,
+      senderId: msg.senderId,
+      $createdAt: msg.$createdAt,
+    }));
+
+    return {
+      chat,
+      participants: chat.participants,
+      messages,
+    };
+  } catch (error) {
+    console.error('❌ Error fetching chat & messages:', error);
+    throw error;
+  }
 };

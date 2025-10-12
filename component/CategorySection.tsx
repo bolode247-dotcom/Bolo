@@ -1,4 +1,5 @@
 import { Colors, Sizes } from '@/constants';
+import { Skill } from '@/types/genTypes';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,16 +11,9 @@ import {
   View,
 } from 'react-native';
 
-type Category = {
-  id: string;
-  name: string;
-  icon: any;
-  count: number;
-};
-
 type Props = {
   catWidth?: number;
-  category: Category;
+  category: Skill;
   onSelect: (id: string) => void;
 };
 
@@ -34,14 +28,18 @@ const CategorySection = ({ category, onSelect, catWidth = 2.5 }: Props) => {
       onPress={() => onSelect(category.id)}
     >
       <View style={styles.iconWrapper}>
-        <Ionicons name={category.icon} size={40} color={Colors.gray700} />
+        <Ionicons
+          name={category.icon || 'flash'}
+          size={40}
+          color={Colors.gray700}
+        />
       </View>
       <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode="tail">
         {category.name}
       </Text>
       <Text style={styles.categoryDetails}>
-        {category.count}{' '}
-        {category.count > 1 ? t('home.worker_plural') : t('home.worker')}
+        {category.count ?? 0}{' '}
+        {(category.count ?? 0) > 1 ? t('home.worker_plural') : t('home.worker')}
       </Text>
     </TouchableOpacity>
   );

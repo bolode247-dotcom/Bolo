@@ -101,6 +101,38 @@ export default function ScreensLayout() {
           ),
         }}
       />
+      <Stack.Screen
+        name="workerProfile"
+        options={{
+          headerShown: true,
+          title: 'Profile',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen
+        name="myJobDetails"
+        options={{
+          title: 'Details',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="applicants"
+        options={{
+          title: 'Applicants',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack>
   );
 }

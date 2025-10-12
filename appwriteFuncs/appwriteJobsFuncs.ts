@@ -1,9 +1,48 @@
 import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
+import { Job, Offer } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
 
-export const getJobOffers = async (workerId: string) => {
+export const createJob = async (values: Job) => {
+  const {
+    title,
+    description,
+    recruiters,
+    type,
+    salary,
+    salaryType,
+    maxApplicants,
+    skills,
+    locations,
+  } = values;
+
+  try {
+    await tables.createRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: ID.unique(),
+      data: {
+        title,
+        description,
+        recruiters,
+        locations,
+        type,
+        salary: salary ? parseInt(salary.toString(), 10) : 0,
+        salaryType: salaryType || 'contract',
+        maxApplicants: maxApplicants
+          ? parseInt(maxApplicants.toString(), 10)
+          : 0,
+        skills,
+        status: 'active',
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getJobOffers = async (workerId: string): Promise<Offer[]> => {
   try {
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
@@ -27,7 +66,7 @@ export const getJobOffers = async (workerId: string) => {
     });
 
     return res.rows.map((offer) => ({
-      offerId: offer.$id,
+      id: offer.$id,
       job: {
         id: offer.jobs?.$id,
         title: offer.jobs?.title,
@@ -59,10 +98,14 @@ export const getRecommendedJobs = async (
   workerSkillId: string,
   workerRegion: string,
   industryId: string,
+  isPro: boolean,
 ) => {
   try {
     // 1️⃣ Always query jobs by industry first
     const baseQueries = [
+      isPro
+        ? Query.orderDesc('$createdAt') // Pro → newest jobs first
+        : Query.orderAsc('$createdAt'),
       Query.equal('skills.industry', industryId),
       Query.select([
         '$id',
@@ -105,7 +148,8 @@ export const getRecommendedJobs = async (
 
     // 4️⃣ Format response
     return finalJobs.map((job) => ({
-      source: 'recommended',
+      source: isPro ? 'recent' : 'older',
+      id: job.$id,
       job: {
         id: job.$id,
         title: job.title,
@@ -173,6 +217,7 @@ export const getJobsByPlan = async (isPro: boolean) => {
 
     return res.rows.map((job) => ({
       source: isPro ? 'recent' : 'older',
+      id: job.$id,
       job: {
         id: job.$id,
         title: job.title,
@@ -211,14 +256,14 @@ export const getJobsByPlan = async (isPro: boolean) => {
 
 export const getWorkerFeed = async (user: any) => {
   const workerId = user?.workers?.$id;
-  const workerSkillId = user.skills.$id;
-  const industryId = user?.skills?.industry; // single skill id
-  const workerRegion = user.locations; // use region
-  const isPro = user.worker?.isPro;
+  const workerSkillId = user?.skills?.$id;
+  const industryId = user?.skills?.industry;
+  const workerRegion = user?.locations;
+  const isPro = user?.worker?.isPro;
 
   const [offers, recommended, jobsByPlan] = await Promise.all([
     getJobOffers(workerId),
-    getRecommendedJobs(workerSkillId, workerRegion, industryId),
+    getRecommendedJobs(workerSkillId, workerRegion, industryId, isPro),
     getJobsByPlan(isPro),
   ]);
 
@@ -226,7 +271,10 @@ export const getWorkerFeed = async (user: any) => {
 
   const uniqueJobs = Object.values(
     allJobs.reduce<Record<string, (typeof allJobs)[number]>>((acc, item) => {
-      acc[item.job.id] = item;
+      const jobId = item?.job?.id;
+      if (jobId) {
+        acc[jobId] = item;
+      }
       return acc;
     }, {}),
   );
@@ -317,7 +365,7 @@ export const getJobById = async (jobId: string) => {
 export const getJobsByRegionOrSkill = async (
   region: string,
   skillId: string,
-  search?: string, // 👈 added optional search term
+  search?: string,
 ) => {
   const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
 
@@ -653,5 +701,239 @@ export const withdrawApp = async (appId: string, jobId: string) => {
   } catch (error) {
     console.error('❌ Error withdrawing application:', error);
     throw error;
+  }
+};
+
+export const getJobsByRecruiterId = async (recruiterId: string) => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      queries: [
+        Query.equal('recruiters', recruiterId),
+        Query.select([
+          '$id',
+          'title',
+          'type',
+          'salary',
+          'salaryType',
+          'status',
+          '$createdAt',
+          'maxApplicants',
+          'applicantsCount',
+          'recruiters.logo',
+          'description',
+          'recruiters.companyName',
+          'recruiters.users.name',
+          'recruiters.users.avatar',
+          'skills.icon',
+          `skills.name_${lang}`,
+          'locations.region',
+          'locations.division',
+          'locations.subdivision',
+        ]),
+      ],
+    });
+
+    if (!res?.total || !res.rows?.length) return [];
+
+    return res.rows.map((job) => ({
+      id: job.$id,
+      title: job.title,
+      type: job.type,
+      salary: job.salary,
+      salaryType: job.salaryType,
+      maxApplicants: job.maxApplicants,
+      applicantsCount: job.applicantsCount,
+      createdAt: job.$createdAt,
+      description: job.description,
+      status: job.status,
+      recruiter: job.recruiters
+        ? {
+            name: job.recruiters.users.name,
+            logo: job.recruiters.logo,
+            companyName: job.recruiters.companyName,
+            avatar: job.recruiters.users.avatar,
+          }
+        : null,
+      skill: job.skills
+        ? {
+            icon: job.skills.icon,
+            name: job.skills?.[`name_${lang}`],
+          }
+        : null,
+      location: job.locations
+        ? {
+            region: job.locations.region,
+            division: job.locations.division,
+            subdivision: job.locations.subdivision,
+          }
+        : null,
+    }));
+  } catch (error) {
+    console.error('❌ Error getting jobs by recruiter ID:', error);
+    throw error;
+  }
+};
+
+export const deleteJob = async (jobId: string) => {
+  if (!jobId) return;
+  try {
+    await tables.deleteRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: jobId,
+    });
+  } catch (error) {
+    console.error('❌ Error deleting job:', error);
+    throw error;
+  }
+};
+
+export const togleJobStatus = async (jobId: string, status: string) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      rowId: jobId,
+      data: {
+        status,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error toggling job status:', error);
+    throw error;
+  }
+};
+
+// 🔹 Define clear types for safety
+interface ApplicantApplication {
+  id: string;
+  workerId: string;
+  reason: string;
+  status: string;
+}
+
+interface ApplicantInfo {
+  id: string;
+  workerId: string;
+  name: string;
+  avatar: string | null;
+  isPro: boolean;
+  skill: string;
+  status: string;
+  reason: string;
+  location: {
+    subdivision: string;
+    division: string;
+    region: string;
+  };
+}
+
+export const getApplicantsByJobId = async (
+  jobId: string,
+): Promise<ApplicantInfo[]> => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+
+  try {
+    // 1️⃣ Fetch all applications linked to this job
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      queries: [
+        Query.equal('jobs', jobId),
+        Query.select(['$id', 'reason', 'status', 'workers.$id']),
+      ],
+    });
+
+    if (!res?.rows?.length) return [];
+
+    // 2️⃣ Sanitize & type application data
+    const applications: ApplicantApplication[] = res.rows
+      .filter((a) => !!a?.$id && !!a?.workers?.$id)
+      .map((a) => ({
+        id: a.$id,
+        workerId: a.workers.$id,
+        reason: a?.reason || '',
+        status: a?.status || 'applied',
+      }));
+
+    if (!applications.length) return [];
+
+    // 3️⃣ Fetch worker data for each application (keep 1:1 mapping)
+    const results = await Promise.all(
+      applications.map(async (app) => {
+        const workerRes = await tables.listRows({
+          databaseId: appwriteConfig.dbId,
+          tableId: appwriteConfig.workerCol,
+          queries: [
+            Query.equal('$id', app.workerId),
+            Query.select([
+              '$id',
+              'isPro',
+              'users.name',
+              'users.avatar',
+              'users.locations.subdivision',
+              'users.locations.division',
+              'users.locations.region',
+              `users.skills.name_${lang}`,
+            ]),
+          ],
+        });
+
+        const worker = workerRes?.rows?.[0];
+        if (!worker) return null;
+
+        return {
+          id: app.id,
+          workerId: app.workerId,
+          name: worker?.users?.name,
+          avatar: worker?.users?.avatar,
+          isPro: worker?.isPro ?? false,
+          skill: worker?.users?.skills?.[`name_${lang}`],
+          status: app.status,
+          reason: app.reason,
+          location: {
+            subdivision: worker?.users?.locations?.subdivision,
+            division: worker?.users?.locations?.division,
+            region: worker?.users?.locations?.region,
+          },
+        } as ApplicantInfo;
+      }),
+    );
+
+    // ✅ Strongly typed version
+    const filteredResults: ApplicantInfo[] = results
+      .filter((r): r is ApplicantInfo => r !== null && r !== undefined)
+      .sort((a, b) => {
+        if (a.isPro && !b.isPro) return -1; // Pro first
+        if (!a.isPro && b.isPro) return 1;
+        return 0;
+      });
+
+    return filteredResults;
+  } catch (error) {
+    console.error('❌ Error fetching applicants:', error);
+    return [];
+  }
+};
+
+export const updateApplicantStatus = async (
+  applicationId: string,
+  newStatus: string,
+) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      rowId: applicationId,
+      data: { status: newStatus },
+    });
+
+    return true;
+  } catch (error) {
+    console.error('❌ Error updating applicant status:', error);
+    return false;
   }
 };

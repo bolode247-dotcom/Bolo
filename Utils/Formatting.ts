@@ -1,32 +1,36 @@
-export const getTimeAgo = (createdAt: string) => {
-  const created = new Date(createdAt);
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - created.getTime()) / 1000); // in seconds
+import { Message } from '@/types/genTypes';
+import dayjs from 'dayjs';
+import isToday from 'dayjs/plugin/isToday';
+import isYesterday from 'dayjs/plugin/isYesterday';
 
-  const pluralize = (value: number, unit: string) =>
-    `${value} ${unit}${value > 1 ? 's' : ''} ago`;
+dayjs.extend(isToday);
+dayjs.extend(isYesterday);
 
-  if (diff < 60) return pluralize(diff, 'second');
+export const formatTimestamp = (createdAt: string): string => {
+  const date = dayjs(createdAt);
 
-  const minutes = Math.floor(diff / 60);
-  if (minutes < 60) return pluralize(minutes, 'min');
-
-  const hours = Math.floor(diff / 3600);
-  if (hours < 24) return pluralize(hours, 'hr');
-
-  const days = Math.floor(diff / 86400);
-  if (days < 7) return pluralize(days, 'day');
-
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return pluralize(weeks, 'week');
-
-  const months = Math.floor(days / 30);
-  if (months < 12) return pluralize(months, 'month');
-
-  const years = Math.floor(days / 365);
-  return pluralize(years, 'year');
+  if (date.isToday()) return date.format('HH:mm'); // 24h
+  if (date.isYesterday()) return 'Yesterday';
+  return date.format('DD/MM/YYYY'); // older dates
 };
 
+export const groupMessagesByDate = (messages: Message[]) => {
+  return messages.reduce(
+    (groups, message) => {
+      const date = dayjs(message.$createdAt);
+      let label = '';
+
+      if (date.isToday()) label = 'Today';
+      else if (date.isYesterday()) label = 'Yesterday';
+      else label = date.format('DD/MM/YYYY'); // older messages
+
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(message);
+      return groups;
+    },
+    {} as Record<string, Message[]>,
+  );
+};
 type SalaryInfo = {
   label: string;
   rate: string;

@@ -3,7 +3,7 @@ import { JobWithDetails } from '@/types/genTypes';
 import {
   formatJobType,
   formatSalary,
-  getTimeAgo,
+  formatTimestamp,
   salaryType,
 } from '@/Utils/Formatting';
 import React from 'react';
@@ -46,6 +46,7 @@ const getInitials = (name: string) => {
 };
 
 const JobCard = ({ job, style, onPress }: Props) => {
+  console.log('job', job);
   const bgColor =
     pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
     Colors.gray50;
@@ -78,7 +79,7 @@ const JobCard = ({ job, style, onPress }: Props) => {
             {job?.recruiter?.name}
           </Text>
         </View>
-        <Text style={styles.date}>{getTimeAgo(job?.createdAt)}</Text>
+        <Text style={styles.date}>{formatTimestamp(job?.createdAt)}</Text>
       </View>
 
       {/* Job title */}

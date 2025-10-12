@@ -35,50 +35,52 @@ const JObs = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'left']}>
+    <>
       <StatusBar barStyle="light-content" />
-      <ExploreHeader title="Explore Jobs" search="Search for Jobs..." />
-      {isLoading ? (
-        <JobWorkerSkeleton />
-      ) : (
-        <FlatList
-          data={jobs}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <JobCard
-              job={item}
-              style={styles.card}
-              onPress={() => {
-                router.push({
-                  pathname: '/jobDetails',
-                  params: { jobId: item?.id, isOffer: 'false' },
-                });
-              }}
-            />
-          )}
-          contentContainerStyle={{ padding: 16 }}
-          ListEmptyComponent={
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 20,
-                color: Colors.gray600,
-              }}
-            >
-              No jobs found.
-            </Text>
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.primary} // iOS spinner color
-              colors={[Colors.primary]} // Android spinner color
-            />
-          }
-        />
-      )}
-    </SafeAreaView>
+      <SafeAreaView style={styles.container} edges={['right', 'left']}>
+        <ExploreHeader title="Explore Jobs" search="Search for Jobs..." />
+        {isLoading ? (
+          <JobWorkerSkeleton />
+        ) : (
+          <FlatList
+            data={jobs}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <JobCard
+                job={item}
+                style={styles.card}
+                onPress={() => {
+                  router.push({
+                    pathname: '/jobDetails',
+                    params: { jobId: item?.id, isOffer: 'false' },
+                  });
+                }}
+              />
+            )}
+            contentContainerStyle={{ padding: 16 }}
+            ListEmptyComponent={
+              <Text
+                style={{
+                  textAlign: 'center',
+                  marginTop: 20,
+                  color: Colors.gray600,
+                }}
+              >
+                No jobs found.
+              </Text>
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.primary} // iOS spinner color
+                colors={[Colors.primary]} // Android spinner color
+              />
+            }
+          />
+        )}
+      </SafeAreaView>
+    </>
   );
 };
 
