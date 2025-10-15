@@ -1,13 +1,21 @@
-import { applyForJob, getJobById } from '@/appwriteFuncs/appwriteJobsFuncs';
+import {
+  acceptOffer,
+  applyForJob,
+  getJobById,
+  rejectOffer,
+  withdrawApp,
+} from '@/appwriteFuncs/appwriteJobsFuncs';
 import CustomButton from '@/component/CustomButton';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { client } from '@/lib/appwrite';
+import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
 import { formatJobType, formatTimestamp, salaryType } from '@/Utils/Formatting';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useCallback } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -37,45 +45,123 @@ const pastelColors = [
   '#F0D7FF',
 ];
 
+interface RealtimePayload {
+  $id: string;
+  jobs?: string;
+  workers?: string;
+  status?: string;
+}
+
 const JobDetails = () => {
   const { user } = useAuth();
-  const { jobId, isOffer, isApp } = useLocalSearchParams<{
-    jobId: string;
-    isOffer: string;
-    isApp: string;
-  }>();
 
-  const [showReasonModal, setShowReasonModal] = React.useState(false);
-  const [applyReason, setApplyReason] = React.useState('');
-  const [isApplying, setIsApplying] = React.useState(false);
+  const { jobId } = useLocalSearchParams<{ jobId: string }>();
 
-  const fetchJob = useCallback(() => getJobById(jobId), [jobId]);
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [declineMode, setDeclineMode] = useState(false);
+  const [reason, setReason] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
 
-  const { data: job, isLoading, error, refetch } = useAppwrite(fetchJob);
+  // ✅ Fetch job details dynamically based on the logged-in user
+  const fetchJob = useCallback(
+    () => getJobById(jobId, user?.workers?.$id),
+    [jobId, user?.workers?.$id],
+  );
 
-  const handleJobApplication = async () => {
-    if (applyReason.trim() === '') {
-      Alert.alert('Please enter a valid reason.');
-      return;
-    }
+  const { data: job, isLoading, refetch } = useAppwrite(fetchJob);
+  const [jobDetails, setJobDetails] = useState<any>(null);
+
+  useEffect(() => {
+    if (job) setJobDetails(job);
+  }, [job]);
+
+  // ✅ Realtime subscription (works with create, update, delete)
+  useEffect(() => {
+    const channels = [
+      `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.applicationsCol}.documents`,
+      `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.jobOffersCol}.documents`,
+    ];
+
+    const unsubscribe = client.subscribe(channels, async (event) => {
+      const payload = event.payload as RealtimePayload;
+      if (payload.jobs === jobId) {
+        const updated = await getJobById(jobId, user?.workers?.$id);
+        setJobDetails(updated);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [jobId, user?.workers?.$id]);
+
+  // --- ACTION HANDLERS ---
+  const handleApply = async () => {
+    setIsApplying(true);
     try {
-      setIsApplying(true);
-      await applyForJob(jobId, user?.workers?.$id, applyReason);
+      await applyForJob(jobId, user?.workers?.$id, reason);
+      Alert.alert('Success', 'You have applied for this job.');
       setShowReasonModal(false);
-      Alert.alert('Success', 'You have successfully applied for the job.');
-      await refetch();
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to apply for job.');
+      refetch();
+    } catch (err) {
+      console.error('Error applying:', err);
+      Alert.alert('Error', 'Could not apply for the job.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    setIsWithdrawing(true);
+    try {
+      const appId = jobDetails?.appId;
+      if (!appId) return;
+      await withdrawApp(appId, jobId);
+      Alert.alert('Application withdrawn.');
+      refetch();
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Could not withdraw application.');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleAcceptOffer = async () => {
+    try {
+      await acceptOffer(jobDetails.offerId);
+      Alert.alert('Success', 'You have accepted the offer.');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeclineOffer = () => {
+    setDeclineMode(true);
+    setShowReasonModal(true);
+  };
+
+  const confirmDecline = async () => {
+    setIsApplying(true);
+    try {
+      await rejectOffer(jobDetails.offerId, reason);
+      setShowReasonModal(false);
+      Alert.alert('You have declined the offer.');
+      router.back();
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsApplying(false);
     }
   };
 
   const renderAvatar = () => {
-    if (job?.recruiter?.avatar || job?.recruiter?.logo) {
+    if (jobDetails?.recruiter?.avatar || jobDetails?.recruiter?.logo) {
       return (
         <Image
-          source={{ uri: job.recruiter.avatar || job.recruiter.logo }}
+          source={{
+            uri: jobDetails?.recruiter?.avatar || jobDetails?.recruiter?.logo,
+          }}
           style={styles.avatar}
         />
       );
@@ -83,7 +169,7 @@ const JobDetails = () => {
     return (
       <View style={styles.avatarIcon}>
         <Ionicons
-          name={job?.skill?.icon || 'briefcase-outline'}
+          name={jobDetails?.skill?.icon || 'briefcase-outline'}
           size={60}
           color={Colors.gray900}
         />
@@ -113,10 +199,10 @@ const JobDetails = () => {
           {/* Profile Header */}
           <View style={styles.header}>
             {renderAvatar()}
-            <Text style={styles.name}>{job?.title}</Text>
+            <Text style={styles.name}>{jobDetails?.title}</Text>
             <Text style={styles.address}>
-              {job?.location?.region}, {job?.location?.division},{' '}
-              {job?.location?.subdivision}
+              {jobDetails?.location?.region}, {jobDetails?.location?.division},{' '}
+              {jobDetails?.location?.subdivision}
             </Text>
           </View>
           {/* Stats */}
@@ -133,11 +219,11 @@ const JobDetails = () => {
               </View>
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>
-                  {salaryType(job?.salaryType).label}
+                  {salaryType(jobDetails?.salaryType).label}
                 </Text>
                 <Text style={styles.statValue} numberOfLines={2}>
-                  {job?.salary}
-                  {salaryType(job?.salaryType).rate}
+                  {jobDetails?.salary}
+                  {salaryType(jobDetails?.salaryType).rate}
                 </Text>
               </View>
             </View>
@@ -155,7 +241,7 @@ const JobDetails = () => {
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>Applicants</Text>
                 <Text style={styles.statValue}>
-                  {`${job?.applicantsCount || 0} / ${job?.maxApplicants || 0}`}
+                  {`${jobDetails?.applicantsCount || 0} / ${jobDetails?.maxApplicants || 0}`}
                 </Text>
               </View>
             </View>
@@ -173,7 +259,7 @@ const JobDetails = () => {
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>Status</Text>
                 <Text style={styles.statValue}>
-                  {job?.status === 'active' ? 'Open' : 'Closed'}
+                  {jobDetails?.status === 'active' ? 'Open' : 'Closed'}
                 </Text>
               </View>
             </View>
@@ -190,55 +276,79 @@ const JobDetails = () => {
               </View>
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>Job Type</Text>
-                <Text style={styles.statValue}>{formatJobType(job?.type)}</Text>
+                <Text style={styles.statValue}>
+                  {formatJobType(jobDetails?.type)}
+                </Text>
               </View>
             </View>
           </View>
-
           {/* About Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Job Description</Text>
-            <Text style={styles.bio}>{job?.description}</Text>
+            <Text style={styles.bio}>{jobDetails?.description}</Text>
 
             <View style={styles.metaCol}>
               <Text style={styles.meta}>Expertise:</Text>
-              <Text style={styles.sectionTitle}>{job?.skill?.name}</Text>
+              <Text style={styles.sectionTitle}>{jobDetails?.skill?.name}</Text>
             </View>
             <View style={styles.metaCol}>
               <Text style={styles.meta}>Date Posted:</Text>
               <Text style={styles.sectionTitle}>
-                {formatTimestamp(job?.createdAt || '')}
+                {formatTimestamp(jobDetails?.createdAt || '')}
               </Text>
             </View>
           </View>
-
-          {isApp !== 'true' && (
-            <View style={styles.btnSection}>
-              {isOffer === 'true' ? (
-                <View style={styles.btnRow}>
-                  <CustomButton
-                    title="Decline"
-                    onPress={() => {}}
-                    style={styles.btnOutline}
-                    textStyle={styles.cusBtnText}
-                    bgVariant="danger-outline"
-                    textVariant="danger-outline"
-                  />
-                  <CustomButton
-                    title="Accept"
-                    onPress={() => setShowReasonModal(true)}
-                    style={styles.btn}
-                    textStyle={styles.cusBtnText}
-                  />
-                </View>
-              ) : (
-                <CustomButton
-                  title="Apply"
-                  onPress={() => setShowReasonModal(true)}
-                />
-              )}
+          {jobDetails?.isOffer && jobDetails?.offerStatus === 'pending' && (
+            <View style={styles.btnRow}>
+              <CustomButton
+                title="Decline"
+                onPress={() => handleDeclineOffer()} // open reason modal
+                style={styles.btnOutline}
+                textStyle={styles.cusBtnText}
+                bgVariant="danger-outline"
+                textVariant="danger-outline"
+              />
+              <CustomButton
+                title="Accept"
+                onPress={() => handleAcceptOffer()}
+                style={styles.btn}
+                textStyle={styles.cusBtnText}
+              />
             </View>
           )}
+
+          {jobDetails?.isApp && jobDetails?.appStatus === 'applied' && (
+            <CustomButton
+              title="Withdraw Application"
+              onPress={() => {
+                Alert.alert(
+                  'Withdraw Application',
+                  'Are you sure you want to withdraw this application?',
+                  [
+                    {
+                      text: 'Cancel',
+                      onPress: () => console.log('Cancel Pressed'),
+                      style: 'cancel',
+                    },
+                    {
+                      text: 'Withdraw',
+                      onPress: () => handleWithdraw(),
+                    },
+                  ],
+                );
+              }}
+              isLoading={isWithdrawing}
+            />
+          )}
+
+          {!jobDetails?.isApp && !jobDetails?.isOffer && (
+            <CustomButton
+              title="Apply"
+              onPress={() => setShowReasonModal(true)}
+              // style={styles.btn}
+            />
+          )}
+
           <Modal
             visible={showReasonModal}
             transparent
@@ -247,16 +357,27 @@ const JobDetails = () => {
           >
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
-                <Text style={styles.modalTitle}>Reason for Applying</Text>
+                <Text style={styles.modalTitle}>
+                  {' '}
+                  {declineMode
+                    ? 'Reason for Declining Offer'
+                    : 'Reason for Applying'}
+                </Text>
 
                 <Text style={styles.modalSubtitle}>
-                  Why should we hire you?
+                  {declineMode
+                    ? 'Why are you declining this offer?'
+                    : 'Why are you applying for this job?'}
                 </Text>
 
                 <TextInput
-                  value={applyReason}
-                  onChangeText={setApplyReason}
-                  placeholder={'Tell the recruiter why you are applying...'}
+                  value={reason}
+                  onChangeText={setReason}
+                  placeholder={
+                    declineMode
+                      ? 'Enter reason for declining offer'
+                      : 'Tell the recruiter why you are applying...'
+                  }
                   placeholderTextColor={Colors.gray600}
                   multiline
                   style={styles.input}
@@ -270,7 +391,7 @@ const JobDetails = () => {
                     ]}
                     onPress={() => {
                       setShowReasonModal(false);
-                      setApplyReason('');
+                      setReason('');
                     }}
                   >
                     <Text style={styles.btnText}>Cancel</Text>
@@ -279,11 +400,17 @@ const JobDetails = () => {
                   <TouchableOpacity
                     style={[
                       styles.reasonBtn,
-                      { backgroundColor: Colors.success },
+                      {
+                        backgroundColor: declineMode
+                          ? Colors.danger
+                          : Colors.success,
+                      },
                     ]}
-                    onPress={() => handleJobApplication()}
+                    onPress={() =>
+                      declineMode ? confirmDecline() : handleApply()
+                    }
                   >
-                    <Text style={styles.btnText}>Submit</Text>
+                    <Text style={styles.btnText}>Confirm</Text>
                     {isApplying && (
                       <ActivityIndicator size="small" color={Colors.white} />
                     )}

@@ -46,7 +46,6 @@ const getInitials = (name: string) => {
 };
 
 const JobCard = ({ job, style, onPress }: Props) => {
-  console.log('job', job);
   const bgColor =
     pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
     Colors.gray50;

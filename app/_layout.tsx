@@ -33,12 +33,12 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <KeyboardProvider>
+    <KeyboardProvider navigationBarTranslucent statusBarTranslucent>
       <AuthProvider>
         <GestureHandlerRootView>
           <BottomSheetModalProvider>
             <AppRouter />
-            {/* <StatusBar barStyle="dark-content" /> */}
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
           </BottomSheetModalProvider>
         </GestureHandlerRootView>
       </AuthProvider>

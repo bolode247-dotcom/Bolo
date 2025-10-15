@@ -1,7 +1,7 @@
 import {
-    deleteJob,
-    getJobById,
-    togleJobStatus,
+  deleteJob,
+  getMyJobById,
+  togleJobStatus,
 } from '@/appwriteFuncs/appwriteJobsFuncs';
 import CustomButton from '@/component/CustomButton';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
@@ -13,13 +13,13 @@ import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,7 +48,7 @@ const JobDetails = () => {
 
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const fetchJob = useCallback(() => getJobById(jobId), [jobId]);
+  const fetchJob = useCallback(() => getMyJobById(jobId), [jobId]);
 
   const { data: job, isLoading, error, refetch } = useAppwrite(fetchJob);
   const [status, setStatus] = React.useState(job?.status || 'active');
@@ -299,7 +299,7 @@ const JobDetails = () => {
             <View style={styles.metaCol}>
               <Text style={styles.meta}>Date Posted:</Text>
               <Text style={styles.sectionTitle}>
-                {formatTimestamp (job?.createdAt || '')}
+                {formatTimestamp(job?.createdAt || '')}
               </Text>
             </View>
           </View>

@@ -1,7 +1,6 @@
 import { Colors } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
-import { router, usePathname } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -11,47 +10,38 @@ import {
   StyleSheet,
   TextInput,
   View,
-  ViewStyle,
 } from 'react-native';
 
-type SearchInputFieldProps = {
+type SearchInputProps = {
   placeholder?: string;
   initialQuery?: string;
   isSearching?: boolean;
-  isRecruiter?: boolean;
-  style?: ViewStyle;
+  style?: any;
+  onSearch?: (query: string) => void; // 👈 main addition
+  debounceDelay?: number;
 };
 
-const SearchInputField = ({
+const SearchInput = ({
   placeholder = 'Search...',
   initialQuery = '',
   isSearching = false,
   style,
-  isRecruiter,
-}: SearchInputFieldProps) => {
-  const pathName = usePathname();
+  onSearch,
+  debounceDelay = 400,
+}: SearchInputProps) => {
   const [query, setQuery] = useState(initialQuery || '');
 
-  const handleSearch = () => {
-    if (!query) return;
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      onSearch?.(query.trim());
+    }, debounceDelay);
 
-    if (pathName.startsWith('/search')) {
-      router.setParams({ query });
-    } else {
-      if (isRecruiter) {
-        router.push(`/searchWorker/${query}`);
-      } else {
-        router.push(`/searchJob/${query}`);
-      }
-    }
+    return () => clearTimeout(timeout);
+  }, [query]);
 
-    setTimeout(() => Keyboard.dismiss(), 50);
-  };
-
-  const delayedSearch = () => {
-    requestAnimationFrame(() => {
-      handleSearch();
-    });
+  const handleManualSearch = () => {
+    Keyboard.dismiss();
+    onSearch?.(query.trim());
   };
 
   return (
@@ -66,12 +56,11 @@ const SearchInputField = ({
           value={query}
           onChangeText={setQuery}
           returnKeyType="search"
-          onSubmitEditing={handleSearch}
-          blurOnSubmit={false}
+          onSubmitEditing={handleManualSearch}
         />
 
         {/* Loading or Submit */}
-        <Pressable onPress={delayedSearch} hitSlop={10}>
+        <Pressable onPress={handleManualSearch} hitSlop={10}>
           {isSearching ? (
             <ActivityIndicator size="small" color={Colors.primary} />
           ) : (
@@ -83,15 +72,15 @@ const SearchInputField = ({
   );
 };
 
-export default SearchInputField;
+export default SearchInput;
 
 const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 999, // rounded-full look
+    borderRadius: 999,
     paddingHorizontal: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray100,
     height: 50,
   },
   input: {

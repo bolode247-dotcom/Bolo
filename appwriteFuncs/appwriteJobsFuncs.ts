@@ -49,6 +49,8 @@ export const getJobOffers = async (workerId: string): Promise<Offer[]> => {
       tableId: appwriteConfig.jobOffersCol,
       queries: [
         Query.equal('workers', workerId),
+        Query.notEqual('status', 'declined'),
+        Query.notEqual('status', 'accepted'),
         Query.select([
           '$id',
           'jobs.$id',
@@ -287,7 +289,7 @@ export const getWorkerFeed = async (user: any) => {
   };
 };
 
-export const getJobById = async (jobId: string) => {
+export const getJobById = async (jobId: string, workerId: string) => {
   const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
   try {
     const res = await tables.listRows({
@@ -322,6 +324,101 @@ export const getJobById = async (jobId: string) => {
     if (!res.rows.length) return null; // no job found
 
     const job = res.rows[0]; // 👈 take the first one
+    const offersRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobOffersCol,
+      queries: [Query.equal('jobs', jobId), Query.equal('workers', workerId)],
+    });
+    const hasOffer = offersRes.total > 0;
+    const offerDoc = hasOffer ? offersRes.rows[0] : null;
+
+    const appRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      queries: [Query.equal('jobs', jobId), Query.equal('workers', workerId)],
+    });
+    const hasApp = appRes.total > 0;
+    const appDoc = hasApp ? appRes.rows[0] : null;
+
+    return {
+      id: job.$id,
+      title: job.title,
+      type: job.type,
+      salary: job.salary,
+      salaryType: job.salaryType,
+      maxApplicants: job.maxApplicants,
+      applicantsCount: job.applicantsCount,
+      createdAt: job.$createdAt,
+      description: job.description,
+      status: job.status,
+      recruiter: job.recruiters
+        ? {
+            name: job.recruiters.users.name,
+            logo: job.recruiters.logo,
+            companyName: job.recruiters.companyName,
+            avatar: job.recruiters.users.avatar,
+          }
+        : null,
+      skill: job.skills
+        ? {
+            icon: job.skills.icon,
+            name: job.skills?.[`name_${lang}`],
+          }
+        : null,
+      location: job.locations
+        ? {
+            region: job.locations.region,
+            division: job.locations.division,
+            subdivision: job.locations.subdivision,
+          }
+        : null,
+      isOffer: hasOffer,
+      offerId: offerDoc?.$id ?? null,
+      offerStatus: offerDoc?.status ?? null,
+      isApp: hasApp,
+      appStatus: appDoc?.status ?? null,
+      appId: appDoc?.$id ?? null,
+    };
+  } catch (error) {
+    console.error('Error fetching job by id:', error);
+    throw error;
+  }
+};
+export const getMyJobById = async (jobId: string) => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobsCol,
+      queries: [
+        Query.equal('$id', jobId),
+        Query.select([
+          '$id',
+          'title',
+          'type',
+          'salary',
+          'salaryType',
+          'status',
+          '$createdAt',
+          'maxApplicants',
+          'applicantsCount',
+          'recruiters.logo',
+          'description',
+          'recruiters.companyName',
+          'recruiters.users.name',
+          'recruiters.users.avatar',
+          'skills.icon',
+          `skills.name_${lang}`,
+          'locations.region',
+          'locations.division',
+          'locations.subdivision',
+        ]),
+      ],
+    });
+
+    if (!res.rows.length) return null;
+
+    const job = res.rows[0];
 
     return {
       id: job.$id,
@@ -700,6 +797,34 @@ export const withdrawApp = async (appId: string, jobId: string) => {
     return updatedJob;
   } catch (error) {
     console.error('❌ Error withdrawing application:', error);
+    throw error;
+  }
+};
+
+export const acceptOffer = async (offerId: string) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobOffersCol,
+      rowId: offerId,
+      data: { status: 'accepted' },
+    });
+  } catch (error) {
+    console.error('❌ Error accepting offer:', error);
+    throw error;
+  }
+};
+
+export const rejectOffer = async (offerId: string, reason: string) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.jobOffersCol,
+      rowId: offerId,
+      data: { status: 'declined', reason },
+    });
+  } catch (error) {
+    console.error('❌ Error rejecting offer:', error);
     throw error;
   }
 };

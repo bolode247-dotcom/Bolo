@@ -1,18 +1,20 @@
 import { getChats } from '@/appwriteFuncs/appwriteGenFunc';
 import ChatCard from '@/component/ChatCard';
+import EmptyState from '@/component/EmptyState';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
+import SearchInput from '@/component/SearchInput';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { router } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, Text } from 'react-native';
+import React, { useMemo } from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Chats = () => {
   const { user } = useAuth();
-
   const role = user?.role;
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const {
     data: chats,
@@ -35,20 +37,45 @@ const Chats = () => {
     });
   };
 
+  const filteredChats = useMemo(() => {
+    if (!searchQuery.trim()) return chats || [];
+    const q = searchQuery.trim().toLowerCase();
+    return (chats || []).filter(
+      (chat) =>
+        chat.participant?.name?.toLowerCase().includes(q) ||
+        chat.lastMessage?.toLowerCase().includes(q),
+    );
+  }, [searchQuery, chats]);
+
   if (isLoading) return <JobWorkerSkeleton />;
 
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={chats}
+        data={filteredChats}
         refreshing={isLoading}
         onRefresh={refetch}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatCard chat={item} onPress={() => handleOpenChat(item)} />
         )}
-        ListHeaderComponent={() => <Text style={styles.header}>Chats</Text>}
-        ListEmptyComponent={() => <Text style={styles.empty}>No Chats</Text>}
+        ListHeaderComponent={() => (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={styles.header}>Chats</Text>
+            <SearchInput
+              placeholder="Search chat..."
+              onSearch={setSearchQuery}
+              isSearching={false}
+            />
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="No Chats"
+            subtitle="You don’t have any active conversations yet."
+          />
+        )}
       />
     </SafeAreaView>
   );

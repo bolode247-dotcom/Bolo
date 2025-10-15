@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     borderRadius: 9999, // rounded-full
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

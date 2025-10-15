@@ -65,7 +65,7 @@ const Applications = () => {
     if (application.status === 'interview' || application.status === 'hired') {
       setSelectedApp(application);
       setShowModal(true);
-    } else if (application.status) {
+    } else if (application.status === 'applied') {
       Alert.alert(
         'Widthdraw Application',
         'Are you sure you want to withdraw this application?',
