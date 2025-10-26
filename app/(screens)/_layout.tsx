@@ -133,6 +133,14 @@ export default function ScreensLayout() {
           animation: 'slide_from_right',
         }}
       />
+      <Stack.Screen
+        name="jobDetails"
+        options={{
+          title: 'Details',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_bottom',
+        }}
+      />
     </Stack>
   );
 }

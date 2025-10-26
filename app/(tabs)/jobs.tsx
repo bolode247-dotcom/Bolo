@@ -6,6 +6,7 @@ import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React from 'react';
 import { FlatList, RefreshControl, StatusBar, StyleSheet } from 'react-native';
@@ -21,6 +22,17 @@ const JObs = () => {
     refetch,
   } = useAppwrite(() =>
     getJobsByRegionOrSkill(user.locations.region, user.skills.$id),
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // 🔵 When this tab is focused
+      StatusBar.setBarStyle('light-content');
+
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+      };
+    }, []),
   );
 
   const handleRefresh = async () => {

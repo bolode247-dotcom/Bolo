@@ -62,7 +62,6 @@ const JobDetails = () => {
   const [reason, setReason] = useState('');
   const [isApplying, setIsApplying] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isAccepting, setIsAccepting] = useState(false);
 
   // ✅ Fetch job details dynamically based on the logged-in user
   const fetchJob = useCallback(

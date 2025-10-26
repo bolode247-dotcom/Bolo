@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     position: 'absolute',
-    bottom: '10%', // Position at the bottom of the screen
+    bottom: '10%',
     alignItems: 'center',
   },
   footerText: {

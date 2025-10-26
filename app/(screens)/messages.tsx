@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
@@ -19,12 +20,23 @@ import {
   View,
 } from 'react-native';
 import { ID } from 'react-native-appwrite';
-import { useKeyboardHandler } from 'react-native-keyboard-controller';
+import {
+  KeyboardProvider,
+  useKeyboardHandler,
+} from 'react-native-keyboard-controller';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const Messages = () => {
+  return (
+    <KeyboardProvider>
+      <MessagesContent />
+    </KeyboardProvider>
+  );
+};
 
 const PADDING_BOTTOM = Platform.OS === 'ios' ? 20 : 0;
 
@@ -54,13 +66,14 @@ const useGradualAnimation = () => {
   return { height };
 };
 
-const Messages = () => {
+const MessagesContent = () => {
   const { chatId, participantName } = useLocalSearchParams<{
     chatId: string;
     participantName: string;
   }>();
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const { data, isLoading } = useAppwrite(() =>
     getChatDetailsWithMessages(chatId),
   );
@@ -70,18 +83,52 @@ const Messages = () => {
   }, [data]);
 
   useEffect(() => {
-    const channel = `databases.${appwriteConfig.dbId}.tables.${appwriteConfig.messagesCol}.rows`;
+    if (!chatId) return;
+    if (!client) return; // ensure client exists
+    let unsubscribe: (() => void) | null = null;
+    let isMounted = true;
 
-    const unsubscribe = client.subscribe(channel, async (event) => {
-      if (
-        event.events.includes('databases.*.collections.*.documents.*.create')
-      ) {
-        const updated = await getChatDetailsWithMessages(chatId);
-        setChatDetails(updated);
+    // Wrap in try/catch to prevent WebSocket invalid state errors
+    const subscribe = async () => {
+      try {
+        const channel = `databases.${appwriteConfig.dbId}.tables.${appwriteConfig.messagesCol}.rows`;
+
+        unsubscribe = client.subscribe(channel, async (event) => {
+          if (!isMounted) return;
+
+          // Only react to "create" events related to this chat
+          if (
+            event.events.includes(
+              'databases.*.collections.*.documents.*.create',
+            ) &&
+            event.payload &&
+            (event.payload as { chats?: string }).chats === chatId
+          ) {
+            try {
+              const updated = await getChatDetailsWithMessages(chatId);
+              if (isMounted) setChatDetails(updated);
+            } catch (err) {
+              console.error('Realtime update fetch failed:', err);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Realtime subscription failed:', err);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    subscribe();
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        try {
+          unsubscribe(); // clean disconnect
+        } catch (err) {
+          console.warn('Unsubscribe failed:', err);
+        }
+      }
+    };
   }, [chatId]);
 
   useEffect(() => {
@@ -122,6 +169,7 @@ const Messages = () => {
   }));
 
   const handleSendMessage = async () => {
+    setIsSending(true);
     if (!newMessage.trim()) return;
     if (!user?.workers?.$id && !user?.recruiters?.$id) return;
     if (!chatDetails) return;
@@ -169,6 +217,8 @@ const Messages = () => {
       setNewMessage('');
     } catch (err) {
       console.error('Error sending message:', err);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -193,7 +243,7 @@ const Messages = () => {
   );
 
   return (
-    <>
+    <KeyboardProvider>
       <Stack.Screen
         options={{ title: participantName ? participantName : 'Messages' }}
       />
@@ -224,7 +274,9 @@ const Messages = () => {
                       <Text
                         style={[
                           styles.messageText,
-                          { color: isCurrentUser ? Colors.white : Colors.text },
+                          {
+                            color: isCurrentUser ? Colors.white : Colors.text,
+                          },
                         ]}
                       >
                         {msg.message}
@@ -272,17 +324,21 @@ const Messages = () => {
               style={styles.sendButton}
               onPress={handleSendMessage}
             >
-              <Feather
-                name="send"
-                size={22}
-                color={newMessage === '' ? Colors.gray700 : Colors.primary}
-              />
+              {isSending ? (
+                <ActivityIndicator color={Colors.primary} size={Sizes.sm} />
+              ) : (
+                <Feather
+                  name="send"
+                  size={22}
+                  color={newMessage === '' ? Colors.gray700 : Colors.primary}
+                />
+              )}
             </Pressable>
           </View>
           <Animated.View style={fakeView} />
         </View>
       </SafeAreaView>
-    </>
+    </KeyboardProvider>
   );
 };
 
