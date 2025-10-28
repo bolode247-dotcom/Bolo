@@ -19,11 +19,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SignIn = () => {
   const { t } = useTranslation();
   const { fetchData } = useAuth();
-  const [showVerification, setShowVerification] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -43,103 +43,110 @@ const SignIn = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-        style={styles.scrollView}
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          <View style={styles.imageWrapper}>
-            <Image
-              source={
-                typeof images.signUpImg === 'string'
-                  ? { uri: images.signUpImg }
-                  : images.signUpImg
-              }
-              style={styles.headerImage}
-              resizeMode="cover"
-            />
-            <View style={styles.headerTextWrapper}>
-              <Text style={styles.headerTitle}>{t('signIn.headerTitle')}</Text>
-              <Text style={styles.headerSubtitle}>{error}</Text>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}
+        >
+          {/* Header */}
+          <View style={styles.headerContainer}>
+            <View style={styles.imageWrapper}>
+              <Image
+                source={
+                  typeof images.signUpImg === 'string'
+                    ? { uri: images.signUpImg }
+                    : images.signUpImg
+                }
+                style={styles.headerImage}
+                resizeMode="cover"
+              />
+              <View style={styles.headerTextWrapper}>
+                <Text style={styles.headerTitle}>
+                  {t('signIn.headerTitle')}
+                </Text>
+                <Text style={styles.headerSubtitle}>{error}</Text>
+              </View>
             </View>
-          </View>
 
-          <AppForm
-            initialValues={{ email: '', password: '' }}
-            onSubmit={handleSignIn}
-            validationSchema={signInValidationSchema}
-          >
-            <View style={styles.inputContainer}>
-              <FormField
-                label={t('formLabels.email.label')}
-                name="email"
-                icon="mail"
-                placeholder={t('formLabels.email.placeholder')}
-                keyboardType="email-address"
-                autoComplete="email"
-              />
-              <FormField
-                label={t('formLabels.password.label')}
-                name="password"
-                icon="lock-closed"
-                placeholder={t('formLabels.password.placeholder')}
-                secureTextEntry
-              />
-            </View>
-            <View
-              style={{
-                paddingTop: Sizes.sm,
-                paddingHorizontal: 20,
-                flexDirection: 'row',
-                gap: Sizes.xsm,
-                justifyContent: 'flex-end',
-              }}
+            <AppForm
+              initialValues={{ email: '', password: '' }}
+              onSubmit={handleSignIn}
+              validationSchema={signInValidationSchema}
             >
-              <Link
+              <View style={styles.inputContainer}>
+                <FormField
+                  label={t('formLabels.email.label')}
+                  name="email"
+                  icon="mail"
+                  placeholder={t('formLabels.email.placeholder')}
+                  keyboardType="email-address"
+                  autoComplete="email"
+                />
+                <FormField
+                  label={t('formLabels.password.label')}
+                  name="password"
+                  icon="lock-closed"
+                  placeholder={t('formLabels.password.placeholder')}
+                  secureTextEntry
+                />
+              </View>
+              <View
                 style={{
-                  fontSize: Sizes.md,
-                  color: Colors.primary,
-                  fontWeight: '400',
+                  paddingTop: Sizes.sm,
+                  paddingHorizontal: 20,
+                  flexDirection: 'row',
+                  gap: Sizes.xsm,
+                  justifyContent: 'flex-end',
                 }}
-                href="./EmailVerification"
               >
-                {t('signIn.forgottenPassword')}
-              </Link>
-            </View>
-            <SubmitButton
-              title={t('signIn.submit')}
-              style={{
-                width: '90%',
-                marginHorizontal: 'auto',
-                marginVertical: 20,
-              }}
-              isLoading={isSubmitting}
-            />
-          </AppForm>
+                <Link
+                  style={{
+                    fontSize: Sizes.md,
+                    color: Colors.primary,
+                    fontWeight: '400',
+                  }}
+                  href="./EmailVerification"
+                >
+                  {t('signIn.forgottenPassword')}
+                </Link>
+              </View>
+              <SubmitButton
+                title={t('signIn.submit')}
+                style={{
+                  width: '90%',
+                  marginHorizontal: 'auto',
+                  marginVertical: 20,
+                }}
+                isLoading={isSubmitting}
+              />
+            </AppForm>
 
-          <View style={styles.footer}>
-            <TouchableOpacity>
-              <Link href={'./userRole'} style={styles.footerLink}>
-                {t('signIn.signUpLink')}
-              </Link>
-            </TouchableOpacity>
+            <View style={styles.footer}>
+              <TouchableOpacity>
+                <Link href={'./userRole'} style={styles.footerLink}>
+                  {t('signIn.signUpLink')}
+                </Link>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollView: {
+  container: {
     flex: 1,
     backgroundColor: Colors.white,
+  },
+  scrollView: {
+    flex: 1,
   },
   headerContainer: {
     flex: 1,

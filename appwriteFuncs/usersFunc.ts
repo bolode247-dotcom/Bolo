@@ -2,7 +2,12 @@ import { account, tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import { SignInPayload, SignUpPayload } from '@/types/userTypes';
 import { ID, Query } from 'react-native-appwrite';
-import { formatCameroonPhone, formatName } from './appwriteGenFunc';
+import {
+  deleteFile,
+  formatCameroonPhone,
+  formatName,
+  uploadFile,
+} from './appwriteGenFunc';
 
 export const createAccount = async (values: SignUpPayload) => {
   const { fullName, email, password, phoneNumber, role, location, skills } =
@@ -154,6 +159,60 @@ export const SignInUser = async (values: SignInPayload) => {
   }
 };
 
+export const getCurrentUser = async () => {
+  try {
+    // 1️⃣ Get base account and session
+    const currentAccount = await account.get();
+    const currentSession = await account.getSession({ sessionId: 'current' });
+
+    if (!currentAccount || !currentSession) {
+      throw new Error('account_or_session_missing');
+    }
+
+    // 2️⃣ Fetch user record from users table WITH expansions
+    const userRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      queries: [
+        Query.equal('accountId', currentAccount.$id),
+        Query.select([
+          '*', // all user fields
+          'skills.*', // expand skills
+          'locations.*', // expand locations
+          'workers.*', // expand worker relation if exists
+          'recruiters.*', // expand recruiter relation if exists
+        ]),
+      ],
+    });
+
+    if (!userRes || userRes.rows.length === 0) {
+      throw new Error('user_not_found');
+    }
+
+    const baseUser = userRes.rows[0];
+    let fullUser: any = { ...baseUser, accountId: baseUser.accountId };
+
+    // 3️⃣ Flatten recruiter or worker if present
+    if (baseUser.userRole === 'worker' && baseUser.worker) {
+      fullUser = { ...baseUser, ...baseUser.worker };
+      delete fullUser.worker;
+    } else if (baseUser.userRole === 'recruiter' && baseUser.recruiter) {
+      fullUser = { ...baseUser, ...baseUser.recruiter };
+      delete fullUser.recruiter;
+    }
+
+    return { user: fullUser, session: currentSession, account: currentAccount };
+  } catch (error: any) {
+    if (
+      error?.message?.includes('role: guests') ||
+      error?.message?.includes('missing scope (account)')
+    ) {
+      throw new Error('invalid_session');
+    }
+    throw error;
+  }
+};
+
 export const updateUserDetails = async (
   userId: string,
   locations: string,
@@ -270,56 +329,145 @@ export const forgotPassword = async (email: string) => {
   }
 };
 
-export const getCurrentUser = async () => {
+export const updateUserAvatar = async (
+  fileUri: string,
+  userId: string,
+): Promise<string> => {
   try {
-    // 1️⃣ Get base account and session
-    const currentAccount = await account.get();
-    const currentSession = await account.getSession({ sessionId: 'current' });
-
-    if (!currentAccount || !currentSession) {
-      throw new Error('account_or_session_missing');
-    }
-
-    // 2️⃣ Fetch user record from users table WITH expansions
-    const userRes = await tables.listRows({
+    const res = await tables.getRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.userCol,
-      queries: [
-        Query.equal('accountId', currentAccount.$id),
-        Query.select([
-          '*', // all user fields
-          'skills.*', // expand skills
-          'locations.*', // expand locations
-          'workers.*', // expand worker relation if exists
-          'recruiters.*', // expand recruiter relation if exists
-        ]),
-      ],
+      rowId: userId,
+      queries: [Query.select(['$id', 'avatar'])],
     });
 
-    if (!userRes || userRes.rows.length === 0) {
-      throw new Error('user_not_found');
+    const previousAvatarId = res?.avatar || null;
+    if (previousAvatarId) {
+      // Delete previous avatar
+      await deleteFile(previousAvatarId);
     }
+    // Upload new avatar
+    const newAvatarId = await uploadFile(fileUri);
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      data: { avatar: newAvatarId },
+    });
+    return newAvatarId;
+  } catch (error) {
+    console.error('❌ Error updating user avatar:', error);
+    throw error;
+  }
+};
 
-    const baseUser = userRes.rows[0];
-    let fullUser: any = { ...baseUser, accountId: baseUser.accountId };
+export const removeAvatar = async (userId: string) => {
+  try {
+    const res = await tables.getRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      queries: [Query.select(['$id', 'avatar'])],
+    });
 
-    // 3️⃣ Flatten recruiter or worker if present
-    if (baseUser.userRole === 'worker' && baseUser.worker) {
-      fullUser = { ...baseUser, ...baseUser.worker };
-      delete fullUser.worker;
-    } else if (baseUser.userRole === 'recruiter' && baseUser.recruiter) {
-      fullUser = { ...baseUser, ...baseUser.recruiter };
-      delete fullUser.recruiter;
+    const previousAvatarId = res?.avatar || null;
+    if (previousAvatarId) {
+      // Delete previous avatar
+      await deleteFile(previousAvatarId);
     }
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      data: { avatar: null },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating user avatar:', error);
+    throw error;
+  }
+};
 
-    return { user: fullUser, session: currentSession, account: currentAccount };
+export const updateUserName = async (userId: string, name: string) => {
+  try {
+    await account.updateName({
+      name,
+    });
+
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      data: { name },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating user name:', error);
+    throw error;
+  }
+};
+
+export const updateUserBio = async (workerId: string, bio: string) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workerCol,
+      rowId: workerId,
+      data: { bio },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating user bio:', error);
+    throw error;
+  }
+};
+export const updateUserPhone = async (userId: string, phoneNumber: string) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      data: { phoneNumber },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating user bio:', error);
+    throw error;
+  }
+};
+
+export const passwordRecovery = async (email: string) => {
+  try {
+    await account.createRecovery({
+      email,
+      url: 'https://bolode247-dotcom.github.io/app-recovery/',
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating user bio:', error);
+    throw error;
+  }
+};
+
+export const updatePassword = async (password: string, oldPassword: string) => {
+  try {
+    await account.updatePassword({ password, oldPassword });
+    return { success: true };
   } catch (error: any) {
-    if (
-      error?.message?.includes('role: guests') ||
-      error?.message?.includes('missing scope (account)')
-    ) {
-      throw new Error('invalid_session');
+    console.error('❌ Error updating user password:', error);
+    const msg = (error?.message ?? '').toString();
+    if (msg.toLowerCase().includes('invalid')) {
+      throw new Error('Invalid old password');
+    } else {
+      throw error;
     }
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    await account.deleteSession({ sessionId: 'current' });
+  } catch (error) {
     throw error;
   }
 };

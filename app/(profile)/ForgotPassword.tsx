@@ -1,17 +1,11 @@
-import {
-  forgotPassword,
-  OtpVerification,
-  sendOTP,
-} from '@/appwriteFuncs/usersFunc';
+import { passwordRecovery } from '@/appwriteFuncs/usersFunc';
 import AppForm from '@/component/Form/AppForm';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
-import VerificationModal from '@/component/VerificationsModal';
-import { useAuth } from '@/context/authContex';
-import { router } from 'expo-router';
+import { useToast } from '@/context/ToastContext';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import * as Yup from 'yup';
 import { Colors, Sizes } from '../../constants';
 
@@ -22,48 +16,21 @@ const validationSchema = Yup.object().shape({
     .label('Email'),
 });
 
-const EmailVerification = () => {
+const ForgottenPassword = () => {
   const { t } = useTranslation();
-  const { fetchData } = useAuth();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState<string>('');
   const [error, setError] = React.useState<string | null>(null);
-  const [otpError, setOtpError] = React.useState<string | null>(null);
 
-  const handleContinue = async (value: { email: string }) => {
+  const handlePassword = async (value: { email: string }) => {
     const { email } = value;
     setIsLoading(true);
     try {
-      console.log('forgot password before');
-
-      const userId = await forgotPassword(email);
-
-      setUserId(userId);
-      setEmail(email);
-      setShowVerification(true);
+      await passwordRecovery(email);
+      showToast('Email sent successfully. check your mail box', 'success');
     } catch (error: any) {
       console.error('Failed to send OTP:', error);
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOtpSubmit = async ({ otpCode }: { otpCode: string }) => {
-    if (!userId) {
-      Alert.alert('Error', 'User ID is missing.');
-      return;
-    }
-    try {
-      setIsLoading(true);
-      await OtpVerification(userId, otpCode);
-      setShowVerification(false);
-      await fetchData();
-      router.replace('/');
-    } catch (err: any) {
-      setOtpError(err.message);
+      showToast(error.message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -74,13 +41,10 @@ const EmailVerification = () => {
       style={[styles.screenContainer, { backgroundColor: Colors.background }]}
     >
       <View style={styles.container}>
-        <Text style={[styles.title, { color: Colors.text }]}>
-          {t('emailVerification.title')}
-        </Text>
         {error && <Text style={styles.headerSubtitle}>{error}</Text>}
         <AppForm
           initialValues={{ email: '' }}
-          onSubmit={(values) => handleContinue(values)}
+          onSubmit={(values) => handlePassword(values)}
           validationSchema={validationSchema}
         >
           <View style={styles.inputContainer}>
@@ -99,23 +63,6 @@ const EmailVerification = () => {
           />
         </AppForm>
       </View>
-
-      <VerificationModal
-        visible={showVerification}
-        email={email}
-        onClose={() => setShowVerification(false)}
-        isLoading={isLoading}
-        onSubmit={handleOtpSubmit}
-        errorMessage={otpError || ''}
-        onResend={async () => {
-          try {
-            const newOtp = await sendOTP(email);
-            setUserId(newOtp);
-          } catch {
-            Alert.alert('Error', 'Could not resend OTP');
-          }
-        }}
-      />
     </View>
   );
 };
@@ -200,4 +147,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EmailVerification;
+export default ForgottenPassword;

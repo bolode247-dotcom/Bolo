@@ -47,7 +47,7 @@ const InputField = ({
 }: InputFieldProps) => {
   const isPasswordField = label?.toLowerCase().includes('password');
   const [showPassword, setShowPassword] = useState(
-    isPasswordField ? true : false,
+    isPasswordField ? false : true,
   );
 
   return (
@@ -68,7 +68,14 @@ const InputField = ({
               },
             ]}
           >
-            {icon && <Ionicons name={icon} size={20} color="#6B7280" />}
+            {icon && (
+              <Ionicons
+                name={icon}
+                size={20}
+                color="#6B7280"
+                style={{ marginBottom: 5 }}
+              />
+            )}
 
             <TextInput
               style={[

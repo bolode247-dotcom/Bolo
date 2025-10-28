@@ -166,7 +166,10 @@
   "languageSelection": {
     "title": "Sélectionnez votre langue",
     "subtitle": "Choisissez votre langue préférée pour l’application.",
-    "continue": "Continuer"
+    "french": "Français",
+    "english": "Anglais",
+    "lanChangeSuccess": "Langue changée avec sucesso",
+    "lanChangeFailed": "Echec de changement de langue"
   },
   "successModal": {
     "jobPostingSuccessful": "Offre d'emploi publiée avec succès",

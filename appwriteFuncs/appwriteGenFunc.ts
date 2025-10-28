@@ -1,9 +1,8 @@
-import { tables } from '@/lib/appwrite';
+import { storage, tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import { Chat, ChatDetails, Message } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
-
 export interface LocationOption {
   id: string;
   label: string;
@@ -338,6 +337,64 @@ export const getChatDetailsWithMessages = async (
     };
   } catch (error) {
     console.error('❌ Error fetching chat & messages:', error);
+    throw error;
+  }
+};
+
+export const uploadFile = async (fileUri: string): Promise<string> => {
+  try {
+    // Get the file's name
+    const fileName = fileUri.split('/').pop() || `file-${Date.now()}`;
+
+    // Fetch the file as a blob
+    const response = await fetch(fileUri);
+    if (!response.ok) {
+      throw new Error('File does not exist or cannot be fetched');
+    }
+    const blob = await response.blob();
+
+    // Create a new File instance
+    const file = new File([blob], fileName);
+
+    // Get the file's size
+    const fileSize = file.size;
+
+    // Determine the MIME type based on the file extension
+    let fileType = 'application/octet-stream';
+    if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg'))
+      fileType = 'image/jpeg';
+    else if (fileName.endsWith('.png')) fileType = 'image/png';
+    else if (fileName.endsWith('.mp4')) fileType = 'video/mp4';
+    else if (fileName.endsWith('.pdf')) fileType = 'application/pdf';
+
+    // Upload the file to Appwrite
+    const res = await storage.createFile({
+      bucketId: appwriteConfig.boloBucketCol, // replace with your bucket ID
+      fileId: ID.unique(), // generate unique ID
+      file: {
+        uri: fileUri,
+        name: fileName,
+        type: fileType,
+        size: fileSize,
+      },
+    });
+
+    return res.$id;
+  } catch (error) {
+    console.log('❌ Error uploading file:', error);
+    throw error;
+  }
+};
+
+export const deleteFile = async (fileId: string) => {
+  try {
+    const res = await storage.deleteFile({
+      bucketId: appwriteConfig.boloBucketCol,
+      fileId: fileId,
+    });
+    return res;
+  } catch (error) {
+    console.log('❌ Error deleting avatar:', error);
     throw error;
   }
 };

@@ -168,8 +168,11 @@
 
   "languageSelection": {
     "title": "Select Your Language",
-    "subtitle": "Choose your preferred language for the app.",
-    "continue": "Continue"
+    "subtitle": "Choose your preferred language for the application.",
+    "french": "French",
+    "english": "English",
+    "lanChangeSuccess": "Language changed successfully",
+    "lanChangeFailed": "Failed to change language"
   },
   "successModal": {
     "jobPostingSuccessful": "Job posting successful",

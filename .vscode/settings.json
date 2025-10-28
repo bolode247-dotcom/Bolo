@@ -1,7 +1,20 @@
 {
+  "editor.formatOnSave": true,
+
+  // ✅ Make Prettier the single formatter for TS, TSX, and JS
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // ✅ ESLint only fixes code issues and organizes imports
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.organizeImports": "explicit",
-    "source.sortMembers": "explicit"
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
   }
 }

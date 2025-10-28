@@ -1,5 +1,6 @@
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { viewImage } from '@/Utils/helpers';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -68,7 +69,10 @@ const AppHeader = () => {
       >
         {/* Avatar or Ionicon fallback */}
         {avatar && avatar.trim() !== '' ? (
-          <Image source={{ uri: avatar }} style={styles.avatarImage} />
+          <Image
+            source={{ uri: viewImage(avatar) }}
+            style={styles.avatarImage}
+          />
         ) : (
           <Ionicons
             name="person-circle-outline"
@@ -128,9 +132,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: Colors.gray300,
   },

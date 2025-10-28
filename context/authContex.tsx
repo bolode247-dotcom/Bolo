@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const fetchData = async () => {
     try {
       const res: any = await getCurrentUser();
-      if (res?.session && res?.user && res?.account?.emailVerification) {
+      if (res?.session && res?.user) {
         setSession(true);
         setUser(res.user);
       } else {
