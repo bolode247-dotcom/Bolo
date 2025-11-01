@@ -9,7 +9,7 @@ import { Feather } from '@expo/vector-icons';
 import { LegendList } from '@legendapp/list';
 import dayjs from 'dayjs';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -82,34 +82,32 @@ const MessagesContent = () => {
     if (data) setChatDetails(data);
   }, [data]);
 
+  const subscribed = useRef(false);
   useEffect(() => {
-    if (!chatId) return;
-    if (!client) return; // ensure client exists
+    if (!chatId || !client || !client.headers['x-appwrite-project']) return;
+    if (subscribed.current) return;
+    subscribed.current = true;
+
     let unsubscribe: (() => void) | null = null;
     let isMounted = true;
 
-    // Wrap in try/catch to prevent WebSocket invalid state errors
     const subscribe = async () => {
       try {
-        const channel = `databases.${appwriteConfig.dbId}.tables.${appwriteConfig.messagesCol}.rows`;
+        const channel = `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.messagesCol}.documents`;
 
-        unsubscribe = client.subscribe(channel, async (event) => {
+        unsubscribe = await client.subscribe(channel, async (event) => {
           if (!isMounted) return;
 
-          // Only react to "create" events related to this chat
+          const payload = event.payload as { chats?: string };
+
           if (
             event.events.includes(
               'databases.*.collections.*.documents.*.create',
             ) &&
-            event.payload &&
-            (event.payload as { chats?: string }).chats === chatId
+            payload.chats === chatId
           ) {
-            try {
-              const updated = await getChatDetailsWithMessages(chatId);
-              if (isMounted) setChatDetails(updated);
-            } catch (err) {
-              console.error('Realtime update fetch failed:', err);
-            }
+            const updated = await getChatDetailsWithMessages(chatId);
+            if (isMounted) setChatDetails(updated);
           }
         });
       } catch (err) {
@@ -121,13 +119,7 @@ const MessagesContent = () => {
 
     return () => {
       isMounted = false;
-      if (unsubscribe) {
-        try {
-          unsubscribe(); // clean disconnect
-        } catch (err) {
-          console.warn('Unsubscribe failed:', err);
-        }
-      }
+      unsubscribe?.();
     };
   }, [chatId]);
 
@@ -222,7 +214,12 @@ const MessagesContent = () => {
     }
   };
 
-  if (isLoading && !chatDetails) return <Text>Loading messages...</Text>;
+  if (isLoading && !chatDetails)
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
 
   const groupedMessages = Object.entries(
     (chatDetails?.messages ?? []).reduce(

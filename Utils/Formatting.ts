@@ -19,17 +19,10 @@ export const formatTimestamp = (createdAt: string): string => {
 };
 
 export const formatTimeStampv2 = (createdAt: string): string => {
-  const date = dayjs(createdAt).utc();
+  const date = dayjs(createdAt);
 
-  if (date.isToday()) {
-    return date.fromNow(); // ✅ Now works ("3 hours ago")
-  }
-
-  if (date.isYesterday()) {
-    return 'Yesterday';
-  }
-
-  return date.format('D MMMM, YYYY'); // ✅ "28 October, 2025"
+  // Always return time in HH:mm (24-hour format)
+  return date.format('HH:mm');
 };
 
 export const groupMessagesByDate = (messages: Message[]) => {

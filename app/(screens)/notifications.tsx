@@ -104,7 +104,7 @@ const Notifications = () => {
     return groupByDateSections(
       Notifications.map((n: any) => ({
         ...n,
-        time: n.$createdAt, // ✅ use real timestamp
+        time: n.time, // ✅ use real timestamp
         iconName: n.icon ?? '', // ✅ backend icon string
       })),
     );
@@ -162,7 +162,7 @@ const Notifications = () => {
             <Text style={styles.section}>{item.title}</Text>
 
             {item.data.map((notif: any) => (
-              <View key={notif.id}>{renderItem({ item: notif })}</View>
+              <View key={notif.$id}>{renderItem({ item: notif })}</View>
             ))}
           </View>
         )}
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   section: {
-    fontSize: Sizes.lg,
+    fontSize: Sizes.md,
     fontFamily: 'PoppinsSemiBold',
     color: Colors.text,
     // marginVertical: Sizes.xsm,
