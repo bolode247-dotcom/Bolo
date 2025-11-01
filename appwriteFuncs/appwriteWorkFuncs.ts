@@ -2,7 +2,8 @@ import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import { RecruiterFeedData, Skill, Worker } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Query } from 'react-native-appwrite';
+import { ID, Query } from 'react-native-appwrite';
+import { deleteFile, uploadFile } from './appwriteGenFunc';
 
 export const getRecommendedWorkers = async (
   recruiterRegion: string,
@@ -495,5 +496,105 @@ export const getSkillIdsByName = async (
   } catch (err) {
     console.error('Error fetching skill IDs by name:', err);
     return [];
+  }
+};
+
+export const getWorkSample = async (userId: string) => {
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      queries: [Query.equal('workers', userId), Query.orderDesc('$createdAt')],
+    });
+
+    return res.rows.map((workSample) => {
+      return {
+        $id: workSample.$id,
+        caption: workSample.caption,
+        image: workSample.image,
+        createdAt: workSample.$createdAt,
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error fetching work samples:', error);
+    throw error;
+  }
+};
+
+export const addWorkSample = async (
+  workerId: string,
+  caption: string,
+  image: string,
+) => {
+  try {
+    const imageId = await uploadFile(image);
+    await tables.createRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      rowId: ID.unique(),
+      data: {
+        workers: workerId,
+        caption: caption,
+        image: imageId,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error updating work sample:', error);
+    throw error;
+  }
+};
+
+export const updateWorkSampleCaption = async (
+  workSampleId: string,
+  caption: string,
+) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      rowId: workSampleId,
+      data: {
+        caption: caption,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error updating work sample caption:', error);
+    throw error;
+  }
+};
+
+export const updateWorkSampleImage = async (
+  postId: string,
+  uri: string,
+  image: string,
+) => {
+  try {
+    await deleteFile(image);
+    const imageId = await uploadFile(uri);
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      rowId: postId,
+      data: {
+        image: imageId,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error updating work sample image:', error);
+    throw error;
+  }
+};
+
+export const deleteWorkSample = async (postId: string, image: string) => {
+  try {
+    await deleteFile(image);
+    await tables.deleteRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      rowId: postId,
+    });
+  } catch (error) {
+    console.error('❌ Error deleting work sample:', error);
+    throw error;
   }
 };

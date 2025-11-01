@@ -3,21 +3,20 @@ import {
   withdrawApp,
 } from '@/appwriteFuncs/appwriteJobsFuncs';
 import ApplicationCard from '@/component/ApplicationCard';
+import ConfirmModal from '@/component/ConfirmModal';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import useAppwrite from '@/lib/useAppwrite';
-import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React from 'react';
 import {
-  Alert,
   FlatList,
   Modal,
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -25,15 +24,15 @@ import {
   View,
 } from 'react-native';
 
-import { SafeAreaView } from 'react-native-safe-area-context';
-
 const Applications = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [selectedApp, setSelectedApp] = React.useState<any>(null);
   const [showModal, setShowModal] = React.useState(false);
   const [showReasonModal, setShowReasonModal] = React.useState(false);
   const [declineReason, setDeclineReason] = React.useState('');
+  const [showConfirm, setShowConfirm] = React.useState(false);
 
   const fetchApplications = React.useCallback(() => {
     if (!user?.workers?.$id) return Promise.resolve([]);
@@ -45,16 +44,6 @@ const Applications = () => {
     isLoading,
     refetch,
   } = useAppwrite(fetchApplications);
-  useFocusEffect(
-    React.useCallback(() => {
-      // 🔵 When this tab is focused
-      StatusBar.setBarStyle('light-content');
-
-      return () => {
-        StatusBar.setBarStyle('dark-content');
-      };
-    }, []),
-  );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -65,10 +54,11 @@ const Applications = () => {
   const handleWidthdraw = async (appId: string, jobId: string) => {
     try {
       await withdrawApp(appId, jobId);
+      showToast('Application widthdrawn.', 'success');
       await refetch();
     } catch (error) {
       console.error('Error widthdrawing application:', error);
-      Alert.alert('Error', 'Failed to widthdraw application.');
+      showToast('Error widthdrawing application.', 'error');
     }
   };
 
@@ -77,23 +67,7 @@ const Applications = () => {
       setSelectedApp(application);
       setShowModal(true);
     } else if (application.status === 'applied') {
-      Alert.alert(
-        'Widthdraw Application',
-        'Are you sure you want to withdraw this application?',
-        [
-          {
-            text: 'Cancel',
-            onPress: () => console.log('Cancel Pressed'),
-            style: 'cancel',
-          },
-          {
-            text: 'Withdraw',
-            onPress: () => {
-              handleWidthdraw(application.id, application.job.id);
-            },
-          },
-        ],
-      );
+      setShowConfirm(true);
     } else {
       router.push({
         pathname: '/(screens)/jobDetails',
@@ -131,7 +105,7 @@ const Applications = () => {
 
   return (
     <>
-      <SafeAreaView style={styles.container} edges={['right', 'left']}>
+      <View style={styles.container}>
         <ExploreHeader
           title="Applications"
           search="Search and apply for Jobs..."
@@ -276,7 +250,19 @@ const Applications = () => {
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
+      </View>
+      <ConfirmModal
+        visible={showConfirm}
+        title="Widthdraw Application"
+        message="Are you sure you want to withdraw this application?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={() => {
+          setShowConfirm(false);
+          handleWidthdraw(selectedApp.id, selectedApp.job.id);
+        }}
+        onCancel={() => setShowConfirm(false)}
+      />
     </>
   );
 };

@@ -60,6 +60,33 @@ export default function ProfileLayout() {
           animation: 'slide_from_right',
         }}
       />
+      <Stack.Screen
+        name="WorkSamples"
+        options={{
+          headerShown: true,
+          title: 'Work Samples',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="AddWorkSample"
+        options={{
+          headerShown: true,
+          title: 'Post',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="EditWorkSample"
+        options={{
+          headerShown: true,
+          title: 'Edit Post',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack>
   );
 }

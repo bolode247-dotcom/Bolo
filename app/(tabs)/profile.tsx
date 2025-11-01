@@ -33,18 +33,18 @@ const DATA: { title: string; data: SectionItem[] }[] = [
       {
         label: 'Skills',
         icon: 'build',
-        route: '/profile/skills',
+        route: '/(profile)/skills',
       },
       {
         label: 'Work Samples',
         icon: 'images',
-        route: '/profile/skills',
+        route: '/(profile)/WorkSamples',
       },
-      { label: 'Location', icon: 'location', route: '/profile/location' },
+      { label: 'Location', icon: 'location', route: '/(profile)/location' },
       {
         label: 'Verification',
         icon: 'shield-checkmark',
-        route: '/profile/verification',
+        route: '/(profile)/verification',
       },
       {
         label: 'Change Password',

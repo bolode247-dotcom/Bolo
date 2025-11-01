@@ -24,7 +24,9 @@ export const appwriteConfig = {
   reviewsCol: process.env.EXPO_PUBLIC_APPWRITE_REVIEWS_COL_ID!,
   boloCol: process.env.EXPO_PUBLIC_APPWRITE_BOLO_COL_ID!,
   boloBucketCol: process.env.EXPO_PUBLIC_APPWRITE_BOLO_BUCK_ID!,
+  boloNotificationsCol: process.env.EXPO_PUBLIC_APPWRITE_NOTIFICATIONS_ID!,
 
+  workSampleCol: process.env.EXPO_PUBLIC_WORKER_WORKSAMPLES_ID!,
   workerFreePlanId: process.env.EXPO_PUBLIC_WORKER_FREE_PLAN_ID!,
   workerProPlanId: process.env.EXPO_PUBLIC_WORKER_PRO_PLAN_ID!,
   recruiterFreePlanId: process.env.EXPO_PUBLIC_RECRUITER_FREE_PLAN_ID!,

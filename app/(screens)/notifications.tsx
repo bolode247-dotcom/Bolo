@@ -1,8 +1,20 @@
+import {
+  deleteNotify,
+  getNotifications,
+} from '@/appwriteFuncs/appwriteGenFunc';
+import ConfirmModal from '@/component/ConfirmModal';
+import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors, Sizes } from '@/constants';
-import { AntDesign, MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
+import useAppwrite from '@/lib/useAppwrite';
+import { formatTimeStampv2 } from '@/Utils/Formatting';
+import { AntDesign, Entypo, Feather } from '@expo/vector-icons';
+import dayjs from 'dayjs';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,113 +22,172 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const DATA = [
-  {
-    id: '1',
-    section: 'Today',
-    items: [
-      {
-        id: '101',
-        title: 'Your Application Confirmed!',
-        message: 'Lorem Ipsum is simply dummy text typesetting.',
-        time: '3 hrs ago',
-        icon: { lib: 'AntDesign', name: 'check-circle', color: 'green' },
-      },
-      {
-        id: '102',
-        title: 'Google Declined Your Application.',
-        message: 'Lorem Ipsum is simply dummy text typesetting.',
-        time: '5 hrs ago',
-        icon: { lib: 'AntDesign', name: 'close-circle', color: 'red' },
-      },
-      {
-        id: '103',
-        title: 'Figma Have Seen Your Application.',
-        message: 'Lorem Ipsum is simply dummy text typesetting.',
-        time: '10 hrs ago',
-        icon: { lib: 'AntDesign', name: 'eye', color: 'orange' },
-      },
-    ],
+const NOTIFICATION_ICON_MAP: Record<
+  string,
+  { lib: any; defaultIcon: string; color: string }
+> = {
+  confirmed: { lib: AntDesign, defaultIcon: 'checkcircle', color: 'green' },
+  declined: { lib: AntDesign, defaultIcon: 'closecircle', color: 'red' },
+  seen: { lib: AntDesign, defaultIcon: 'eye', color: 'orange' },
+  offered: { lib: Entypo, defaultIcon: 'briefcase', color: '#3c3dbf' },
+  default: {
+    lib: AntDesign,
+    defaultIcon: 'bell',
+    color: Colors.primary,
   },
-  {
-    id: '2',
-    section: 'Yesterday',
-    items: [
-      {
-        id: '201',
-        title: 'Security Update',
-        message: 'Lorem Ipsum is simply dummy text typesetting.',
-        time: '27 April, 2024',
-        icon: { lib: 'MaterialIcons', name: 'security', color: 'blue' },
-      },
-      {
-        id: '202',
-        title: 'Password Update!',
-        message: 'Lorem Ipsum is simply dummy text typesetting.',
-        time: '27 April, 2024',
-        icon: { lib: 'AntDesign', name: 'lock', color: 'purple' },
-      },
-    ],
-  },
-  {
-    id: '3',
-    section: '18 April, 2024',
-    items: [
-      {
-        id: '301',
-        title: 'Account Setup Successful!',
-        message: 'Lorem Ipsum is simply dummy text typesetting.',
-        time: '18 April, 2024',
-        icon: { lib: 'AntDesign', name: 'smile', color: 'green' },
-      },
-    ],
-  },
-];
-
-// map icon library name -> component
-const ICONS = {
-  AntDesign,
-  MaterialIcons,
 };
 
-const renderIcon = (icon) => {
-  const IconLib = ICONS[icon.lib];
-  if (!IconLib) return null;
-  return <IconLib name={icon.name} size={24} color={icon.color} />;
+const renderIcon = (type: string, iconName?: string) => {
+  const cfg = NOTIFICATION_ICON_MAP[type] ?? NOTIFICATION_ICON_MAP.default;
+  const IconLib = cfg.lib;
+
+  return (
+    <IconLib name={iconName || cfg.defaultIcon} size={24} color={cfg.color} />
+  );
+};
+
+const groupByDateSections = (items: any[]) => {
+  const groups: any = {
+    Today: [],
+    Yesterday: [],
+    Other: {},
+  };
+
+  items.forEach((item) => {
+    const formatted = formatTimeStampv2(item.time);
+    const created = dayjs(item.time);
+
+    if (created.isToday()) {
+      groups.Today.push({ ...item, displayTime: formatted });
+    } else if (created.isYesterday()) {
+      groups.Yesterday.push({ ...item, displayTime: formatted });
+    } else {
+      const dateKey = created.format('D MMMM, YYYY');
+      if (!groups.Other[dateKey]) groups.Other[dateKey] = [];
+      groups.Other[dateKey].push({ ...item, displayTime: formatted });
+    }
+  });
+
+  const sections: any[] = [];
+  if (groups.Today.length > 0)
+    sections.push({ title: 'Today', data: groups.Today });
+  if (groups.Yesterday.length > 0)
+    sections.push({ title: 'Yesterday', data: groups.Yesterday });
+
+  Object.keys(groups.Other).forEach((date) => {
+    sections.push({ title: date, data: groups.Other[date] });
+  });
+
+  return sections;
 };
 
 const Notifications = () => {
-  const renderItem = ({ item }) => (
+  const { showToast } = useToast();
+  const { user } = useAuth();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedNotify, setSelectedNotify] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const fetchNotifications = React.useCallback(() => {
+    if (!user) return Promise.resolve([]);
+    return getNotifications(user);
+  }, [user]);
+
+  const {
+    data: Notifications,
+    isLoading,
+    refetch,
+  } = useAppwrite(fetchNotifications, [user]);
+
+  const sections = useMemo(() => {
+    if (!Notifications) return [];
+    return groupByDateSections(
+      Notifications.map((n: any) => ({
+        ...n,
+        time: n.$createdAt, // ✅ use real timestamp
+        iconName: n.icon ?? '', // ✅ backend icon string
+      })),
+    );
+  }, [Notifications]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
+
+  const handleDeleteNotify = async () => {
+    try {
+      await deleteNotify(selectedNotify?.$id);
+      showToast('Notification Deleted', 'success');
+    } catch (err: any) {
+      console.error('Error deleting notification:', err.message || err);
+      showToast(err.message, 'error');
+    }
+  };
+
+  const renderItem = ({ item }: any) => (
     <View style={styles.card}>
-      <View style={styles.icon}>{renderIcon(item.icon)}</View>
+      <View style={styles.icon}>{renderIcon(item.iconName)}</View>
 
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+          {item.title}
+        </Text>
         <Text style={styles.message}>{item.message}</Text>
-        <Text style={styles.time}>{item.time}</Text>
+        <Text style={styles.time}>{item.displayTime}</Text>
       </View>
 
-      <TouchableOpacity>
-        <AntDesign name="ellipsis" size={18} color={Colors.text} />
+      <TouchableOpacity
+        style={styles.delete}
+        onPress={() => {
+          console.log(item);
+          setShowConfirm(true);
+        }}
+      >
+        <Feather name="trash-2" size={18} color={Colors.text} />
       </TouchableOpacity>
     </View>
   );
 
+  if (isLoading) return <JobWorkerSkeleton />;
+
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left', 'bottom']}>
       <FlatList
-        data={DATA}
-        keyExtractor={(section) => section.id}
+        data={sections}
+        keyExtractor={(section) => section.$id}
         renderItem={({ item }) => (
-          <View>
-            <Text style={styles.section}>{item.section}</Text>
-            {item.items.map((notif) => (
+          <View style={{ marginBottom: 16 }}>
+            <Text style={styles.section}>{item.title}</Text>
+
+            {item.data.map((notif: any) => (
               <View key={notif.id}>{renderItem({ item: notif })}</View>
             ))}
           </View>
         )}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
+      />
+      <ConfirmModal
+        visible={showConfirm}
+        title="Widthdraw Application"
+        message="Are you sure you want to withdraw this application?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={() => {
+          setShowConfirm(false);
+          handleDeleteNotify();
+        }}
+        onCancel={() => setShowConfirm(false)}
       />
     </SafeAreaView>
   );
@@ -168,5 +239,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.primary,
     marginTop: 4,
+  },
+  delete: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
   },
 });

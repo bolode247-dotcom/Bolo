@@ -398,3 +398,78 @@ export const deleteFile = async (fileId: string) => {
     throw error;
   }
 };
+
+export const deleteNotify = async (notifyId: string) => {
+  try {
+    const res = await tables.deleteRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.boloNotificationsCol,
+      rowId: notifyId,
+    });
+    return res;
+  } catch (error) {
+    console.log('❌ Error deleting avatar:', error);
+    throw error;
+  }
+};
+
+export const getNotifications = async (user: any) => {
+  const queryGroup: any[] = [];
+
+  // GLOBAL
+  queryGroup.push(Query.equal('targetType', 'global'));
+
+  // PERSONAL
+  if (user?.$id) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'user'),
+        Query.contains('userIds', user.$id),
+      ]),
+    );
+  }
+
+  // ROLE-BASED
+  if (user?.role) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'role'),
+        Query.equal('targetValue', user.role),
+      ]),
+    );
+  }
+
+  // LOCATION-BASED
+  if (user?.locations?.$id) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'location'),
+        Query.equal('targetValue', user.locations.$id),
+      ]),
+    );
+  }
+
+  if (user?.skills?.$id) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'skill'),
+        Query.equal('targetValue', user.skills.$id),
+      ]),
+    );
+  }
+
+  const res = await tables.listRows({
+    databaseId: appwriteConfig.dbId,
+    tableId: appwriteConfig.boloNotificationsCol,
+    queries: [Query.or(queryGroup), Query.orderDesc('$createdAt')],
+  });
+
+  return res.rows.map((notify) => ({
+    $id: notify.$id,
+    title: notify.title,
+    message: notify.message,
+    type: notify.type,
+    time: notify.$createdAt,
+    iconName: notify.icon || 'bell',
+  }));
+};

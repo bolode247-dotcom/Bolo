@@ -6,11 +6,15 @@ import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
-import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React from 'react';
-import { FlatList, RefreshControl, StatusBar, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 const JObs = () => {
   const { user } = useAuth();
@@ -24,17 +28,6 @@ const JObs = () => {
     getJobsByRegionOrSkill(user.locations.region, user.skills.$id),
   );
 
-  useFocusEffect(
-    React.useCallback(() => {
-      // 🔵 When this tab is focused
-      StatusBar.setBarStyle('light-content');
-
-      return () => {
-        StatusBar.setBarStyle('dark-content');
-      };
-    }, []),
-  );
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
@@ -43,8 +36,8 @@ const JObs = () => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" />
-      <SafeAreaView style={styles.container} edges={['right', 'left']}>
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.container}>
         <ExploreHeader title="Explore Jobs" search="Search for Jobs..." />
         {isLoading ? (
           <JobWorkerSkeleton />
@@ -84,7 +77,7 @@ const JObs = () => {
             }
           />
         )}
-      </SafeAreaView>
+      </View>
     </>
   );
 };

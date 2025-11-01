@@ -2,9 +2,13 @@ import { Message } from '@/types/genTypes';
 import dayjs from 'dayjs';
 import isToday from 'dayjs/plugin/isToday';
 import isYesterday from 'dayjs/plugin/isYesterday';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import utc from 'dayjs/plugin/utc';
 
+dayjs.extend(relativeTime);
 dayjs.extend(isToday);
 dayjs.extend(isYesterday);
+dayjs.extend(utc);
 
 export const formatTimestamp = (createdAt: string): string => {
   const date = dayjs(createdAt);
@@ -12,6 +16,20 @@ export const formatTimestamp = (createdAt: string): string => {
   if (date.isToday()) return date.format('HH:mm'); // 24h
   if (date.isYesterday()) return 'Yesterday';
   return date.format('DD/MM/YYYY'); // older dates
+};
+
+export const formatTimeStampv2 = (createdAt: string): string => {
+  const date = dayjs(createdAt).utc();
+
+  if (date.isToday()) {
+    return date.fromNow(); // ✅ Now works ("3 hours ago")
+  }
+
+  if (date.isYesterday()) {
+    return 'Yesterday';
+  }
+
+  return date.format('D MMMM, YYYY'); // ✅ "28 October, 2025"
 };
 
 export const groupMessagesByDate = (messages: Message[]) => {
