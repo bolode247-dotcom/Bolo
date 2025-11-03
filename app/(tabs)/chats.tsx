@@ -6,7 +6,7 @@ import SearchInput from '@/component/SearchInput';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,10 @@ const Chats = () => {
     const userId =
       role === 'recruiter' ? user.recruiters?.$id : user.workers?.$id;
     return getChats(userId, role);
+  });
+
+  useFocusEffect(() => {
+    refetch();
   });
 
   const handleOpenChat = (chat: any) => {

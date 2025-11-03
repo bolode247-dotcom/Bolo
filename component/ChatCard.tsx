@@ -1,5 +1,6 @@
 import { Colors, Sizes } from '@/constants';
 import { formatTimestamp } from '@/Utils/Formatting';
+import { viewImage } from '@/Utils/helpers';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -63,7 +64,7 @@ const ChatCard = ({ chat, onPress }: Props) => {
           <View style={[styles.logoContainer, { backgroundColor: bgColor }]}>
             {chat?.participant?.avatar ? (
               <Image
-                source={{ uri: chat?.participant?.avatar }}
+                source={{ uri: viewImage(chat?.participant?.avatar) }}
                 style={styles.logoImage}
                 resizeMode="cover"
               />
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   },
   timeRow: {
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'center',
     gap: Sizes.x3sm,
   },
@@ -170,6 +171,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: Sizes.md,
     backgroundColor: Colors.primary,
-    alignSelf: 'center',
   },
 });

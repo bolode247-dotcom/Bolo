@@ -74,9 +74,9 @@ const EmailVerification = () => {
       style={[styles.screenContainer, { backgroundColor: Colors.background }]}
     >
       <View style={styles.container}>
-        <Text style={[styles.title, { color: Colors.text }]}>
+        {/* <Text style={[styles.title, { color: Colors.text }]}>
           {t('emailVerification.title')}
-        </Text>
+        </Text> */}
         {error && <Text style={styles.headerSubtitle}>{error}</Text>}
         <AppForm
           initialValues={{ email: '' }}

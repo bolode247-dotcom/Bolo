@@ -42,6 +42,67 @@ export const getLocations = async (): Promise<LocationOption[]> => {
     return []; // ✅ safe fallback
   }
 };
+export const getFilteredLocations = async (
+  search = '',
+): Promise<LocationOption[]> => {
+  console.log('searching: ', search);
+  const queries = [];
+  if (search) {
+    queries.push(
+      Query.or([
+        Query.search('region', search),
+        Query.search('division', search),
+        Query.search('subdivision', search),
+      ]),
+    );
+  }
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.locationsCol,
+      queries: queries,
+    });
+
+    const rows = res?.rows ?? [];
+
+    return rows.map((row: any) => ({
+      id: row.$id,
+      label: row.subdivision ?? 'Unknown',
+      value: row.$id,
+    }));
+  } catch (error) {
+    console.error('Failed to fetch locations:', error);
+    return []; // ✅ safe fallback
+  }
+};
+export const getFilteredSkills = async (
+  search = '',
+): Promise<LocationOption[]> => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+  const queries = [];
+  if (search) {
+    queries.push(Query.search('name_en', search));
+    queries.push(Query.search('name_fr', search));
+  }
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.skillsCol,
+      queries: queries,
+    });
+
+    const rows = res?.rows ?? [];
+
+    return rows.map((row: any) => ({
+      id: row.$id,
+      label: row[`name_${lang}`] ?? 'Unknown',
+      value: row.$id,
+    }));
+  } catch (error) {
+    console.error('Failed to fetch locations:', error);
+    return []; // ✅ safe fallback
+  }
+};
 
 export const getSkills = async (): Promise<LocationOption[]> => {
   const allSkills: LocationOption[] = [];

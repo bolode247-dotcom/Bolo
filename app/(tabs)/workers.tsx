@@ -7,13 +7,7 @@ import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { router } from 'expo-router';
 import React from 'react';
-import {
-  FlatList,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Workers = () => {
@@ -36,7 +30,7 @@ const Workers = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
-      <StatusBar barStyle="light-content" />
+      {/* <StatusBar barStyle="light-content" /> */}
       <ExploreHeader
         title="Explore Workers"
         search="Search for Workers..."
@@ -56,6 +50,12 @@ const Workers = () => {
                 router.push({
                   pathname: '/workerProfile',
                   params: { workerId: item?.id, isOffer: 'false' },
+                });
+              }}
+              onBtnPress={() => {
+                router.push({
+                  pathname: '/(screens)/create',
+                  params: { workerId: item?.id },
                 });
               }}
             />

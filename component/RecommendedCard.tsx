@@ -1,6 +1,8 @@
 import { Colors, Sizes } from '@/constants';
 import { Location, Skill } from '@/types/genTypes';
-import { Ionicons } from '@expo/vector-icons';
+import { getInitials } from '@/Utils/Formatting';
+import { viewImage } from '@/Utils/helpers';
+import { Ionicons, MaterialIcons, Octicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -10,13 +12,15 @@ type User = {
   avatar?: string | null;
   skills: Skill[];
   locations?: Location | null;
+  isVerified: boolean;
 };
 
 export type RecommendedCardProps = {
-  users: User;
-  payRate: string;
+  users?: User;
+  bio: string;
   rating: number;
   location: string;
+  avatar: string;
 };
 
 type Props = {
@@ -24,23 +28,51 @@ type Props = {
   onPress?: () => void;
 };
 
+const pastelColors = [
+  '#E0D7FF',
+  '#D7F5E0',
+  '#FFF3D7',
+  '#FFD7E0',
+  '#FDE7D7',
+  '#D7F0FF',
+  '#FFE0F0',
+  '#E0FFF3',
+  '#FFF0D7',
+  '#D7FFE0',
+  '#F0D7FF',
+];
+
 const RecommendedWorkerCard = ({ worker, onPress }: Props) => {
-  const { users: user, payRate, rating } = worker;
+  const { users: user, bio, avatar } = worker;
+  const bgColor =
+    pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
+    Colors.gray50;
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       {/* Top row: avatar + rate */}
       <View style={styles.headerRow}>
-        <Image
-          source={
-            user?.avatar
-              ? { uri: user?.avatar }
-              : require('@/assets/icons/profile.png')
-          }
-          style={styles.avatar}
-        />
-        <View style={styles.row}>
-          <Ionicons name="star" size={14} color="gold" />
-          <Text style={styles.rating}>{rating}</Text>
+        <View style={[styles.logoContainer, { backgroundColor: bgColor }]}>
+          {avatar ? (
+            <Image
+              source={{ uri: viewImage(avatar) }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={styles.logoText}>{getInitials(user?.name)}</Text>
+          )}
+        </View>
+        <View>
+          {user?.isVerified ? (
+            <MaterialIcons
+              name="verified"
+              size={22}
+              color={Colors.primaryDark}
+            />
+          ) : (
+            <Octicons name="unverified" size={22} color={Colors.primaryDark} />
+          )}
         </View>
       </View>
 
@@ -49,10 +81,12 @@ const RecommendedWorkerCard = ({ worker, onPress }: Props) => {
         <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
           {user?.name}
         </Text>
-        <Text style={styles.role} numberOfLines={1} ellipsizeMode="tail">
-          {user.skills[0]?.name}
+        <Text style={styles.rate} numberOfLines={1} ellipsizeMode="tail">
+          {user?.skills[0]?.name}
         </Text>
-        <Text style={styles.rate}>{payRate}</Text>
+        <Text style={styles.role} numberOfLines={1} ellipsizeMode="tail">
+          {bio}
+        </Text>
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={16} color={Colors.gray600} />
           <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
@@ -130,5 +164,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray600,
     fontFamily: 'PoppinsRegular',
+  },
+  logoText: {
+    color: Colors.gray900,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  logoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Sizes.sm,
   },
 });

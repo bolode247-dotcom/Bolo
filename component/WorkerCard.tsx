@@ -1,14 +1,15 @@
 import { Colors, Sizes } from '@/constants';
 import { Worker } from '@/types/genTypes';
+import { viewImage } from '@/Utils/helpers';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    ViewStyle,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewStyle,
 } from 'react-native';
 import CustomButton from './CustomButton';
 
@@ -17,6 +18,7 @@ type Props = {
   catWidth?: number;
   worker: Worker;
   onPress?: () => void;
+  onBtnPress?: () => void;
 };
 
 const pastelColors = [
@@ -41,7 +43,7 @@ const getInitials = (name: string) => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
-const WorkerCard = ({ worker, style, onPress }: Props) => {
+const WorkerCard = ({ worker, style, onPress, onBtnPress }: Props) => {
   const bgColor =
     pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
     Colors.gray50;
@@ -58,7 +60,7 @@ const WorkerCard = ({ worker, style, onPress }: Props) => {
           <View style={[styles.avatarContainer, { backgroundColor: bgColor }]}>
             {worker?.avatar ? (
               <Image
-                source={{ uri: worker?.avatar }}
+                source={{ uri: viewImage(worker?.avatar) }}
                 style={styles.avatarStyle}
                 resizeMode="cover"
               />
@@ -107,7 +109,7 @@ const WorkerCard = ({ worker, style, onPress }: Props) => {
       <View style={styles.rowBetween}>
         <CustomButton
           title="Offer Job"
-          onPress={onPress}
+          onPress={onBtnPress}
           style={styles.button}
           textStyle={styles.buttonText}
           bgVariant="outline"
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
   avatarStyle: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: 999,
   },
   avatarText: {
     color: Colors.gray900,

@@ -86,3 +86,10 @@ export const formatSalary = (amount: number | string): string => {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
   return num.toLocaleString(); // adds commas automatically
 };
+
+export const getInitials = (name?: string) => {
+  if (!name) return '';
+  const words = name.trim().split(' ');
+  if (words.length === 1) return words[0][0].toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+};

@@ -13,6 +13,7 @@ import { client } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
 import { formatJobType, formatTimestamp, salaryType } from '@/Utils/Formatting';
+import { viewImage } from '@/Utils/helpers';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -159,7 +160,9 @@ const JobDetails = () => {
       return (
         <Image
           source={{
-            uri: jobDetails?.recruiter?.avatar || jobDetails?.recruiter?.logo,
+            uri:
+              viewImage(jobDetails?.recruiter?.avatar) ||
+              viewImage(jobDetails?.recruiter?.logo),
           }}
           style={styles.avatar}
         />

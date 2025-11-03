@@ -169,8 +169,10 @@ const Index = () => {
         skill?: Skill | null;
         location?: Location | null;
         type: 'worker';
-        payRate: string;
+        bio: string;
         rating: number;
+        avatar?: string | null;
+        isVerified?: boolean;
       };
 
   return (
@@ -197,7 +199,9 @@ const Index = () => {
                   name: w.name,
                   skill: w.skill,
                   location: w.location,
-                  payRate: w.payRate,
+                  avatar: w.avatar,
+                  isVerified: w.isVerified,
+                  bio: w.bio,
                   rating: w.rating,
                   type: 'worker' as const,
                 }));
@@ -237,11 +241,13 @@ const Index = () => {
                         $id: item.id,
                         name: item.name,
                         avatar: null,
+                        isVerified: item.isVerified ?? false,
                         skills: item.skill ? [item.skill] : [],
                         locations: item.location ?? null,
                       },
-                      payRate: item.payRate ?? 'N/A',
+                      bio: item.bio ?? 'N/A',
                       rating: item.rating ?? 0,
+                      avatar: item.avatar ?? '',
                       location:
                         item.location?.division ??
                         item.location?.region ??

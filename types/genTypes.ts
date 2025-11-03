@@ -57,9 +57,9 @@ export interface Worker {
   avatar?: string | null;
   skill: Skill | null;
   location: Location | null;
-  payRate: string;
   rating: number;
-  bio?: string;
+  bio: string;
+  isVerified?: boolean;
 }
 
 export type User = {
@@ -68,6 +68,7 @@ export type User = {
   avatar?: string | null;
   skills: Skill[];
   locations?: Location | null;
+  isVerified?: boolean;
 };
 
 export type ListItem =

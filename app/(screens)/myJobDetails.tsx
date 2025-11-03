@@ -14,7 +14,6 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect } from 'react';
 import {
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -89,14 +88,6 @@ const JobDetails = () => {
   };
 
   const renderAvatar = () => {
-    if (job?.recruiter?.avatar || job?.recruiter?.logo) {
-      return (
-        <Image
-          source={{ uri: job.recruiter.avatar || job.recruiter.logo }}
-          style={styles.avatar}
-        />
-      );
-    }
     return (
       <View style={styles.avatarIcon}>
         <Ionicons

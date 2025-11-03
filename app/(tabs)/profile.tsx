@@ -83,7 +83,7 @@ const Profile: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const mainSkill = user?.skills?.[`name_${lan || 'en'}`] || '';
-  const otherSkills = user?.otherSkills?.length
+  const otherSkills = user?.workers?.otherSkill
     ? `, ${user.otherSkills.join(', ')}`
     : '';
 
@@ -286,5 +286,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
   },
-  avatar: { width: 70, height: 70, borderRadius: 999 },
+  avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
 });

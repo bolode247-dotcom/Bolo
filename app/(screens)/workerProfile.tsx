@@ -1,11 +1,26 @@
-import { getWorkerById } from '@/appwriteFuncs/appwriteWorkFuncs';
+import {
+  getWorkerById,
+  getWorkSample,
+} from '@/appwriteFuncs/appwriteWorkFuncs';
+import CustomButton from '@/component/CustomButton';
+import PostCard from '@/component/PostCard';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
 import useAppwrite from '@/lib/useAppwrite';
-import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { viewImage } from '@/Utils/helpers';
+import { Ionicons, MaterialIcons, Octicons } from '@expo/vector-icons';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const WorkerProfileScreen = () => {
@@ -14,8 +29,10 @@ const WorkerProfileScreen = () => {
     isRecruiter: string;
     reason: string;
   }>();
-
-  console.log('workerId', workerId);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [postImageVisible, setPostImageVisible] = useState(false);
+  const [postImage, setPostImage] = useState<string>('');
+  const [postCaption, setPostCaption] = useState<string>('');
 
   const {
     data: worker,
@@ -24,26 +41,25 @@ const WorkerProfileScreen = () => {
     refetch,
   } = useAppwrite(() => getWorkerById(workerId));
 
-  const formatPayRate = (rate?: string) => {
-    if (!rate) return { amount: 'N/A', label: 'Rate' };
+  const { data: post, isLoading: postLoading } = useAppwrite(() =>
+    getWorkSample(workerId),
+  );
 
-    const [amount, unit] = rate.split('/');
-    let label = 'Rate';
-
-    if (unit === 'hr') label = 'Hourly Rate';
-    if (unit === 'mo') label = 'Monthly Rate';
-    if (unit === 'yr') label = 'Yearly Rate';
-    if (unit === 'day') label = 'Daily Rate';
-
-    return { amount, label };
-  };
-
-  const payRate = formatPayRate(worker?.workers?.payRate);
+  const otherSkill = worker?.workers?.otherSkill
+    ? `${worker.workers.otherSkill}`
+    : '';
 
   // ✅ Avatar placeholder
   const renderAvatar = () => {
     if (worker?.avatar) {
-      return <Image source={{ uri: worker.avatar }} style={styles.avatar} />;
+      return (
+        <TouchableOpacity onPress={() => setImageModalVisible(true)}>
+          <Image
+            source={{ uri: viewImage(worker.avatar) }}
+            style={styles.avatar}
+          />
+        </TouchableOpacity>
+      );
     }
     return (
       <Ionicons
@@ -56,10 +72,28 @@ const WorkerProfileScreen = () => {
 
   // ✅ Work samples
   const renderSamples = () => {
-    if (worker?.resume?.length > 0) {
-      return worker?.resume.map((img: string, index: number) => (
-        <Image key={index} source={{ uri: img }} style={styles.sampleImg} />
-      ));
+    if (post && post?.length > 0) {
+      return (
+        <FlatList
+          data={post}
+          keyExtractor={(item) => item.$id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              isRecruiter={true}
+              cardStyles={styles.card}
+              onImagePress={() => {
+                setPostImage(item.image);
+                setPostCaption(item.caption);
+                setPostImageVisible(true);
+              }}
+            />
+          )}
+          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+        />
+      );
     }
 
     // fallback placeholders
@@ -93,15 +127,39 @@ const WorkerProfileScreen = () => {
           {/* Profile Header */}
           <View style={styles.header}>
             {renderAvatar()}
-            <Text style={styles.name}>{worker?.name}</Text>
-            <Text style={styles.address}>
-              {worker?.locations?.region}, {worker?.locations?.division},{' '}
-              {worker?.locations?.subdivision}
-            </Text>
+            <View style={styles.info}>
+              <Text style={styles.name}>{worker?.name}</Text>
+              <View>
+                {worker?.isVerified ? (
+                  <MaterialIcons
+                    name="verified"
+                    size={22}
+                    color={Colors.primaryDark}
+                  />
+                ) : (
+                  <Octicons
+                    name="unverified"
+                    size={22}
+                    color={Colors.primaryDark}
+                  />
+                )}
+              </View>
+            </View>
           </View>
 
           {/* Stats */}
           <View style={styles.statsRow}>
+            <CustomButton
+              title="Offer a Job"
+              onPress={() =>
+                router.push({
+                  pathname: '/(screens)/create',
+                  params: { workerId },
+                })
+              }
+            />
+          </View>
+          {/* <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statValue} numberOfLines={2}>
                 {worker?.workers?.jobsCompleted}
@@ -119,17 +177,34 @@ const WorkerProfileScreen = () => {
               <Text style={styles.statValue}>{payRate.amount}</Text>
               <Text style={styles.statLabel}>{payRate.label}</Text>
             </View>
-          </View>
+          </View> */}
 
           {/* About Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <Text style={styles.address}>
+              {worker?.locations?.region}, {worker?.locations?.division},{' '}
+              {worker?.locations?.subdivision}
+            </Text>
+
+            {worker?.otherLocation && (
+              <Text style={styles.address}>{worker?.otherLocation}</Text>
+            )}
+          </View>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About {worker?.name}</Text>
             <Text style={styles.bio}>{worker?.workers?.bio}</Text>
 
             <View style={styles.metaCol}>
-              <Text style={styles.meta}>Expertise:</Text>
+              <Text style={styles.meta}>Main Skill:</Text>
               <Text style={styles.sectionTitle}>{worker?.skills.name_en}</Text>
             </View>
+            {otherSkill && (
+              <View style={styles.metaCol}>
+                <Text style={styles.meta}>Other skills:</Text>
+                <Text style={styles.sectionTitle}>{otherSkill}</Text>
+              </View>
+            )}
           </View>
           {isRecruiter === 'true' && reason && (
             <View style={styles.section}>
@@ -144,6 +219,65 @@ const WorkerProfileScreen = () => {
             <View style={styles.samplesRow}>{renderSamples()}</View>
           </View>
         </ScrollView>
+        <Modal
+          animationType="fade"
+          transparent
+          visible={imageModalVisible}
+          onRequestClose={() => setImageModalVisible(false)}
+        >
+          <SafeAreaView style={styles.modalBackground}>
+            <TouchableOpacity
+              style={styles.modalCloseArea}
+              onPress={() => setImageModalVisible(false)}
+            />
+            <View
+              style={{
+                width: '100%',
+                height: '40%',
+                overflow: 'hidden',
+                aspectRatio: 2 / 2,
+              }}
+            >
+              <Image
+                source={{
+                  uri: viewImage(worker?.avatar),
+                }}
+                style={styles.fullImage}
+                resizeMode="cover"
+              />
+            </View>
+          </SafeAreaView>
+        </Modal>
+        <Modal
+          animationType="fade"
+          transparent
+          visible={postImageVisible}
+          onRequestClose={() => setPostImageVisible(false)}
+        >
+          <SafeAreaView style={styles.modalBackground}>
+            <TouchableOpacity
+              style={styles.modalCloseArea}
+              onPress={() => setPostImageVisible(false)}
+            />
+            <View
+              style={{
+                width: '100%',
+                height: '40%',
+                overflow: 'hidden',
+                aspectRatio: 2 / 2,
+              }}
+            >
+              <Image
+                source={{
+                  uri: viewImage(postImage),
+                }}
+                style={styles.fullImage}
+                resizeMode="cover"
+              />
+            </View>
+            <Text style={styles.postCaption}>{postCaption}</Text>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </>
   );
@@ -206,5 +340,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray200,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  card: {
+    width: 300,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  fullImage: { flex: 1, width: '100%', height: '100%', aspectRatio: 2 / 2 },
+  postCaption: {
+    color: Colors.white,
+    fontSize: 16,
+    fontFamily: 'PoppinsRegular',
+    marginTop: Sizes.md,
+    paddingHorizontal: Sizes.md,
+  },
+  info: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Sizes.sm,
+    justifyContent: 'center',
   },
 });

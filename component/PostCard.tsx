@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ViewStyle,
 } from 'react-native';
 
 type Post = {
@@ -23,9 +24,20 @@ type Props = {
   isDeleting?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onImagePress?: () => void;
+  isRecruiter?: boolean;
+  cardStyles?: ViewStyle;
 };
 
-const PostCard: React.FC<Props> = ({ post, isDeleting, onEdit, onDelete }) => {
+const PostCard: React.FC<Props> = ({
+  post,
+  isDeleting,
+  onEdit,
+  onDelete,
+  isRecruiter,
+  cardStyles,
+  onImagePress,
+}) => {
   const [showFull, setShowFull] = useState(false);
 
   const MAX_LENGTH = 80;
@@ -37,7 +49,7 @@ const PostCard: React.FC<Props> = ({ post, isDeleting, onEdit, onDelete }) => {
       : post.caption;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, cardStyles]}>
       {/* Caption Section */}
       <View
         style={[
@@ -45,13 +57,10 @@ const PostCard: React.FC<Props> = ({ post, isDeleting, onEdit, onDelete }) => {
           showFull ? { marginBottom: Sizes.x2sm } : { marginBottom: 4 },
         ]}
       >
-        <Text style={styles.captionText}>
+        <Text style={styles.captionText} onPress={() => setShowFull(!showFull)}>
           {displayedText}
           {isLong && (
-            <Text
-              style={styles.seeMoreText}
-              onPress={() => setShowFull(!showFull)}
-            >
+            <Text style={styles.seeMoreText}>
               {showFull ? ' ...see less' : ' see more'}
             </Text>
           )}
@@ -59,37 +68,41 @@ const PostCard: React.FC<Props> = ({ post, isDeleting, onEdit, onDelete }) => {
       </View>
 
       {/* Thumbnail Image */}
-      <Image source={{ uri: viewImage(post.image) }} style={styles.image} />
+      <TouchableOpacity activeOpacity={0.9} onPress={onImagePress}>
+        <Image source={{ uri: viewImage(post.image) }} style={styles.image} />
+      </TouchableOpacity>
 
       {/* Action Buttons */}
-      <View style={styles.buttonRow}>
-        <Text style={styles.dateText}>{formatTimestamp(post.createdAt)}</Text>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={onDelete}
-          >
-            <Feather name="trash-2" size={16} color="#fff" />
-            {isDeleting ? (
-              <ActivityIndicator
-                size="small"
-                color="#fff"
-                style={{ marginLeft: 5 }}
-              />
-            ) : (
-              <Text style={styles.buttonText}>Delete</Text>
-            )}
-          </TouchableOpacity>
+      {!isRecruiter && (
+        <View style={styles.buttonRow}>
+          <Text style={styles.dateText}>{formatTimestamp(post.createdAt)}</Text>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={onDelete}
+            >
+              <Feather name="trash-2" size={16} color="#fff" />
+              {isDeleting ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                  style={{ marginLeft: 5 }}
+                />
+              ) : (
+                <Text style={styles.buttonText}>Delete</Text>
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionButton, styles.editButton]}
-            onPress={onEdit}
-          >
-            <Feather name="edit-2" size={16} color="#fff" />
-            <Text style={styles.buttonText}>Edit</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.editButton]}
+              onPress={onEdit}
+            >
+              <Feather name="edit-2" size={16} color="#fff" />
+              <Text style={styles.buttonText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 };

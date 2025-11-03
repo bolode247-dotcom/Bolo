@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CustomButton from './CustomButton';
+import { viewImage } from '@/Utils/helpers';
 
 type appCardProps = {
   id: string;
@@ -107,7 +108,7 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
           <View style={[styles.logoContainer, { backgroundColor: bgColor }]}>
             {app?.avatar ? (
               <Image
-                source={{ uri: app?.avatar }}
+                source={{ uri: viewImage(app?.avatar) }}
                 style={styles.logoImage}
                 resizeMode="cover"
               />
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 50,
     height: 50,
-    borderRadius: 20,
+    borderRadius: 999,
     alignItems: 'center',
     marginRight: Sizes.sm,
     justifyContent: 'center',

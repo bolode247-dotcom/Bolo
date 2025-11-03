@@ -3,6 +3,7 @@ import {
   getNotifications,
 } from '@/appwriteFuncs/appwriteGenFunc';
 import ConfirmModal from '@/component/ConfirmModal';
+import EmptyState from '@/component/EmptyState';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
@@ -13,13 +14,14 @@ import { AntDesign, Entypo, Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import React, { useMemo, useState } from 'react';
 import {
-  FlatList,
   RefreshControl,
+  SectionList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NOTIFICATION_ICON_MAP: Record<
@@ -154,18 +156,13 @@ const Notifications = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left', 'bottom']}>
-      <FlatList
-        data={sections}
-        keyExtractor={(section) => section.$id}
-        renderItem={({ item }) => (
-          <View style={{ marginBottom: 16 }}>
-            <Text style={styles.section}>{item.title}</Text>
-
-            {item.data.map((notif: any) => (
-              <View key={notif.$id}>{renderItem({ item: notif })}</View>
-            ))}
-          </View>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.$id}
+        renderSectionHeader={({ section: { title } }) => (
+          <Text style={styles.section}>{title}</Text>
         )}
+        renderItem={({ item }) => renderItem({ item })}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16 }}
         refreshControl={
@@ -176,6 +173,13 @@ const Notifications = () => {
             colors={[Colors.primary]}
           />
         }
+        ListEmptyComponent={() => (
+          <EmptyState
+            title="No Notifications"
+            subtitle="You don't have any notifications yet"
+            icon="notifications-off-outline"
+          />
+        )}
       />
       <ConfirmModal
         visible={showConfirm}

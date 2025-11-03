@@ -5,6 +5,80 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
 import { deleteFile, uploadFile } from './appwriteGenFunc';
 
+export const getWorkersBySkillLocation = async (
+  skillId: string,
+  location?: string,
+): Promise<Worker[]> => {
+  try {
+    const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+
+    // 1️⃣ Build query
+    const baseQueries = [
+      Query.select([
+        '$id',
+        'bio',
+        'rating',
+        'users.$id',
+        'users.name',
+        'users.isVerified',
+        'users.avatar',
+        'users.skills.$id',
+        'users.skills.icon',
+        'users.skills.name_en',
+        'users.skills.name_fr',
+        'users.skills.industry',
+        'users.locations.region',
+        'users.locations.division',
+        'users.locations.subdivision',
+      ]),
+      Query.equal('users.skills.$id', skillId),
+    ];
+
+    if (location) {
+      baseQueries.push(Query.equal('users.locations.$id', location));
+    }
+
+    // 2️⃣ Run query
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workerCol,
+      queries: baseQueries,
+    });
+
+    // 3️⃣ Format result
+    if (!res?.rows?.length) return [];
+
+    return res.rows.map((worker) => ({
+      id: worker.$id,
+      rating: worker.rating,
+      bio: worker.bio,
+      name: worker.users?.name,
+      avatar: worker.users?.avatar,
+      isVerified: worker.users?.isVerified,
+      skill: worker.users?.skills
+        ? {
+            id: worker.users.skills.$id,
+            name:
+              lang === 'fr'
+                ? worker.users.skills.name_fr
+                : worker.users.skills.name_en,
+            icon: worker.users.skills.icon,
+          }
+        : null,
+      location: worker.users?.locations
+        ? {
+            region: worker.users.locations.region,
+            division: worker.users.locations.division,
+            subdivision: worker.users.locations.subdivision,
+          }
+        : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching recommended workers:', error);
+    return [];
+  }
+};
+
 export const getRecommendedWorkers = async (
   recruiterRegion: string,
   recruiterSkillId?: string,
@@ -18,11 +92,12 @@ export const getRecommendedWorkers = async (
       industryId ? Query.equal('users.skills.industry', industryId) : null,
       Query.select([
         '$id',
-        'payRate',
+        'bio',
         'rating',
         'users.$id',
         'users.name',
         'users.avatar',
+        'users.isVerified',
         'users.skills.$id',
         'users.skills.icon',
         'users.skills.name_en',
@@ -59,9 +134,10 @@ export const getRecommendedWorkers = async (
     return finalWorkers.map((worker) => ({
       id: worker.$id,
       rating: worker.rating,
-      payRate: worker.payRate,
+      bio: worker.bio,
       name: worker.users?.name,
       avatar: worker.users?.avatar,
+      isVerified: worker.users?.isVerified,
       skill: worker.users?.skills
         ? {
             id: worker.users.skills.$id,
@@ -179,7 +255,6 @@ export const getRecruiterFeed = async (
   return { mustHaveSkills, recommendedWorkers };
 };
 export const getWorkerById = async (workerId: string) => {
-  console.log('user id: ', workerId);
   try {
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
@@ -191,8 +266,6 @@ export const getWorkerById = async (workerId: string) => {
     });
 
     if (!res.rows.length) throw new Error('worker_not_found');
-
-    console.log('worker: ', res.rows[0].locations);
 
     return res.rows[0];
   } catch (error) {

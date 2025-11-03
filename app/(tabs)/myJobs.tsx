@@ -45,7 +45,7 @@ const MyJobs = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
-      <StatusBar barStyle="light-content" />
+      {/* <StatusBar barStyle="light-content" /> */}
       <ExploreHeader title="My Jobs" search="Search and apply for Jobs..." />
       {isLoading ? (
         <JobWorkerSkeleton />
