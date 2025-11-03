@@ -1,5 +1,6 @@
 import { getTopSkills } from '@/appwriteFuncs/appwriteWorkFuncs';
-import CategorySection from '@/component/CategorySection';
+import CategoryCard from '@/component/CategorySection';
+import EmptyState from '@/component/EmptyState';
 import WorkerSkeletonList from '@/component/WorkerByCartSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
@@ -22,19 +23,26 @@ const WorkersByCategory = () => {
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
       {/* Worker List */}
       <FlatList
-        data={workers?.topSkills}
+        data={workers}
         keyExtractor={(item) => item.id}
-        numColumns={user?.role === 'recruiter' ? 2 : 1}
-        columnWrapperStyle={
-          user?.role === 'recruiter'
-            ? { justifyContent: 'space-between' }
-            : undefined
-        }
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
         renderItem={({ item }) => (
-          <CategorySection onSelect={onSelect} category={item} catWidth={2.2} />
+          <CategoryCard onSelect={onSelect} category={item} catWidth={2.2} />
+        )}
+        ItemSeparatorComponent={() => (
+          <Text style={{ marginBottom: Sizes.x3sm }} />
         )}
         ListEmptyComponent={() =>
-          isLoading ? <WorkerSkeletonList /> : <Text>No workers found</Text>
+          isLoading ? (
+            <WorkerSkeletonList />
+          ) : (
+            <EmptyState
+              icon="person-remove"
+              title="No Workers"
+              subtitle="No workers found at the moment"
+            />
+          )
         }
         contentContainerStyle={{
           padding: Sizes.sm,

@@ -1,6 +1,6 @@
 import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
-import { RecruiterFeedData, Skill, Worker } from '@/types/genTypes';
+import { RecruiterFeedData, Worker } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
 import { deleteFile, uploadFile } from './appwriteGenFunc';
@@ -12,12 +12,13 @@ export const getWorkersBySkillLocation = async (
   try {
     const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
 
-    // 1️⃣ Build query
+    // 1️⃣ Build base queries
     const baseQueries = [
       Query.select([
         '$id',
         'bio',
         'rating',
+        'isPro', // ensure you have this at top level
         'users.$id',
         'users.name',
         'users.isVerified',
@@ -32,6 +33,10 @@ export const getWorkersBySkillLocation = async (
         'users.locations.subdivision',
       ]),
       Query.equal('users.skills.$id', skillId),
+
+      // ⚡ prioritize pros server-side
+      Query.orderDesc('isPro'),
+      Query.limit(50), // limit to top 50 for performance
     ];
 
     if (location) {
@@ -45,13 +50,14 @@ export const getWorkersBySkillLocation = async (
       queries: baseQueries,
     });
 
-    // 3️⃣ Format result
     if (!res?.rows?.length) return [];
 
-    return res.rows.map((worker) => ({
+    // 3️⃣ Map results
+    const workers = res.rows.map((worker) => ({
       id: worker.$id,
-      rating: worker.rating,
       bio: worker.bio,
+      rating: worker.rating,
+      isPro: worker.isPro,
       name: worker.users?.name,
       avatar: worker.users?.avatar,
       isVerified: worker.users?.isVerified,
@@ -73,65 +79,135 @@ export const getWorkersBySkillLocation = async (
           }
         : null,
     }));
+
+    // 4️⃣ Client-side fine sorting
+    // Verified pros first, then pros, then verified, then others
+    return workers.sort((a, b) => {
+      const scoreA =
+        (a.isPro ? 2 : 0) + (a.isVerified ? 1 : 0) + (a.rating ?? 0) / 10;
+      const scoreB =
+        (b.isPro ? 2 : 0) + (b.isVerified ? 1 : 0) + (b.rating ?? 0) / 10;
+      return scoreB - scoreA;
+    });
   } catch (error) {
-    console.error('Error fetching recommended workers:', error);
+    console.error('❌ Error fetching recommended workers:', error);
     return [];
   }
 };
 
 export const getRecommendedWorkers = async (
   recruiterRegion: string,
-  recruiterSkillId?: string,
-  industryId?: string,
+  recruiterSkillId: string,
+  industryId: string,
+  limit = 25,
 ): Promise<Worker[]> => {
   try {
     const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+    let workers: any[] = [];
 
-    // 1️⃣ Base query (expand user, skill, and location)
-    const baseQueries = [
-      industryId ? Query.equal('users.skills.industry', industryId) : null,
-      Query.select([
-        '$id',
-        'bio',
-        'rating',
-        'users.$id',
-        'users.name',
-        'users.avatar',
-        'users.isVerified',
-        'users.skills.$id',
-        'users.skills.icon',
-        'users.skills.name_en',
-        'users.skills.name_fr',
-        'users.skills.industry',
-        'users.locations.region',
-        'users.locations.division',
-        'users.locations.subdivision',
-      ]),
-      Query.limit(100),
-    ].filter(Boolean) as any[];
+    // Common SELECT fields
+    const selectFields = [
+      '$id',
+      'bio',
+      'rating',
+      'isPro',
+      'users.*',
+      'users.skills.*',
+      'users.locations.*',
+    ];
 
-    const res = await tables.listRows({
-      databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
-      queries: baseQueries,
+    // Helper: run a query
+    const fetchWorkers = async (queries: any[]) => {
+      const res = await tables.listRows({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.workerCol,
+        queries,
+      });
+      return res?.rows || [];
+    };
+
+    // 1️⃣ FIRST: Fetch by same industry
+    const industryWorkers = await fetchWorkers([
+      Query.equal('users.skills.industry', industryId),
+      Query.select(selectFields),
+      Query.limit(limit),
+      Query.orderDesc('isPro'),
+    ]);
+
+    // Filter by region match first
+    let industryMatches = industryWorkers.filter(
+      (w) => w.users?.locations?.region === recruiterRegion,
+    );
+
+    // Add fallback if not enough
+    if (industryMatches.length < limit) {
+      // Include same industry, any region
+      industryMatches = [
+        ...industryMatches,
+        ...industryWorkers.filter(
+          (w) => !industryMatches.some((m) => m.$id === w.$id),
+        ),
+      ];
+    }
+
+    workers = industryMatches;
+
+    // 2️⃣ FALLBACK: If still not enough, fetch same region any industry
+    if (workers.length < limit) {
+      const regionWorkers = await fetchWorkers([
+        Query.equal('users.locations.region', recruiterRegion),
+        Query.select(selectFields),
+        Query.limit(limit),
+        Query.orderDesc('isPro'),
+      ]);
+
+      const seen = new Set(workers.map((w) => w.$id));
+      for (const w of regionWorkers) {
+        if (!seen.has(w.$id)) {
+          workers.push(w);
+          seen.add(w.$id);
+        }
+        if (workers.length >= limit) break;
+      }
+    }
+
+    // 3️⃣ FINAL FALLBACK: Random (still respecting industry)
+    if (workers.length < limit) {
+      const randomWorkers = await fetchWorkers([
+        Query.select(selectFields),
+        Query.limit(limit * 2),
+      ]);
+
+      const seen = new Set(workers.map((w) => w.$id));
+      const shuffled = randomWorkers.sort(() => 0.5 - Math.random());
+      for (const w of shuffled) {
+        if (!seen.has(w.$id)) {
+          workers.push(w);
+          seen.add(w.$id);
+        }
+        if (workers.length >= limit) break;
+      }
+    }
+
+    // 4️⃣ SMART SORTING (Pro > Verified > Same Skill > Same Region > Rating)
+    const sorted = workers.sort((a, b) => {
+      const score = (w: any) => {
+        const skillMatch = w.users?.skills?.$id === recruiterSkillId ? 1 : 0;
+        const regionMatch =
+          w.users?.locations?.region === recruiterRegion ? 1 : 0;
+        return (
+          (w.isPro ? 3 : 0) +
+          (w.users?.isVerified ? 2 : 0) +
+          skillMatch +
+          regionMatch +
+          (w.rating ?? 0) / 10
+        );
+      };
+      return score(b) - score(a);
     });
 
-    if (!res?.rows?.length) return [];
-
-    // 2️⃣ Filter by region or skill match
-    const filtered = res.rows.filter((worker) => {
-      const regionMatch = worker.users?.locations?.region === recruiterRegion;
-      const skillMatch =
-        !recruiterSkillId || worker.users?.skills?.$id === recruiterSkillId;
-      return regionMatch || skillMatch;
-    });
-
-    // 3️⃣ Fallback: same industry
-    const finalWorkers =
-      filtered.length > 0 ? filtered.slice(0, 10) : res.rows.slice(0, 10);
-
-    // 4️⃣ Format result
-    return finalWorkers.map((worker) => ({
+    // 5️⃣ Format result
+    return sorted.slice(0, limit).map((worker) => ({
       id: worker.$id,
       rating: worker.rating,
       bio: worker.bio,
@@ -157,86 +233,7 @@ export const getRecommendedWorkers = async (
         : null,
     }));
   } catch (error) {
-    console.error('Error fetching recommended workers:', error);
-    return [];
-  }
-};
-
-export const getMustHaveSkills = async (
-  recruiterRegion: string,
-): Promise<Skill[]> => {
-  try {
-    const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
-
-    // 1️⃣ Fetch workers with expanded user, skills, and locations
-    const res = await tables.listRows({
-      databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
-      queries: [
-        Query.select([
-          '$id',
-          'users.$id',
-          'users.skills.$id',
-          'users.skills.name_en',
-          'users.skills.name_fr',
-          'users.skills.icon',
-          'users.locations.region',
-        ]),
-        Query.limit(100),
-      ],
-    });
-
-    if (!res?.total || !res.rows?.length) return [];
-
-    // 2️⃣ Filter by region (only valid if both region values exist)
-    const regionalWorkers = res.rows.filter(
-      (worker) =>
-        worker?.users?.locations?.region &&
-        worker.users.locations.region === recruiterRegion,
-    );
-
-    // Helper to count skill frequencies
-    const buildSkillMap = (workers: any[]) => {
-      const map: Record<string, { count: number; data: any }> = {};
-      for (const worker of workers) {
-        const skill = worker?.users?.skills;
-        if (skill?.$id) {
-          if (!map[skill.$id]) map[skill.$id] = { count: 0, data: skill };
-          map[skill.$id].count++;
-        }
-      }
-      return map;
-    };
-
-    // 3️⃣ Start with regional skills if any
-    let skillMap = buildSkillMap(regionalWorkers);
-
-    // 4️⃣ Fallback: if fewer than 5 skills found, expand to all workers
-    if (Object.keys(skillMap).length < 5) {
-      const allWorkersSkillMap = buildSkillMap(res.rows);
-      const allSkills = Object.values(allWorkersSkillMap);
-
-      // Shuffle randomly
-      const shuffled = allSkills.sort(() => 0.5 - Math.random());
-      // Take 5–10 random unique skills
-      const randomSubset = shuffled.slice(0, Math.max(5, 10 - shuffled.length));
-      skillMap = Object.fromEntries(randomSubset.map((s) => [s.data.$id, s]));
-    }
-
-    // 5️⃣ Sort by frequency and map to Skill[]
-    const sortedSkills = Object.values(skillMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
-      .map((s) => ({
-        id: s.data.$id,
-        name: lang === 'fr' ? s.data.name_fr : s.data.name_en,
-        icon: s.data.icon,
-        count: s.count,
-      }));
-
-    return sortedSkills;
-  } catch (error) {
-    console.error('❌ Error fetching must-have skills:', error);
+    console.error('❌ Error fetching recommended workers:', error);
     return [];
   }
 };
@@ -246,10 +243,10 @@ export const getRecruiterFeed = async (
 ): Promise<RecruiterFeedData> => {
   const recruiterRegion = user?.locations?.region;
   const recruiterSkillId = user?.skills?.$id;
-  const industryId = user?.skills?.industry; // use region
+  const industryId = user?.skills?.industry;
   const [mustHaveSkills, recommendedWorkers] = await Promise.all([
-    getMustHaveSkills(recruiterRegion),
-    getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId),
+    getTopSkills(5),
+    getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId, 2),
   ]);
 
   return { mustHaveSkills, recommendedWorkers };
@@ -668,6 +665,32 @@ export const deleteWorkSample = async (postId: string, image: string) => {
     });
   } catch (error) {
     console.error('❌ Error deleting work sample:', error);
+    throw error;
+  }
+};
+
+export const getTopSkills = async (limit = 25) => {
+  const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.skillsCol,
+      queries: [
+        Query.orderDesc('count'),
+        Query.greaterThan('count', 0),
+        Query.limit(limit),
+      ],
+    });
+    return res.rows.map((skill) => {
+      return {
+        id: skill.$id,
+        icon: skill.icon,
+        name: skill[`name_${lang}`],
+        count: skill.count,
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error fetching top skills:', error);
     throw error;
   }
 };

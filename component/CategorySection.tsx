@@ -19,7 +19,7 @@ type Props = {
 
 const screenWidth = Dimensions.get('window').width;
 
-const CategorySection = ({ category, onSelect, catWidth = 2.5 }: Props) => {
+const CategoryCard = ({ category, onSelect, catWidth = 2.5 }: Props) => {
   const { t } = useTranslation();
   const categoryItemWidth = screenWidth / catWidth;
   return (
@@ -45,7 +45,7 @@ const CategorySection = ({ category, onSelect, catWidth = 2.5 }: Props) => {
   );
 };
 
-export default CategorySection;
+export default CategoryCard;
 
 const styles = StyleSheet.create({
   categoryItem: {

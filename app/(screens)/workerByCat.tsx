@@ -14,7 +14,8 @@ import WorkerSkeletonList from '@/component/WorkerByCartSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+
 import React, { useCallback, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -133,7 +134,17 @@ const WorkersByCategory = () => {
             location:
               item.location?.division ?? item.location?.region ?? 'Unknown',
           };
-          return <RecommendedWorkerCard worker={workerProps} />;
+          return (
+            <RecommendedWorkerCard
+              worker={workerProps}
+              onPress={() =>
+                router.push({
+                  pathname: '/(screens)/workerProfile',
+                  params: { workerId: item.id },
+                })
+              }
+            />
+          );
         }}
         ListEmptyComponent={() =>
           isLoading ? (

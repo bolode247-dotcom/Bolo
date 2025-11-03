@@ -2,7 +2,7 @@ import { getWorkerFeed } from '@/appwriteFuncs/appwriteJobsFuncs';
 import { getRecruiterFeed } from '@/appwriteFuncs/appwriteWorkFuncs';
 import AppHeader from '@/component/AppHeader';
 import BannerSection from '@/component/BanerSection';
-import CategorySection from '@/component/CategorySection';
+import CategoryCard from '@/component/CategorySection';
 import HomeSkeleton from '@/component/HomeSkeleton';
 import JobCard from '@/component/JobCard';
 import JobOfferCard from '@/component/OfferCard';
@@ -90,7 +90,7 @@ const Index = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryList}
             renderItem={({ item }) => (
-              <CategorySection onSelect={onSelectCategory} category={item} />
+              <CategoryCard onSelect={onSelectCategory} category={item} />
             )}
             ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
           />
