@@ -1,7 +1,8 @@
 import { Colors, Sizes } from '@/constants';
 import { Worker } from '@/types/genTypes';
+import { getInitials, getRandomPastelColor } from '@/Utils/Formatting';
 import { viewImage } from '@/Utils/helpers';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, Octicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Image,
@@ -21,33 +22,7 @@ type Props = {
   onBtnPress?: () => void;
 };
 
-const pastelColors = [
-  '#E0D7FF',
-  '#D7F5E0',
-  '#FFF3D7',
-  '#FFD7E0',
-  '#FDE7D7',
-  '#D7F0FF',
-  '#FFE0F0',
-  '#E0FFF3',
-  '#FFF0D7',
-  '#D7FFE0',
-  '#F0D7FF',
-];
-
-// Utility to get initials from a name
-const getInitials = (name: string) => {
-  if (!name) return '';
-  const words = name.trim().split(' ');
-  if (words.length === 1) return words[0][0].toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-};
-
 const WorkerCard = ({ worker, style, onPress, onBtnPress }: Props) => {
-  const bgColor =
-    pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
-    Colors.gray50;
-
   const initials = worker?.name ? getInitials(worker?.name) : '';
 
   return (
@@ -57,7 +32,12 @@ const WorkerCard = ({ worker, style, onPress, onBtnPress }: Props) => {
     >
       <View style={styles.headerRow}>
         <View style={styles.workerRow}>
-          <View style={[styles.avatarContainer, { backgroundColor: bgColor }]}>
+          <View
+            style={[
+              styles.avatarContainer,
+              { backgroundColor: getRandomPastelColor() },
+            ]}
+          >
             {worker?.avatar ? (
               <Image
                 source={{ uri: viewImage(worker?.avatar) }}
@@ -86,8 +66,15 @@ const WorkerCard = ({ worker, style, onPress, onBtnPress }: Props) => {
           </View>
         </View>
         <View style={styles.row}>
-          <Ionicons name="star" size={14} color="gold" />
-          <Text style={styles.rating}>{worker?.rating}</Text>
+          {worker?.isVerified ? (
+            <MaterialIcons
+              name="verified"
+              size={22}
+              color={Colors.primaryDark}
+            />
+          ) : (
+            <Octicons name="unverified" size={22} color={Colors.primaryDark} />
+          )}
         </View>
       </View>
 
@@ -95,18 +82,17 @@ const WorkerCard = ({ worker, style, onPress, onBtnPress }: Props) => {
         {worker?.bio}
       </Text>
 
-      <View style={styles.locationRow}>
-        <Ionicons
-          name="location-outline"
-          size={Sizes.lg}
-          color={Colors.gray900}
-        />
-        <Text style={styles.location} numberOfLines={1}>
-          {worker?.location?.region}, {worker?.location?.subdivision}
-        </Text>
-      </View>
-
       <View style={styles.rowBetween}>
+        <View style={styles.locationRow}>
+          <Ionicons
+            name="location-outline"
+            size={Sizes.lg}
+            color={Colors.gray900}
+          />
+          <Text style={styles.location} numberOfLines={2}>
+            {worker?.location?.region}, {worker?.location?.subdivision}
+          </Text>
+        </View>
         <CustomButton
           title="Offer Job"
           onPress={onBtnPress}
@@ -184,7 +170,7 @@ const styles = StyleSheet.create({
   },
   rowBetween: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
@@ -192,10 +178,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    maxWidth: '50%',
   },
   location: {
     fontSize: Sizes.md,
-    color: Colors.gray900,
+    color: Colors.gray700,
     flexShrink: 1,
     marginLeft: Sizes.xsm,
     fontFamily: 'PoppinsSemiBold',
@@ -205,7 +192,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
-  salaryType: {
+  paymentType: {
     fontSize: 12,
     fontWeight: '500',
     color: Colors.gray600,
@@ -237,7 +224,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     width: '40%',
     paddingVertical: 6,
-    // paddingHorizontal: 10,
+    paddingHorizontal: 10,
     borderRadius: Sizes.xl,
   },
   buttonText: {

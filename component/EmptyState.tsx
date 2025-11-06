@@ -16,6 +16,7 @@ type EmptyStateProps = {
   buttonLabel?: string;
   onPressButton?: () => void;
   style?: ViewStyle;
+  iconsStyle?: ViewStyle;
 };
 
 const EmptyState = ({
@@ -25,10 +26,11 @@ const EmptyState = ({
   buttonLabel,
   onPressButton,
   style,
+  iconsStyle,
 }: EmptyStateProps) => {
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.iconWrapper}>
+      <View style={[styles.iconWrapper, iconsStyle]}>
         <Ionicons name={icon} size={64} color={Colors.primary} />
       </View>
 

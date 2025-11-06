@@ -1,6 +1,6 @@
 import { Colors, Sizes } from '@/constants';
 import { JobWithDetails } from '@/types/genTypes';
-import { formatJobType, formatSalary, salaryType } from '@/Utils/Formatting';
+import { formatJobType, formatSalary, paymentType } from '@/Utils/Formatting';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -44,14 +44,14 @@ const JobOfferCard = ({ job, onPress, cardWidth = 2.7 }: Props) => {
       )}
 
       <Text style={styles.salary} numberOfLines={1}>
-        <Text style={styles.salaryType}>
-          {job?.salaryType !== 'contract'
+        <Text style={styles.paymentType}>
+          {job?.paymentType !== 'contract'
             ? '' // Cast the return value to a string
             : 'budget:'}
         </Text>{' '}
         {formatSalary(job?.salary)}
-        <Text style={styles.salaryType}>
-          {salaryType(job?.salaryType).rate}
+        <Text style={styles.paymentType}>
+          {paymentType(job?.paymentType).rate}
         </Text>
       </Text>
       {/* Job info */}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
-  salaryType: {
+  paymentType: {
     fontSize: 12,
     fontWeight: '500',
     color: Colors.gray600,

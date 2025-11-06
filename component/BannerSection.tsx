@@ -1,8 +1,9 @@
 import { Colors, Sizes } from '@/constants';
-import { recruiterSlides, workerSlides } from '@/constants/banaData';
+import { getRecruiterSlides, getWorkerSlides } from '@/constants/bannerData';
 
 import { useAuth } from '@/context/authContex';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   ImageBackground,
@@ -12,17 +13,24 @@ import {
   View,
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
+
 const { width } = Dimensions.get('window');
 
 const BannerSection = () => {
   const { user } = useAuth();
-  const role = user?.role; // "worker" or "recruiterBarner"
+  const role = user?.role; // "worker" or "recruiter"
+  const isVerified = user?.isVerified;
+  const { t } = useTranslation();
 
-  const slides = role === 'worker' ? workerSlides : recruiterSlides;
+  const slides =
+    role === 'worker'
+      ? getWorkerSlides(t, isVerified)
+      : getRecruiterSlides(t, isVerified);
+
   const backgroundImage =
     role === 'worker'
-      ? require('@/assets/images/recruiterBarner.png')
-      : require('@/assets/images/workerBarner.png');
+      ? require('@/assets/images/workerBarner.png')
+      : require('@/assets/images/recruiterBarner.png');
 
   return (
     <ImageBackground
@@ -32,11 +40,11 @@ const BannerSection = () => {
     >
       <Carousel
         width={width}
-        height={180} // match ImageBackground height
+        height={180}
         autoPlay
         autoPlayInterval={5000}
         loop
-        pagingEnabled // ensures one full slide per swipe
+        pagingEnabled
         data={slides}
         renderItem={({ item }) => (
           <View style={styles.overlayContent}>
@@ -83,7 +91,6 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.sm,
     resizeMode: 'cover',
   },
-
   title: {
     color: Colors.white,
     fontSize: 20,
@@ -94,7 +101,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     marginBottom: Sizes.sm,
-    maxWidth: '70%', // keep text from colliding with the right-side image
+    maxWidth: '70%',
   },
   button: {
     backgroundColor: Colors.primary,

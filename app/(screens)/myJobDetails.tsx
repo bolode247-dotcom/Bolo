@@ -3,12 +3,19 @@ import {
   getMyJobById,
   togleJobStatus,
 } from '@/appwriteFuncs/appwriteJobsFuncs';
+import ConfirmModal from '@/component/ConfirmModal';
 import CustomButton from '@/component/CustomButton';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import useAppwrite from '@/lib/useAppwrite';
-import { formatJobType, formatTimestamp, salaryType } from '@/Utils/Formatting';
+import {
+  formatJobType,
+  formatSalaryRange,
+  formatTimestamp,
+  paymentType,
+} from '@/Utils/Formatting';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect } from 'react';
@@ -46,11 +53,13 @@ const JobDetails = () => {
   }>();
 
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const { showToast } = useToast();
 
   const fetchJob = useCallback(() => getMyJobById(jobId), [jobId]);
 
   const { data: job, isLoading, error, refetch } = useAppwrite(fetchJob);
   const [status, setStatus] = React.useState(job?.status || 'active');
+  const [showConfirm, setShowConfirm] = React.useState(false);
 
   useEffect(() => {
     if (job?.status) {
@@ -62,10 +71,11 @@ const JobDetails = () => {
     try {
       setIsDeleting(true);
       await deleteJob(jobId);
-      Alert.alert('Success', 'Job deleted successfully.');
+      showToast('Job deleted successfully', 'success');
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Oops! Failed to delete job.');
+      console.error('Error deleting job:', error);
+      showToast(error.message, 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -144,7 +154,6 @@ const JobDetails = () => {
         edges={['right', 'left', 'bottom']}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Profile Header */}
           <View style={styles.header}>
             {renderAvatar()}
             <Text style={styles.name}>{job?.title}</Text>
@@ -152,6 +161,7 @@ const JobDetails = () => {
               {job?.location?.region}, {job?.location?.division},{' '}
               {job?.location?.subdivision}
             </Text>
+            <Text style={styles.address}>{job?.address}</Text>
           </View>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -216,11 +226,11 @@ const JobDetails = () => {
               </View>
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>
-                  {salaryType(job?.salaryType).label}
+                  {paymentType(job?.paymentType).label}(CFA)
                 </Text>
                 <Text style={styles.statValue} numberOfLines={2}>
-                  {job?.salary}
-                  {salaryType(job?.salaryType).rate}
+                  {formatSalaryRange(job?.minSalary, job?.maxSalary, '')}
+                  {paymentType(job?.paymentType).rate}
                 </Text>
               </View>
             </View>
@@ -298,7 +308,7 @@ const JobDetails = () => {
           <View style={styles.btnRow}>
             <CustomButton
               title="Delete Job"
-              onPress={() => handleJobDeletion()}
+              onPress={() => setShowConfirm(true)}
               style={styles.btnOutline}
               bgVariant="danger-outline"
               textVariant="danger-outline"
@@ -307,6 +317,18 @@ const JobDetails = () => {
           </View>
         </ScrollView>
       </SafeAreaView>
+      <ConfirmModal
+        visible={showConfirm}
+        title="Delete Job"
+        message="Are you sure you want to delete this job?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={() => {
+          setShowConfirm(false);
+          handleJobDeletion();
+        }}
+        onCancel={() => setShowConfirm(false)}
+      />
     </>
   );
 };
@@ -400,6 +422,7 @@ const styles = StyleSheet.create({
   btnRow: {
     flexDirection: 'row',
     gap: Sizes.sm,
+    marginBottom: Sizes.lg,
   },
   btnOutline: {
     backgroundColor: Colors.white,

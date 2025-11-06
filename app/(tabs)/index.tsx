@@ -1,7 +1,7 @@
 import { getWorkerFeed } from '@/appwriteFuncs/appwriteJobsFuncs';
 import { getRecruiterFeed } from '@/appwriteFuncs/appwriteWorkFuncs';
 import AppHeader from '@/component/AppHeader';
-import BannerSection from '@/component/BanerSection';
+import BannerSection from '@/component/BannerSection';
 import CategoryCard from '@/component/CategorySection';
 import HomeSkeleton from '@/component/HomeSkeleton';
 import JobCard from '@/component/JobCard';

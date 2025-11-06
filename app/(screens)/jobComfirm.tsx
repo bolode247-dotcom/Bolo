@@ -1,4 +1,4 @@
-import { createJob } from '@/appwriteFuncs/appwriteGenFunc';
+import { createJob } from '@/appwriteFuncs/appwriteJobsFuncs';
 import AppForm from '@/component/Form/AppForm';
 import DropdownPicker from '@/component/Form/DropdownPicker';
 import FormField from '@/component/Form/FormField';
@@ -6,6 +6,7 @@ import SubmitButton from '@/component/Form/SubmitButton';
 import SuccessModal from '@/component/SuccessModal';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import { Job } from '@/types/genTypes';
 import {
   confirmationJobSchemaThreeFields,
@@ -16,7 +17,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const salaryTypes = [
+const paymentType = [
   { label: 'Per Hour', id: 'hour' },
   { label: 'Per Day', id: 'day' },
   { label: 'Per Month', id: 'month' },
@@ -35,47 +35,56 @@ const salaryTypes = [
 ];
 
 type SalaryFormValues = {
-  salary: string;
-  salaryType: string;
+  minSalary: number;
+  maxSalary: number;
+  paymentType: string;
   maxApplicants: string;
+  address: string;
 };
 
 export default function JobComfirmation() {
+  const { showToast } = useToast();
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { title, skills, type, locations, description, workerId } =
+    useLocalSearchParams<{
+      title: string;
+      skills: string;
+      type: string;
+      locations: string;
+      description: string;
+      workerId: string;
+    }>();
   const { t } = useTranslation();
   const { user } = useAuth();
   const [isModalVisible, seIsModalVisible] = useState(false);
+  const [jobId, setJobId] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
 
   const handleSubmit = async (values: SalaryFormValues) => {
     const fullJobData: Job = {
-      title: Array.isArray(params.jobTitle)
-        ? params.jobTitle[0]
-        : params.jobTitle || '',
-      skills: Array.isArray(params.skillsId)
-        ? params.skillsId[0]
-        : params.skillsId || '',
-      type: Array.isArray(params.typeId)
-        ? params.typeId[0]
-        : params.typeId || '',
-      locations: Array.isArray(params.locationId)
-        ? params.locationId[0]
-        : params.locationId || '',
-      description: Array.isArray(params.description)
-        ? params.description[0]
-        : params.description || '',
-      salary: values.salary,
-      salaryType: values.salaryType,
+      title,
+      skills,
+      type,
+      locations,
+      description,
+      workerId,
+      minSalary: values.minSalary,
+      maxSalary: values.maxSalary,
+      paymentType: values.paymentType,
       maxApplicants: values.maxApplicants,
-      recruiters: user?.recruiters?.$id ?? '',
+      address: values.address,
+      recruiters: user?.recruiters?.$id,
     };
-
+    setIsPosting(true);
     try {
-      await createJob(fullJobData);
+      console.log('fullJobData: ', fullJobData);
+      const jobId = await createJob(fullJobData);
+      setJobId(jobId);
       seIsModalVisible(true);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showToast(error.message, 'error');
     }
+    setIsPosting(false);
   };
 
   return (
@@ -91,21 +100,29 @@ export default function JobComfirmation() {
           >
             <AppForm
               initialValues={{
-                salary: '',
-                salaryType: '',
-                maxApplicants: '',
+                minSalary: 0,
+                maxSalary: 0,
+                paymentType: '',
+                maxApplicants: workerId ? '1' : '0',
+                address: '',
               }}
               onSubmit={handleSubmit}
               validationSchema={
-                params?.typeId === 'contract'
+                type === 'contract'
                   ? confirmationJobSchemaTwoFields
                   : confirmationJobSchemaThreeFields
               }
             >
-              {params.typeId === 'contract' ? (
-                // ✅ Contract Job → only Contract Budget
+              <FormField
+                name="address"
+                label={t('formLabels.addressLine2.label')}
+                placeholder={t('formLabels.addressLine2.placeholder')}
+                inputContainer={styles.inputStyle}
+              />
+
+              {type === 'contract' ? (
                 <FormField
-                  name="salary"
+                  name="minSalary"
                   label={t('formLabels.salary.budgetLabel')}
                   placeholder={t('formLabels.salary.budgetPlaceholder')}
                   keyboardType="number-pad"
@@ -114,46 +131,74 @@ export default function JobComfirmation() {
                 />
               ) : (
                 <>
-                  {/* ✅ Non-contract Jobs → Payment Rate + Payment Value */}
                   <DropdownPicker
-                    name="salaryType"
-                    label={t('formLabels.salaryType.label')}
-                    placeholder={t('formLabels.salaryType.placeholder')}
-                    data={salaryTypes}
+                    name="paymentType"
+                    label={t('formLabels.paymentType.label')}
+                    placeholder={t('formLabels.paymentType.placeholder')}
+                    data={paymentType}
                     inputContainer={styles.inputStyle}
                   />
 
-                  <FormField
-                    name="salary"
-                    label={t('formLabels.salary.label')}
-                    placeholder={t('formLabels.salary.placeholder')}
-                    keyboardType="number-pad"
-                    inputContainer={styles.inputStyle}
-                    inputContainerStyles={styles.inputContainer}
-                  />
+                  <View>
+                    <Text style={styles.label}>
+                      {t('formLabels.salary.label')}
+                    </Text>
+                    <View style={styles.formRow}>
+                      <FormField
+                        name="minSalary"
+                        placeholder={t(
+                          'formLabels.salary.minSalaryPlaceholder',
+                        )}
+                        keyboardType="number-pad"
+                        inputContainer={styles.inputRowStyle}
+                        style={{ width: '45%' }}
+                        maxLength={7}
+                      />
+                      <Text
+                        style={{
+                          marginHorizontal: 8,
+                          fontFamily: 'PoppinsSemiBold',
+                        }}
+                      >
+                        To
+                      </Text>
+                      <FormField
+                        name="maxSalary"
+                        placeholder={t(
+                          'formLabels.salary.maxSalaryPlaceholder',
+                        )}
+                        keyboardType="number-pad"
+                        style={{ width: '45%' }}
+                        inputContainer={styles.inputRowStyle}
+                        maxLength={7}
+                      />
+                    </View>
+                  </View>
                 </>
               )}
 
-              {/* ✅ Common field for all job types */}
-              <View style={styles.formGroup}>
-                <FormField
-                  name="maxApplicants"
-                  label={t('formLabels.maxApplicants.label')}
-                  placeholder={t('formLabels.maxApplicants.placeholder')}
-                  keyboardType="number-pad"
-                  inputContainer={styles.inputStyle}
-                />
+              {!workerId && (
+                <View style={styles.formGroup}>
+                  <FormField
+                    name="maxApplicants"
+                    label={t('formLabels.maxApplicants.label')}
+                    placeholder={t('formLabels.maxApplicants.placeholder')}
+                    keyboardType="number-pad"
+                    inputContainer={styles.inputStyle}
+                  />
 
-                <Text style={styles.noteText}>
-                  Note: The maximum number of applicants is the total number of
-                  people you want to apply for this job. You can then select the
-                  ones that best suit you.
-                </Text>
-              </View>
+                  <Text style={styles.noteText}>
+                    Note: The maximum number of applicants is the total number
+                    of people you want to apply for this job. You can then
+                    select the ones that best suit you.
+                  </Text>
+                </View>
+              )}
 
               <SubmitButton
-                title={t('buttons.postJob')}
+                title={workerId ? t('buttons.postJob') : t('buttons.offerJob')}
                 style={styles.btnStyle}
+                isLoading={isPosting}
               />
             </AppForm>
           </ScrollView>
@@ -167,7 +212,9 @@ export default function JobComfirmation() {
         title={t('successModal.jobPostingSuccessful')}
         subtitle={t('successModal.jobPostingSubtitle')}
         primaryButtonTitle={t('buttons.viewDetails')}
-        onPrimaryPress={() => router.push('/jobDetails')}
+        onPrimaryPress={() =>
+          router.push({ pathname: '/myJobDetails', params: { jobId } })
+        }
         secondaryButtonTitle={t('buttons.backToHome')}
         onSecondaryPress={() => router.push('/')}
       />
@@ -190,6 +237,7 @@ const styles = StyleSheet.create({
   formGroup: {
     marginBottom: 16,
   },
+
   noteText: {
     fontSize: 14,
     color: Colors.gray600,
@@ -199,5 +247,21 @@ const styles = StyleSheet.create({
   btnStyle: {
     borderRadius: Sizes.sm,
     marginVertical: Sizes.md,
+  },
+  formRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    overflow: 'hidden',
+  },
+  inputRowStyle: {
+    borderRadius: Sizes.sm,
+  },
+  label: {
+    fontSize: 18,
+    fontFamily: 'PoppinsSemiBold',
+    color: Colors.gray800,
+    marginBottom: 4,
   },
 });

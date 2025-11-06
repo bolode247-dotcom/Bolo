@@ -1,26 +1,20 @@
 import { getLocations, getSkills } from '@/appwriteFuncs/appwriteGenFunc';
-import {
-  createAccount,
-  OtpVerification,
-  sendOTP,
-} from '@/appwriteFuncs/usersFunc';
+import { createAccount } from '@/appwriteFuncs/usersFunc';
 import CustomPickerModal from '@/component/CustomPickerModal';
 import AppForm from '@/component/Form/AppForm';
 import CustomPickerField from '@/component/Form/CurstomPickerField';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
-import VerificationModal from '@/component/VerificationsModal';
 import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { signupValidationSchema } from '@/Utils/ValidationShema';
-import { Link, router, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { FormikConsumer } from 'formik';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -36,43 +30,17 @@ const SignUp = () => {
   const { t } = useTranslation();
   const { role } = useLocalSearchParams();
   const { fetchData } = useAuth();
-  const [showVerification, setShowVerification] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [email, setEmail] = React.useState('');
-  const [userId, setUserId] = React.useState<string | null>(null);
-  const [isVerirying, setIsVerifying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [otpError, setOtpError] = React.useState<string | null>(null);
   const [showLocModal, setShowLocModal] = React.useState(false);
   const [showSkillsModal, setShowSkillsModal] = React.useState(false);
 
   const { data: locations = [] } = useAppwrite(() => getLocations());
   const { data: skills = [] } = useAppwrite(() => getSkills());
 
-  const handleOtpSubmit = async (values: { otpCode: string }) => {
-    const { otpCode } = values;
-    if (!userId) {
-      Alert.alert('Error', 'User ID is missing.');
-      return;
-    }
-    setIsVerifying(true);
-    try {
-      await OtpVerification(userId, otpCode);
-      await fetchData();
-      setShowVerification(false);
-      router.replace('/');
-    } catch (error: any) {
-      setOtpError(error.message);
-      return;
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
   const handleSignup = async (values: {
     fullName: string;
     email: string;
-    phoneNumber: string;
     location: string;
     skills: string;
     password: string;
@@ -81,9 +49,7 @@ const SignUp = () => {
     setIsSubmitting(true);
     try {
       const res = await createAccount({ ...values, role } as any);
-      setUserId(res.userId);
-      setEmail(values.email);
-      setShowVerification(true);
+      await fetchData();
     } catch (error: any) {
       setError(error.message);
       return;
@@ -130,7 +96,6 @@ const SignUp = () => {
               initialValues={{
                 fullName: '',
                 email: '',
-                phoneNumber: '',
                 password: '',
                 confirmPassword: '',
                 location: '',
@@ -152,12 +117,6 @@ const SignUp = () => {
                   placeholder={t('formLabels.email.label')}
                   keyboardType="email-address"
                   autoComplete="email"
-                />
-                <FormField
-                  name="phoneNumber"
-                  icon="call"
-                  placeholder={t('formLabels.phoneNumber.label')}
-                  keyboardType="phone-pad"
                 />
                 <CustomPickerField
                   name="location"
@@ -233,22 +192,6 @@ const SignUp = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <VerificationModal
-        visible={showVerification}
-        email={email} // Pass the updated phone number
-        onClose={() => setShowVerification(false)}
-        isLoading={isVerirying}
-        onSubmit={handleOtpSubmit}
-        errorMessage={otpError || ''}
-        onResend={async () => {
-          try {
-            const newOtp = await sendOTP(email);
-            setUserId(newOtp);
-          } catch {
-            Alert.alert('Error', 'Could not resend OTP');
-          }
-        }}
-      />
     </SafeAreaView>
   );
 };

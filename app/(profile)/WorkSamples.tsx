@@ -94,7 +94,7 @@ const WorkSamples = () => {
       <SafeAreaView edges={['bottom']} style={styles.container}>
         <FlatList
           data={workSamples}
-          keyExtractor={(item) => item.$id}
+          keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <PostCard
@@ -102,6 +102,7 @@ const WorkSamples = () => {
                 caption: item.caption,
                 image: item.image,
                 createdAt: item.createdAt,
+                id: item.id,
               }}
               onEdit={() => handleEdit(item)}
               onDelete={() => {
@@ -133,8 +134,8 @@ const WorkSamples = () => {
         />
         <ConfirmModal
           visible={showConfirm}
-          title="Change image"
-          message="Are you sure you want to change this image?"
+          title="Delete Post"
+          message="Are you sure you want to delete this post?"
           confirmText="Yes"
           cancelText="No"
           onConfirm={() => {

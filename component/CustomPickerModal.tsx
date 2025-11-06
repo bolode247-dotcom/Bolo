@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Modal,
@@ -21,13 +22,15 @@ export type PickerItem<T> = {
 interface CustomPickerModalProps<T> {
   visible: boolean;
   onClose: () => void;
+  onSearch?: (query: string) => Promise<void>;
   data: PickerItem<T>[];
   onSelect: (item: PickerItem<T>) => void;
   placeholder?: string; // only for search input
   title?: string;
   showSearch?: boolean;
   initialSelectedId?: string | number;
-  modalHeight?: number; // optional custom height
+  modalHeight?: number;
+  isLoading?: boolean;
 }
 
 function CustomPickerModal<T>({
@@ -40,33 +43,17 @@ function CustomPickerModal<T>({
   showSearch = false,
   initialSelectedId,
   modalHeight,
+  isLoading,
+  onSearch,
 }: CustomPickerModalProps<T>) {
   const [query, setQuery] = useState('');
-  const [filteredData, setFilteredData] = useState<PickerItem<T>[]>(data);
-  const [selectedId, setSelectedId] = useState<string | number | undefined>(
-    initialSelectedId,
-  );
 
   useEffect(() => {
-    if (!data) {
-      setFilteredData([]);
-      return;
-    }
-
-    setFilteredData(
-      showSearch
-        ? data.filter((item) =>
-            item.label.toLowerCase().includes(query.toLowerCase()),
-          )
-        : data,
-    );
-  }, [query, data, showSearch]);
-
-  const handleSelect = (item: PickerItem<T>) => {
-    setSelectedId(item.id);
-    onSelect(item);
-    onClose();
-  };
+    const delayDebounce = setTimeout(() => {
+      if (onSearch) onSearch(query);
+    }, 400);
+    return () => clearTimeout(delayDebounce);
+  }, [query]);
 
   const maxHeight = modalHeight || Dimensions.get('window').height * 0.6;
 
@@ -106,33 +93,36 @@ function CustomPickerModal<T>({
             </View>
           )}
 
-          {/* List */}
-          <FlatList
-            data={filteredData}
-            keyExtractor={(item) => item.id.toString()}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-            style={{ flexGrow: 0 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.item,
-                  selectedId === item.id && styles.selectedItem,
-                ]}
-                onPress={() => handleSelect(item)}
-              >
-                <Text
-                  style={[
-                    styles.itemText,
-                    selectedId === item.id && styles.selectedItemText,
-                  ]}
+          {isLoading ? (
+            <ActivityIndicator
+              style={{ marginTop: 20 }}
+              color={Colors.primary}
+            />
+          ) : (
+            <FlatList
+              data={data}
+              keyExtractor={(item) => item.id.toString()}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+              style={{ flexGrow: 0 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.item}
+                  onPress={() => {
+                    onSelect(item);
+                    onClose();
+                  }}
                 >
-                  {item.label}
+                  <Text style={styles.itemText}>{item.label}</Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={() => (
+                <Text style={{ textAlign: 'center', marginTop: 20 }}>
+                  No results found
                 </Text>
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={() => <Text>No match found</Text>}
-          />
+              )}
+            />
+          )}
         </View>
       </View>
     </Modal>

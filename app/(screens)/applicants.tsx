@@ -10,6 +10,7 @@ import {
 
 import { getApplicantsByJobId } from '@/appwriteFuncs/appwriteJobsFuncs';
 import AppCard from '@/component/AppCard';
+import EmptyState from '@/component/EmptyState';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors, Sizes } from '@/constants';
 import useAppwrite from '@/lib/useAppwrite';
@@ -117,15 +118,22 @@ const Applicants = () => {
             />
           )}
           contentContainerStyle={{ padding: 16 }}
-          ListEmptyComponent={() =>
-            !isLoading && (
-              <Text style={styles.emptyText}>
-                No{' '}
-                {activeTab === 'selected' ? 'applicant selected' : 'applicants'}{' '}
-                yet.
-              </Text>
-            )
-          }
+          ListEmptyComponent={() => (
+            <EmptyState
+              title={
+                activeTab === 'selected' ? 'No one selected' : 'No applicants'
+              }
+              subtitle={
+                activeTab === 'selected'
+                  ? 'You have not selected any applicants yet.'
+                  : 'No applicants yet'
+              }
+              iconsStyle={{
+                backgroundColor: Colors.gray200,
+              }}
+              icon={activeTab === 'selected' ? 'person-add' : 'people'}
+            />
+          )}
         />
       </SafeAreaView>
     </>

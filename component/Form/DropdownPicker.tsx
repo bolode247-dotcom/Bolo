@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 15,
     fontFamily: 'Poppins-SemiBold',
-    color: '#54585fff',
+    color: Colors.text,
   },
   error: {
     color: Colors.danger,

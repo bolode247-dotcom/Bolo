@@ -93,7 +93,7 @@ const ChangePassword = () => {
           </View>
 
           <SubmitButton
-            title="Save"
+            title="Update Password"
             style={styles.btnStyle}
             isLoading={isLoading}
           />

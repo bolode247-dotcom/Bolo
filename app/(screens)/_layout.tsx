@@ -141,6 +141,14 @@ export default function ScreensLayout() {
           animation: 'slide_from_bottom',
         }}
       />
+      <Stack.Screen
+        name="WorkerPosts"
+        options={{
+          title: 'Posts',
+          headerTitleAlign: 'center',
+          animation: 'slide_from_bottom',
+        }}
+      />
     </Stack>
   );
 }

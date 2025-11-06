@@ -47,23 +47,40 @@ type SalaryInfo = {
   rate: string;
 };
 
-export const salaryType = (salaryType: string): SalaryInfo => {
-  switch (salaryType) {
+export const paymentType = (paymentType: string): SalaryInfo => {
+  switch (paymentType) {
     case 'contract':
       return { label: 'Budget', rate: '' };
     case 'hour':
       return { label: 'Payment', rate: '/hr' };
     case 'day':
-      return { label: 'Payment', rate: '/day' };
+      return { label: 'Payment', rate: '/d' };
     case 'week':
-      return { label: 'Payment', rate: '/week' };
+      return { label: 'Payment', rate: '/wk' };
     case 'month':
-      return { label: 'Salary', rate: '/month' };
+      return { label: 'Salary', rate: '/m' };
     case 'year':
-      return { label: 'Payment', rate: '/year' };
+      return { label: 'Payment', rate: '/yr' };
     default:
       return { label: '', rate: '' };
   }
+};
+
+export const formatSalaryRange = (
+  minSalary?: number | string,
+  maxSalary?: number | string,
+  currency: string = 'CFA',
+): string => {
+  const hasMin = !!(minSalary && Number(minSalary) > 0);
+  const hasMax = !!(maxSalary && Number(maxSalary) > 0);
+
+  if (!hasMin && !hasMax) return 'N/A';
+
+  const min = hasMin ? formatSalary(minSalary!) : '';
+  const max = hasMax ? formatSalary(maxSalary!) : '';
+
+  if (hasMin && hasMax) return `${min}-${max} ${currency}`;
+  return `${min || max} ${currency}`;
 };
 
 export const formatJobType = (type: string) => {
@@ -82,9 +99,18 @@ export const formatJobType = (type: string) => {
 };
 
 export const formatSalary = (amount: number | string): string => {
-  if (!amount) return '0';
+  if (!amount || isNaN(Number(amount))) return '0';
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return num.toLocaleString(); // adds commas automatically
+
+  if (num >= 1_000_000_000) {
+    return `${(num / 1_000_000_000).toFixed(num % 1_000_000_000 === 0 ? 0 : 1)}B`;
+  } else if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(num % 1_000_000 === 0 ? 0 : 1)}M`;
+  } else if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(num % 1_000 === 0 ? 0 : 1)}k`;
+  } else {
+    return num.toString();
+  }
 };
 
 export const getInitials = (name?: string) => {
@@ -92,4 +118,28 @@ export const getInitials = (name?: string) => {
   const words = name.trim().split(' ');
   if (words.length === 1) return words[0][0].toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
+};
+
+// src/utils/colors.ts
+export const pastelColors = [
+  '#E0D7FF',
+  '#D7F5E0',
+  '#FFF3D7',
+  '#FFD7E0',
+  '#FDE7D7',
+  '#D7F0FF',
+  '#FFE0F0',
+  '#E0FFF3',
+  '#FFF0D7',
+  '#D7FFE0',
+  '#F0D7FF',
+];
+
+/**
+ * Returns a random pastel color from the palette.
+ * @param fallback - A fallback color if something goes wrong.
+ */
+export const getRandomPastelColor = (fallback: string = '#EAEAEA') => {
+  const index = Math.floor(Math.random() * pastelColors.length);
+  return pastelColors[index] || fallback;
 };

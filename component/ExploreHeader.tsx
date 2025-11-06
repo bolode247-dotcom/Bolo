@@ -11,6 +11,7 @@ import SearchInputField from './SearchField';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import SearchInput from './SearchInput';
 
 const ExploreHeader = ({
   title,
@@ -18,12 +19,14 @@ const ExploreHeader = ({
   initialQuery,
   isSearching,
   isRecruiter,
+  onSearch,
 }: {
   title: string;
   search: string;
   initialQuery?: string;
   isSearching?: boolean;
   isRecruiter?: boolean;
+  onSearch?: (query: string) => void;
 }) => {
   const [notification, setNotification] = useState(10);
   return (
@@ -53,13 +56,22 @@ const ExploreHeader = ({
             )}
           </TouchableOpacity>
         </View>
-        <SearchInputField
-          placeholder={search}
-          style={styles.searchInput}
-          initialQuery={initialQuery}
-          isSearching={isSearching}
-          isRecruiter={isRecruiter}
-        />
+        {onSearch ? (
+          <SearchInput
+            placeholder={search}
+            isSearching={isSearching}
+            onSearch={onSearch}
+            style={styles.searchInput}
+          />
+        ) : (
+          <SearchInputField
+            placeholder={search}
+            style={styles.searchInput}
+            initialQuery={initialQuery}
+            isSearching={isSearching}
+            isRecruiter={isRecruiter}
+          />
+        )}
       </View>
     </ImageBackground>
   );

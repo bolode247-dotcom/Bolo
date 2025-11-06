@@ -24,7 +24,7 @@ const OnBoarding = () => {
       <TouchableOpacity
         onPress={async () => {
           await markOnboardingComplete();
-          router.replace('/(auth)/signIn');
+          router.replace('/(auth)/languageSelection');
         }}
         style={styles.skipButton}
       >

@@ -1,4 +1,5 @@
 import { getJobsByRecruiterId } from '@/appwriteFuncs/appwriteJobsFuncs';
+import EmptyState from '@/component/EmptyState';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobCard from '@/component/JobCard';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
@@ -7,12 +8,11 @@ import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { AntDesign } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   RefreshControl,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,17 +25,14 @@ const MyJobs = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const fetchApplications = React.useCallback(() => {
     if (!user?.recruiters?.$id) return Promise.resolve([]);
     return getJobsByRecruiterId(user.recruiters?.$id);
   }, [user.recruiters?.$id]);
 
-  const {
-    data: applications,
-    isLoading,
-    refetch,
-  } = useAppwrite(fetchApplications);
+  const { data: myJobs, isLoading, refetch } = useAppwrite(fetchApplications);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -43,15 +40,25 @@ const MyJobs = () => {
     setIsRefreshing(false);
   };
 
+  const filterJobs = useMemo(() => {
+    if (!searchQuery.trim()) return myJobs || [];
+    const q = searchQuery.trim().toLowerCase();
+    return (myJobs || []).filter((job) => job.title.toLowerCase().includes(q));
+  }, [myJobs, searchQuery]);
+
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
       {/* <StatusBar barStyle="light-content" /> */}
-      <ExploreHeader title="My Jobs" search="Search and apply for Jobs..." />
+      <ExploreHeader
+        title="My Jobs"
+        search="Filter jobs..."
+        onSearch={setSearchQuery}
+      />
       {isLoading ? (
         <JobWorkerSkeleton />
       ) : (
         <FlatList
-          data={applications}
+          data={filterJobs}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <JobCard
@@ -63,19 +70,18 @@ const MyJobs = () => {
                   params: { jobId: item?.id },
                 });
               }}
+              isRecruiter
             />
           )}
           contentContainerStyle={{ padding: 16 }}
           ListEmptyComponent={
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 20,
-                color: Colors.gray600,
-              }}
-            >
-              No jobs found.
-            </Text>
+            <EmptyState
+              title="No jobs found"
+              subtitle="You have not posted any job yet"
+              icon="briefcase-outline"
+              buttonLabel="Post a Job"
+              onPressButton={() => router.push('/(screens)/create')}
+            />
           }
           refreshControl={
             <RefreshControl

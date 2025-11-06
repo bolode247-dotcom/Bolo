@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 
 export interface Job {
-  id: string;
+  id?: string;
   $createdAt?: string;
   $updatedAt?: string;
 
@@ -14,7 +14,7 @@ export interface Job {
 
   // --- Job details ---
   salary?: number | string;
-  salaryType?: string;
+  paymentType?: string;
   salaryPeriod?: string;
   maxApplicants?: number | string | null;
   status?: string;

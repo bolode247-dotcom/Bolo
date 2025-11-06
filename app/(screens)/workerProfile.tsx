@@ -76,7 +76,7 @@ const WorkerProfileScreen = () => {
       return (
         <FlatList
           data={post}
-          keyExtractor={(item) => item.$id}
+          keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -127,38 +127,38 @@ const WorkerProfileScreen = () => {
           {/* Profile Header */}
           <View style={styles.header}>
             {renderAvatar()}
-            <View style={styles.info}>
-              <Text style={styles.name}>{worker?.name}</Text>
-              <View>
-                {worker?.isVerified ? (
-                  <MaterialIcons
-                    name="verified"
-                    size={22}
-                    color={Colors.primaryDark}
-                  />
-                ) : (
-                  <Octicons
-                    name="unverified"
-                    size={22}
-                    color={Colors.primaryDark}
-                  />
-                )}
-              </View>
-            </View>
+            <Text style={styles.name}>
+              {worker?.name}{' '}
+              {worker?.isVerified ? (
+                <MaterialIcons
+                  name="verified"
+                  size={22}
+                  color={Colors.primaryDark}
+                />
+              ) : (
+                <Octicons
+                  name="unverified"
+                  size={22}
+                  color={Colors.primaryDark}
+                />
+              )}
+            </Text>
           </View>
 
           {/* Stats */}
-          <View style={styles.statsRow}>
-            <CustomButton
-              title="Offer a Job"
-              onPress={() =>
-                router.push({
-                  pathname: '/(screens)/create',
-                  params: { workerId },
-                })
-              }
-            />
-          </View>
+          {!reason && (
+            <View style={styles.statsRow}>
+              <CustomButton
+                title="Offer a Job"
+                onPress={() =>
+                  router.push({
+                    pathname: '/(screens)/create',
+                    params: { workerId },
+                  })
+                }
+              />
+            </View>
+          )}
           {/* <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statValue} numberOfLines={2}>
@@ -291,9 +291,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     paddingHorizontal: Sizes.md,
   },
-  header: { alignItems: 'center', marginTop: 16 },
+  header: { alignItems: 'center', marginTop: 16, textAlign: 'center' },
   avatar: { width: 100, height: 100, borderRadius: 50 },
-  name: { fontSize: 20, fontFamily: 'PoppinsSemiBold', marginTop: 8 },
+  name: {
+    fontSize: 20,
+    fontFamily: 'PoppinsSemiBold',
+    marginTop: 8,
+    maxWidth: '90%',
+    alignSelf: 'center',
+  },
   address: { fontSize: 14, color: Colors.textLight },
   statsRow: {
     flexDirection: 'row',
@@ -364,11 +370,5 @@ const styles = StyleSheet.create({
     fontFamily: 'PoppinsRegular',
     marginTop: Sizes.md,
     paddingHorizontal: Sizes.md,
-  },
-  info: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Sizes.sm,
-    justifyContent: 'center',
   },
 });

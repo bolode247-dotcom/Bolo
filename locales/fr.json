@@ -37,6 +37,7 @@
     "SignIn": "S’inscrire",
     "SignUp": "S’inscrire",
     "postJob": "Publier l’offre",
+    "offerJob": "Offrir l’emploi",
     "continue": "Continuer",
     "getStarted": "Commencer",
     "viewDetails": "Voir les détails",
@@ -90,19 +91,24 @@
     }, 
     "jobLocation": { 
       "label": "Lieu", 
-      "placeholder": "Choisir le lieu du travail" 
+      "placeholder": "Choisir une sous-division"
     }, 
     "JobDescription": { 
       "label": "Description complète", 
-      "placeholder": "Entrer la description du travail..." 
-    }, 
+      "placeholder": "Descrivez le poste et ses exigences" 
+    },
+    "addressLine2": {
+      "label": "Ligne 2 de l'adresse",
+      "placeholder": "ex: Poste Centrale, Centre Ville"
+    },
     "salary": { 
       "label": "Valeur du paiement", 
+      "minSalaryPlaceholder": "ex: 20000", 
+      "maxSalaryPlaceholder": "ex: 40000",
       "budgetLabel": "Budget du contrat", 
-      "placeholder": "ex. : 55000", 
-      "budgetPlaceholder": "ex. : 1000000" 
+      "budgetPlaceholder": "ex: 1000000" 
     }, 
-    "salaryType": { 
+    "paymentType": { 
       "label": "Taux de paiement", 
       "placeholder": "Sélectionner..."
     },
@@ -189,5 +195,51 @@
     "workerByCat": "Travailleurs par catégorie",
     "categories": "Catégories",
     "noWorkersFound": "Aucun travailleur trouvé"
+  },
+
+   "workerSlides": {
+    "completeProfile": {
+      "title": "Complétez votre profil",
+      "description": "Ajoutez vos compétences, vos exemples de travaux et votre biographie pour recevoir plus d'offres.",
+      "button": "Compléter"
+    },
+    "buyCredits": {
+      "title": "Achetez du crédit",
+      "description": "Rechargez pour postuler à davantage d'emplois.",
+      "button": "Acheter crédit"
+    },
+    "findJobs": {
+      "title": "Trouvez des emplois",
+      "description": "Découvrez et postulez à des offres correspondant à vos compétences.",
+      "button": "Voir les emplois"
+    },
+    "verifyAccount": {
+      "title": "Vérifiez votre compte",
+      "description": "Vérifiez votre identité pour augmenter vos chances d'être embauché.",
+      "button": "Vérifier maintenant"
+    }
+  },
+
+   "recruiterSlides": {
+    "postJob": {
+      "title": "Publiez une offre",
+      "description": "Attirez les meilleurs travailleurs en quelques minutes.",
+      "button": "Publier"
+    },
+    "manageCandidates": {
+      "title": "Gérez vos candidats",
+      "description": "Suivez et gérez facilement toutes vos offres d’emploi et vos candidats.",
+      "button": "Voir mes offres"
+    },
+    "exploreWorkerPosts": {
+      "title": "Découvrez les publications des travailleurs",
+      "description": "Explorez les publications des travailleurs pour trouver et recruter les meilleurs talents plus rapidement.",
+      "button": "Voir les publications"
+    },
+    "verifyAccount": {
+      "title": "Vérifiez votre compte",
+      "description": "Vérifiez votre identité pour instaurer la confiance et attirer les meilleurs talents.",
+      "button": "Vérifier maintenant"
+    }
   }
 }

@@ -17,7 +17,7 @@ export const createAccount = async (values: SignUpPayload) => {
   const formattedPhone = formatCameroonPhone(phoneNumber ?? '');
 
   try {
-    // 1️⃣ Create Appwrite account
+    // 1️⃣ Create Appwrite account and session
     const newAccount = await account.create({
       userId: ID.unique(),
       email,
@@ -27,6 +27,7 @@ export const createAccount = async (values: SignUpPayload) => {
 
     await account.createEmailPasswordSession({ email, password });
 
+    // 2️⃣ Create user record
     const newUser = await tables.createRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.userCol,
@@ -45,84 +46,90 @@ export const createAccount = async (values: SignUpPayload) => {
       },
     });
 
-    if (role === 'recruiter') {
-      const recruiterRow = await tables.createRow({
+    // 3️⃣ Handle based on role
+    if (role === 'worker') {
+      // Fetch skill record before updating count
+      const skillRecord = await tables.getRow({
         databaseId: appwriteConfig.dbId,
-        tableId: appwriteConfig.recruiterCol,
-        rowId: ID.unique(),
-        data: { users: newUser.$id },
+        tableId: appwriteConfig.skillsCol,
+        rowId: skills,
       });
-      console.log('after recruiter creation: ', recruiterRow);
-      await tables.updateRow({
-        databaseId: appwriteConfig.dbId,
-        tableId: appwriteConfig.userCol,
-        rowId: newUser.$id,
-        data: { recruiters: recruiterRow.$id },
-      });
-      console.log('after user update: ');
-    } else if (role === 'worker') {
-      const workerRow = await tables.createRow({
+
+      const currentCount = skillRecord?.count ?? 0;
+
+      // Create worker row, update skill, and create subscription in parallel
+      const workerRowPromise = tables.createRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.workerCol,
         rowId: ID.unique(),
         data: { users: newUser.$id },
       });
-      console.log('after worker creation: ', workerRow);
+
+      const updateSkillPromise = tables.updateRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.skillsCol,
+        rowId: skills,
+        data: { count: currentCount + 1 },
+      });
+
+      const today = new Date();
+      const endDate = new Date();
+      endDate.setDate(today.getDate() + 30);
+
+      const subscriptionPromise = tables.createRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.subscriptionsCol,
+        rowId: ID.unique(),
+        data: {
+          users: newUser.$id,
+          plans: appwriteConfig.workerFreePlan,
+          status: 'active',
+          startDate: today.toISOString(),
+          endDate: endDate.toISOString(),
+          remainingApps: 2,
+          remainingJobs: null,
+          payments: null,
+        },
+      });
+
+      // Run parallel tasks
+      const [workerRow] = await Promise.all([
+        workerRowPromise,
+        updateSkillPromise,
+        subscriptionPromise,
+      ]);
+
+      // Link worker row to user
       await tables.updateRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.userCol,
         rowId: newUser.$id,
         data: { workers: workerRow.$id },
       });
-      console.log('after worker update: ');
+    }
+
+    // ✅ Recruiter logic (create collection entry but no subscription)
+    else if (role === 'recruiter') {
+      const recruiterRow = await tables.createRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.recruiterCol,
+        rowId: ID.unique(),
+        data: { users: newUser.$id },
+      });
+
+      await tables.updateRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.userCol,
+        rowId: newUser.$id,
+        data: { recruiters: recruiterRow.$id },
+      });
     } else {
       throw new Error('Invalid role');
     }
 
-    // 5️⃣ Setup subscription
-    let planId: string;
-    let remainingJobs: number | null = null;
-    let remainingApps: number | null = null;
-
-    if (role === 'worker') {
-      planId = appwriteConfig.workerFreePlan;
-      remainingApps = 2;
-    } else {
-      planId = appwriteConfig.recruiterFreePlan;
-      remainingJobs = 1;
-    }
-
-    const today = new Date();
-    const endDate = new Date();
-    endDate.setDate(today.getDate() + 30);
-
-    try {
-      await tables.createRow({
-        databaseId: appwriteConfig.dbId,
-        tableId: appwriteConfig.subscriptionsCol,
-        rowId: ID.unique(),
-        data: {
-          users: newUser.$id,
-          plans: planId,
-          status: 'active',
-          startDate: today.toISOString(),
-          endDate: endDate.toISOString(),
-          remainingJobs,
-          remainingApps,
-          payments: null,
-        },
-      });
-      console.log('✅ Subscription row created successfully');
-    } catch (subscriptionError) {
-      console.log('Error creating subscription for user:', subscriptionError);
-      throw subscriptionError;
-    }
-
-    const userId = await sendOTP(email);
-
-    return { user: { ...newUser, newAccount }, userId };
+    return { success: true };
   } catch (error) {
-    console.error('Error creating account:', error);
+    console.error('❌ Error creating account:', error);
     throw error;
   }
 };

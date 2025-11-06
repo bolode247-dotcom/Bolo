@@ -2,9 +2,11 @@ import { Colors, Sizes } from '@/constants';
 import { JobWithDetails } from '@/types/genTypes';
 import {
   formatJobType,
-  formatSalary,
+  formatSalaryRange,
   formatTimestamp,
-  salaryType,
+  getInitials,
+  getRandomPastelColor,
+  paymentType,
 } from '@/Utils/Formatting';
 import React from 'react';
 import {
@@ -21,36 +23,14 @@ type Props = {
   catWidth?: number;
   job: JobWithDetails;
   onPress?: () => void;
+  isRecruiter?: boolean;
 };
 
-const pastelColors = [
-  '#E0D7FF',
-  '#D7F5E0',
-  '#FFF3D7',
-  '#FFD7E0',
-  '#FDE7D7',
-  '#D7F0FF',
-  '#FFE0F0',
-  '#E0FFF3',
-  '#FFF0D7',
-  '#D7FFE0',
-  '#F0D7FF',
-];
-
-// Utility to get initials from a name
-const getInitials = (name: string) => {
-  if (!name) return '';
-  const words = name.trim().split(' ');
-  if (words.length === 1) return words[0][0].toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-};
-
-const JobCard = ({ job, style, onPress }: Props) => {
-  const bgColor =
-    pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
-    Colors.gray50;
-
-  const initials = job?.recruiter?.name ? getInitials(job?.recruiter.name) : '';
+const JobCard = ({ job, style, onPress, isRecruiter = false }: Props) => {
+  const initials =
+    job?.recruiter?.name && !isRecruiter
+      ? getInitials(job?.recruiter.name)
+      : getInitials(job?.title);
 
   return (
     <TouchableOpacity
@@ -59,7 +39,12 @@ const JobCard = ({ job, style, onPress }: Props) => {
     >
       <View style={styles.headerRow}>
         <View style={styles.recruiterRow}>
-          <View style={[styles.logoContainer, { backgroundColor: bgColor }]}>
+          <View
+            style={[
+              styles.logoContainer,
+              { backgroundColor: getRandomPastelColor() },
+            ]}
+          >
             {job?.recruiter?.logo ? (
               <Image
                 source={{ uri: job?.recruiter.logo }}
@@ -92,14 +77,12 @@ const JobCard = ({ job, style, onPress }: Props) => {
           {job?.location?.region}, {job?.location?.subdivision}
         </Text>
         <Text style={styles.salary}>
-          <Text style={styles.salaryType}>
-            {job?.salaryType !== 'contract'
-              ? '' // Cast the return value to a string
-              : 'budget:'}
+          <Text style={styles.paymentType}>
+            {job?.paymentType !== 'contract' ? '' : 'budget:'}
           </Text>{' '}
-          {formatSalary(job?.salary)}
-          <Text style={styles.salaryType}>
-            {salaryType(job?.salaryType).rate}
+          {formatSalaryRange(job?.minSalary, job?.maxSalary, 'CFA')}
+          <Text style={styles.paymentType}>
+            {paymentType(job?.paymentType).rate}
           </Text>
         </Text>
       </View>
@@ -190,7 +173,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
-  salaryType: {
+  paymentType: {
     fontSize: 12,
     fontWeight: '500',
     color: Colors.gray600,

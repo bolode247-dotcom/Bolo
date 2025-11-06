@@ -23,6 +23,7 @@
     "SignIn": "Sign In",
     "SignUp": "Sign Up",
     "postJob": "Post Job",
+    "offerJob": "Offer Job",
     "continue": "Continue",
     "getStarted": "Get Started",
     "viewDetails": "View details",
@@ -92,19 +93,24 @@
     }, 
     "jobLocation": { 
       "label": "Location", 
-      "placeholder": "Select job location" 
+      "placeholder": "Select sub-division" 
     }, 
+    "addressLine2": { 
+      "label": "Address Line 2", 
+      "placeholder": "E.g: Mile 2, Nkwen" 
+    },
     "JobDescription": { 
       "label": "Full Description", 
-      "placeholder": "Input job description..."
+      "placeholder": "Describe the job and its requirements..."
     }, 
     "salary": { 
       "label": "Payment Value", 
+      "minSalaryPlaceholder": "e.g: 20000", 
+      "maxSalaryPlaceholder": "e.g: 40000",
       "budgetLabel": "Contract Budget", 
-      "placeholder": "e.g., 55000", 
       "budgetPlaceholder": "e.g., 1000000" 
     }, 
-    "salaryType": { 
+    "paymentType": { 
       "label": "Payment Rate", 
       "placeholder": "Select..."
     },
@@ -184,11 +190,55 @@
     "jobOffers": "Job Offers",
     "recommendedForYou": "Recommended for you",
     "searchPlaceholder": "Search for workers...",
-    "createJob": "Create Job",
+    "createJob": "Post Job",
     "worker": "Worker",
     "worker_plural": "Workers",
     "workerByCat": "Workers By Category",
     "categories": "Categories",
     "noWorkersFound": "No workers found"
+  },
+   "recruiterSlides": {
+    "postJob": {
+      "title": "Post a Job",
+      "description": "Attract the best workers in just a few minutes.",
+      "button": "Post Job"
+    },
+    "manageCandidates": {
+      "title": "Manage Your Candidates",
+      "description": "Easily track and manage all your job listings and applicants.",
+      "button": "Go to My Jobs"
+    },
+    "exploreWorkerPosts": {
+      "title": "Explore Worker Posts",
+      "description": "Explore worker posts to find and hire the right talent faster.",
+      "button": "View Posts"
+    },
+    "verifyAccount": {
+      "title": "Verify Your Account",
+      "description": "Verify your identity to build trust and attract top talent.",
+      "button": "Verify Now"
+    }
+  },
+   "workerSlides": {
+    "completeProfile": {
+      "title": "Complete Your Profile",
+      "description": "Add your skills, work samples, and biography to get more job offers.",
+      "button": "Complete"
+    },
+    "buyCredits": {
+      "title": "Buy Credits",
+      "description": "Top up to apply for more jobs.",
+      "button": "Buy Credits"
+    },
+    "findJobs": {
+      "title": "Find Jobs",
+      "description": "Discover and apply to job opportunities that match your skills.",
+      "button": "Find Jobs"
+    },
+    "verifyAccount": {
+      "title": "Verify Your Account",
+      "description": "Verify your identity to increase your chances of getting hired.",
+      "button": "Verify Now"
+    }
   }
 }

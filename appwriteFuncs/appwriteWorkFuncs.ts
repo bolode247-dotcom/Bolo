@@ -274,7 +274,6 @@ export const getWorkerById = async (workerId: string) => {
 export const getWorkersBySkillRegion = async (
   region?: string,
   skillId?: string,
-  search?: string,
 ) => {
   const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
 
@@ -285,6 +284,7 @@ export const getWorkersBySkillRegion = async (
       'name',
       'avatar',
       'role',
+      'isVerified',
       'locations.region',
       'locations.division',
       'locations.subdivision',
@@ -293,11 +293,12 @@ export const getWorkersBySkillRegion = async (
       `skills.name_${lang}`,
       'workers.$id',
       'workers.bio',
+      'workers.isPro',
       'workers.payRate',
       'workers.$createdAt',
     ];
 
-    const queries: any[] = [Query.select(userSelect), Query.limit(30)];
+    const queries: any[] = [Query.select(userSelect), Query.limit(25)];
 
     queries.push(Query.equal('role', 'worker'));
 
@@ -316,6 +317,8 @@ export const getWorkersBySkillRegion = async (
       name: user.name,
       avatar: user.avatar,
       bio: user.workers?.bio ?? null,
+      isPro: user.workers?.isPro ?? false,
+      isVerified: user.isVerified ?? false,
       payRate: user.workers?.payRate ?? null,
       rating: user.workers?.rating ?? null,
       createdAt: user.workers?.$createdAt ?? null,
@@ -357,6 +360,8 @@ export const getWorkersBySkillRegion = async (
           name: user.name,
           avatar: user.avatar,
           bio: user.workers?.bio ?? null,
+          isPro: user.workers?.isPro ?? false,
+          isVerified: user.isVerified ?? false,
           payRate: user.workers?.payRate ?? null,
           rating: user.workers?.rating ?? null,
           createdAt: user.workers?.$createdAt ?? null,
@@ -579,7 +584,7 @@ export const getWorkSample = async (userId: string) => {
 
     return res.rows.map((workSample) => {
       return {
-        $id: workSample.$id,
+        id: workSample.$id,
         caption: workSample.caption,
         image: workSample.image,
         createdAt: workSample.$createdAt,
@@ -588,6 +593,67 @@ export const getWorkSample = async (userId: string) => {
   } catch (error) {
     console.error('❌ Error fetching work samples:', error);
     throw error;
+  }
+};
+export const getRecommendedWorkerPosts = async (
+  recruiterRegion: string,
+  recruiterSkillId: string,
+  industryId: string,
+  limit = 10,
+) => {
+  try {
+    // 1️⃣ Get recommended workers
+    const recommendedWorkers = await getRecommendedWorkers(
+      recruiterRegion,
+      recruiterSkillId,
+      industryId,
+      limit,
+    );
+
+    if (!recommendedWorkers.length) return [];
+
+    // 2️⃣ Extract worker IDs
+    const workerIds = recommendedWorkers.map((w) => w.id);
+
+    // 3️⃣ Fetch posts for those workers
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      queries: [
+        Query.equal('workers', workerIds),
+        Query.orderDesc('$createdAt'),
+        Query.limit(limit * 2),
+      ],
+    });
+
+    // 4️⃣ Sort posts by worker recommendation order
+    const workerRank: Map<string, number> = new Map(
+      recommendedWorkers.map((w, i) => [w.id, i]),
+    );
+
+    const posts = res.rows
+      .filter((post) => workerRank.has(post.workers))
+      .sort(
+        (a, b) =>
+          (workerRank.get(a.workers) ?? Number.MAX_SAFE_INTEGER) -
+          (workerRank.get(b.workers) ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map((post) => {
+        const worker = recommendedWorkers.find((w) => w.id === post.workers);
+        return {
+          id: post.$id,
+          caption: post.caption,
+          image: post.image,
+          createdAt: post.$createdAt,
+          workerId: post.workers,
+          worker: worker,
+        };
+      });
+
+    return posts.slice(0, limit);
+  } catch (error) {
+    console.error('❌ Error fetching recommended worker posts:', error);
+    return [];
   }
 };
 

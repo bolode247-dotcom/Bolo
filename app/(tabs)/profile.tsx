@@ -41,10 +41,16 @@ const DATA: { title: string; data: SectionItem[] }[] = [
         route: '/(profile)/WorkSamples',
       },
       { label: 'Location', icon: 'location', route: '/(profile)/location' },
+
       {
         label: 'Verification',
         icon: 'shield-checkmark',
-        route: '/(profile)/verification',
+        route: '/(profile)/Verify',
+      },
+      {
+        label: 'Credits',
+        icon: 'shield-checkmark',
+        route: '/(profile)/Credits',
       },
       {
         label: 'Change Password',
@@ -82,6 +88,18 @@ const Profile: React.FC = () => {
   const [lan, setLan] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const filteredData = DATA.map((section) => ({
+    ...section,
+    data:
+      user?.role === 'recruiter'
+        ? section.data.filter(
+            (item) =>
+              !['Skills', 'Work Samples', 'Location', 'Credits'].includes(
+                item.label,
+              ),
+          )
+        : section.data,
+  }));
   const mainSkill = user?.skills?.[`name_${lan || 'en'}`] || '';
   const otherSkills = user?.workers?.otherSkill
     ? `, ${user.otherSkills.join(', ')}`
@@ -122,7 +140,7 @@ const Profile: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <SectionList
-        sections={DATA}
+        sections={filteredData}
         keyExtractor={(item, index) => `${item.label}-${index}`}
         renderItem={({ item }) => (
           <TouchableOpacity

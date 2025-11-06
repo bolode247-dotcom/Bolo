@@ -1,7 +1,11 @@
 import { Colors, Sizes } from '@/constants';
-import { formatTimestamp } from '@/Utils/Formatting';
+import {
+  formatTimestamp,
+  getInitials,
+  getRandomPastelColor,
+} from '@/Utils/Formatting';
 import { viewImage } from '@/Utils/helpers';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,10 +17,17 @@ import {
   ViewStyle,
 } from 'react-native';
 
+type Worker = {
+  name?: string;
+  avatar?: string | null;
+  isVerified?: boolean;
+};
 type Post = {
   caption: string;
   image: string;
   createdAt: string;
+  id: string;
+  worker?: Worker;
 };
 
 type Props = {
@@ -26,7 +37,9 @@ type Props = {
   onDelete?: () => void;
   onImagePress?: () => void;
   isRecruiter?: boolean;
+  showAvatar?: boolean;
   cardStyles?: ViewStyle;
+  onAvatarPress?: () => void;
 };
 
 const PostCard: React.FC<Props> = ({
@@ -37,6 +50,8 @@ const PostCard: React.FC<Props> = ({
   isRecruiter,
   cardStyles,
   onImagePress,
+  showAvatar = false,
+  onAvatarPress,
 }) => {
   const [showFull, setShowFull] = useState(false);
 
@@ -50,6 +65,50 @@ const PostCard: React.FC<Props> = ({
 
   return (
     <View style={[styles.card, cardStyles]}>
+      {showAvatar && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onAvatarPress}
+          style={styles.headerRow}
+        >
+          <View
+            style={[
+              styles.logoContainer,
+              { backgroundColor: getRandomPastelColor() },
+            ]}
+          >
+            {post.worker?.avatar ? (
+              <Image
+                source={{ uri: viewImage(post.worker?.avatar) }}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.logoText}>
+                {getInitials(post.worker?.name)}
+              </Text>
+            )}
+          </View>
+          <View style={styles.nameRow}>
+            <Text
+              style={styles.workerName}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {post.worker?.name}
+            </Text>
+
+            {post.worker?.isVerified && (
+              <MaterialIcons
+                name="verified"
+                size={18}
+                color={Colors.primaryDark}
+                style={styles.verifiedIcon}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+      )}
       {/* Caption Section */}
       <View
         style={[
@@ -121,7 +180,50 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: Sizes.x3sm,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    maxWidth: '100%',
+  },
 
+  workerName: {
+    flexShrink: 1, // allow text to truncate
+    fontSize: Sizes.md,
+    fontFamily: 'PoppinsBold',
+    color: Colors.gray900,
+    marginRight: 4,
+  },
+
+  verifiedIcon: {
+    flexShrink: 0,
+    marginBottom: 3,
+  },
+  logoText: {
+    color: Colors.gray900,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  logoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Sizes.sm,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+  },
   captionContainer: {
     alignSelf: 'flex-start',
   },

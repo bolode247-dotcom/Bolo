@@ -1,6 +1,8 @@
 import { getChatDetailsWithMessages } from '@/appwriteFuncs/appwriteGenFunc';
+import EmptyState from '@/component/EmptyState';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import { client, tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
@@ -72,6 +74,7 @@ const MessagesContent = () => {
     participantName: string;
   }>();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const { data, isLoading } = useAppwrite(() =>
@@ -205,10 +208,11 @@ const MessagesContent = () => {
         rowId: chatDetails.chat.$id,
         data: updateData,
       });
-
+      showToast('Message sent successfully', 'success', 3000);
       setNewMessage('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sending message:', err);
+      showToast(err.message, 'error', 3000);
     } finally {
       setIsSending(false);
     }
@@ -292,6 +296,13 @@ const MessagesContent = () => {
                   );
                 })}
               </View>
+            )}
+            ListEmptyComponent={() => (
+              <EmptyState
+                title="No messages yet"
+                subtitle="Start a conversation with the other party."
+                icon="mail-sharp"
+              />
             )}
             contentContainerStyle={{ paddingHorizontal: 10 }}
             recycleItems

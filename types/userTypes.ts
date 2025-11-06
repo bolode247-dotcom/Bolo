@@ -7,7 +7,7 @@ export interface User {
   confirmPassword?: string;
   phoneNumber?: string;
   location?: string;
-  skills?: string;
+  skills: string;
   role?: 'worker' | 'recruiter';
 
   createdAt?: string;

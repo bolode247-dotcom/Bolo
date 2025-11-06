@@ -2,12 +2,13 @@ import { getOrCreateChat } from '@/appwriteFuncs/appwriteGenFunc';
 import { updateApplicantStatus } from '@/appwriteFuncs/appwriteJobsFuncs';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import { Location } from '@/types/genTypes';
+import { viewImage } from '@/Utils/helpers';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CustomButton from './CustomButton';
-import { viewImage } from '@/Utils/helpers';
 
 type appCardProps = {
   id: string;
@@ -51,8 +52,8 @@ const getInitials = (name: string) => {
 };
 
 const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
-  // console.log('app: ', app);
   const { user } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const [status, setStatus] = React.useState(app?.status);
   const [loading, setLoading] = React.useState(false);
@@ -64,12 +65,19 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
 
   const handleSelect = async () => {
     setLoading(true);
-    const success = await updateApplicantStatus(app.id, 'seen');
-    if (success) {
-      setStatus('seen');
-      onStatusChange?.(app.id, 'seen');
+    try {
+      const success = await updateApplicantStatus(app.id, 'seen');
+      if (success) {
+        showToast('Application shortlisted successfully', 'success');
+        setStatus('seen');
+        onStatusChange?.(app.id, 'seen');
+      }
+    } catch (error: any) {
+      console.error('❌ handleSelect error:', error);
+      showToast(error.message, 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleMessage = async () => {

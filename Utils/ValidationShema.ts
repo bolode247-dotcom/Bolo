@@ -12,10 +12,6 @@ export const signupValidationSchema = Yup.object().shape({
     .email('Invalid email address')
     .required('Email is required')
     .label('Email'),
-  phoneNumber: Yup.string()
-    .required('Phone number is required')
-    .matches(/^6\d{8}$/, 'Invalid phone number format')
-    .label('Phone Number'),
   location: Yup.string().required('Please select a location').label('Location'),
   skills: Yup.string()
     .required('Please select a profession')
@@ -44,7 +40,7 @@ export const signInValidationSchema = Yup.object().shape({
 export const createJobSchema = Yup.object().shape({
   title: Yup.string()
     .required('Job title is required')
-    .max(30, 'Title cannot exceed 100 characters')
+    .max(35, 'Title cannot exceed 35 characters')
     .label('Title'),
 
   description: Yup.string()
@@ -63,27 +59,30 @@ export const createJobSchema = Yup.object().shape({
     .label('Location'),
 });
 export const confirmationJobSchemaTwoFields = Yup.object().shape({
-  salary: Yup.string()
-    .required('Payment is required')
-    .max(20, 'Salary cannot exceed 20 characters')
-    .label('Payment'),
+  minSalary: Yup.number().max(7).label('Min Salary'),
   maxApplicants: Yup.number()
     .required('Maximum number of applicants is required')
     .typeError('Max applicants must be a number')
     .label('Max Applicants'),
+  address: Yup.string()
+    .required('Address is required')
+    .label('Address')
+    .max(100, 'Address cannot exceed 100 characters'),
 });
 
 // Schema when there are 3 fields
 export const confirmationJobSchemaThreeFields = Yup.object().shape({
-  salary: Yup.string()
-    .required('Payment is required')
-    .max(10, 'Payment cannot exceed 20 characters')
-    .label('Salary'),
-  salaryType: Yup.string()
+  minSalary: Yup.number().label('Min Salary'),
+  maxSalary: Yup.number().label('Max Salary'),
+  paymentType: Yup.string()
     .required('Payment rate is required')
     .label('Payment rate'),
   maxApplicants: Yup.number()
     .required('Maximum number of applicants is required')
     .typeError('Max applicants must be a number')
     .label('Max Applicants'),
+  address: Yup.string()
+    .required('Address is required')
+    .label('Address')
+    .max(100, 'Address cannot exceed 100 characters'),
 });

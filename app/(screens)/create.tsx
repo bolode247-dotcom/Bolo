@@ -1,17 +1,20 @@
-import { getLocations, getSkills } from '@/appwriteFuncs/appwriteGenFunc';
+import {
+  getFilteredLocations,
+  getFilteredSkills,
+} from '@/appwriteFuncs/appwriteGenFunc';
 import CustomPickerModal from '@/component/CustomPickerModal';
+import { PickerItem } from '@/component/CustomPickerSheet';
 import AppForm from '@/component/Form/AppForm';
 import CustomPickerField from '@/component/Form/CurstomPickerField';
 import DropdownPicker from '@/component/Form/DropdownPicker';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
 import { Colors, Sizes } from '@/constants';
-import useAppwrite from '@/lib/useAppwrite';
 import { Job } from '@/types/genTypes';
 import { createJobSchema } from '@/Utils/ValidationShema';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { FormikConsumer } from 'formik';
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
@@ -30,22 +33,40 @@ const jobTypes = [
 
 const Craete = () => {
   const { t } = useTranslation();
+  const { workerId } = useLocalSearchParams<{ workerId: string }>();
+
   const [showLocModal, setShowLocModal] = React.useState(false);
   const [showSkillsModal, setShowSkillsModal] = React.useState(false);
+  const [locations, setLocations] = useState<PickerItem<string>[]>([]);
+  const [skills, setSkills] = useState<PickerItem<string>[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [loadingSkills, setLoadingSkills] = useState(false);
 
-  const { data: locations = [] } = useAppwrite(() => getLocations());
-  const { data: skills = [] } = useAppwrite(() => getSkills());
+  const handleSearchLocation = async (text: string) => {
+    setLoadingLocations(true);
+    const res = await getFilteredLocations(text);
+    setLocations(res.map((loc: any) => ({ id: loc.id, label: loc.label })));
+    setLoadingLocations(false);
+  };
+
+  const handleSearchSkill = async (text: string) => {
+    setLoadingSkills(true);
+    const res = await getFilteredSkills(text);
+    setSkills(res.map((s: any) => ({ id: s.id, label: s.label })));
+    setLoadingSkills(false);
+  };
 
   const handleSubmit = async (values: Job) => {
-    // Navigate to the next screen with query params
+    console.log('values: ', values);
     router.push({
       pathname: '/(screens)/jobComfirm',
       params: {
-        jobTitle: values.title,
-        skillsId: values.skills, // ID of selected skill
-        typeId: values.type, // ID of selected job type
-        locationId: values.locations, // ID of selected location
+        title: values.title,
+        skills: values.skills, // ID of selected skill
+        type: values.type, // ID of selected job type
+        locations: values.locations, // ID of selected location
         description: values.description,
+        workerId,
       },
     });
   };
@@ -99,7 +120,6 @@ const Craete = () => {
               data={locations || []}
               inputContainer={styles.inputStyle}
             />
-
             <FormField
               name="description"
               label={t('formLabels.JobDescription.label')}
@@ -120,10 +140,12 @@ const Craete = () => {
                 <CustomPickerModal
                   visible={showLocModal}
                   onClose={() => setShowLocModal(false)}
-                  data={locations || []}
+                  data={locations}
                   title="Select Location"
                   showSearch
-                  initialSelectedId={values.location}
+                  isLoading={loadingLocations}
+                  onSearch={handleSearchLocation}
+                  initialSelectedId={values.locations}
                   onSelect={(item) => setFieldValue('locations', item.id)}
                 />
               )}
@@ -133,9 +155,11 @@ const Craete = () => {
                 <CustomPickerModal
                   visible={showSkillsModal}
                   onClose={() => setShowSkillsModal(false)}
-                  data={skills || []}
-                  title="Select Profession"
+                  data={skills}
+                  title="Select Skill"
                   showSearch
+                  isLoading={loadingSkills}
+                  onSearch={handleSearchSkill}
                   initialSelectedId={values.skills}
                   onSelect={(item) => setFieldValue('skills', item.id)}
                 />

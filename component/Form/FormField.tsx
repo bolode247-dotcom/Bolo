@@ -1,6 +1,6 @@
 import { useFormikContext } from 'formik';
 import React from 'react';
-import { View } from 'react-native';
+import { View, ViewStyle } from 'react-native';
 
 import InputField from '../InputField';
 import ErrorMessage from './ErrorMessage';
@@ -8,18 +8,20 @@ import ErrorMessage from './ErrorMessage';
 interface AppFormFieldProps {
   name: string;
   label?: string;
+  style?: ViewStyle;
   [key: string]: any;
 }
 
 const FormField: React.FC<AppFormFieldProps> = ({
   name,
   label,
+  style,
   ...otherProps
 }) => {
   const { setFieldTouched, handleChange, errors, touched, values } =
     useFormikContext<Record<string, any>>();
   return (
-    <View>
+    <View style={style}>
       <InputField
         value={values[name]}
         label={label}

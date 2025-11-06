@@ -5,6 +5,7 @@ import SubmitButton from '@/component/Form/SubmitButton';
 import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import { signInValidationSchema } from '@/Utils/ValidationShema';
 import { Link, router } from 'expo-router';
 import React from 'react';
@@ -24,19 +25,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const SignIn = () => {
   const { t } = useTranslation();
   const { fetchData } = useAuth();
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   const handleSignIn = async (values: { email: string; password: string }) => {
     setIsSubmitting(true);
-    setError(null);
     try {
-      const res = await SignInUser(values);
-      console.log('user response:', res);
+      await SignInUser(values);
       await fetchData();
       router.replace('/');
     } catch (err: any) {
-      setError(err.message);
+      showToast(err.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -69,7 +68,6 @@ const SignIn = () => {
                 <Text style={styles.headerTitle}>
                   {t('signIn.headerTitle')}
                 </Text>
-                <Text style={styles.headerSubtitle}>{error}</Text>
               </View>
             </View>
 

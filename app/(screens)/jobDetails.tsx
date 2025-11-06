@@ -12,7 +12,11 @@ import { useAuth } from '@/context/authContex';
 import { client } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
-import { formatJobType, formatTimestamp, salaryType } from '@/Utils/Formatting';
+import {
+  formatJobType,
+  formatTimestamp,
+  paymentType,
+} from '@/Utils/Formatting';
 import { viewImage } from '@/Utils/helpers';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -206,6 +210,7 @@ const JobDetails = () => {
               {jobDetails?.location?.region}, {jobDetails?.location?.division},{' '}
               {jobDetails?.location?.subdivision}
             </Text>
+            <Text style={styles.address}>{job?.address}</Text>
           </View>
           {/* Stats */}
           <View style={styles.statsRow}>
@@ -221,11 +226,11 @@ const JobDetails = () => {
               </View>
               <View style={styles.statText}>
                 <Text style={styles.statLabel}>
-                  {salaryType(jobDetails?.salaryType).label}
+                  {paymentType(jobDetails?.paymentType).label}
                 </Text>
                 <Text style={styles.statValue} numberOfLines={2}>
                   {jobDetails?.salary}
-                  {salaryType(jobDetails?.salaryType).rate}
+                  {paymentType(jobDetails?.paymentType).rate}
                 </Text>
               </View>
             </View>
