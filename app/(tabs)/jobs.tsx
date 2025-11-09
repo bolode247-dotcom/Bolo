@@ -61,7 +61,7 @@ const JObs = () => {
             ListEmptyComponent={() => (
               <EmptyState
                 icon="briefcase-outline"
-                title="No Jobs Posted"
+                title="No Jobs Found"
                 subtitle="Start by creating your first job listing."
                 buttonLabel="Post a Job"
                 onPressButton={() => router.push('/(screens)/create')}

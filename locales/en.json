@@ -87,6 +87,14 @@
       "label": "Type of worker", 
       "placeholder": "Select type of worker" 
     }, 
+    "mainSkill": { 
+      "label": "Main Skill", 
+      "placeholder": "Select main skill..." 
+    },
+    "subSkills": { 
+      "label": "Sub Skills", 
+      "placeholder": "Motor Wiring, Electrical Installation, etc." 
+    },
     "jobType": { 
       "label": "Job Nature", 
       "placeholder": "Select a job type..." 
@@ -187,9 +195,11 @@
   "home": {
     "seeAll": "See all",
     "recommendedWorkers": "Recommended Workers",
-    "jobOffers": "Job Offers",
+    "jobOffers": "Jobs offered to you",
+    "featuredJobs": "Featured Jobs",
     "recommendedForYou": "Recommended for you",
-    "searchPlaceholder": "Search for workers...",
+    "searchWorkers": "Search for workers...",
+    "searchJobs": "Search for jobs...",
     "createJob": "Post Job",
     "worker": "Worker",
     "worker_plural": "Workers",

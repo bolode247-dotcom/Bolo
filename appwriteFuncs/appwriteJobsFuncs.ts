@@ -77,7 +77,9 @@ export const getJobOffers = async (workerId: string): Promise<Offer[]> => {
           'jobs.$id',
           'jobs.title',
           'jobs.type',
-          'jobs.salary',
+          'jobs.description',
+          'jobs.minSalary',
+          'jobs.maxSalary',
           'jobs.paymentType',
           'jobs.skills.$id',
           'jobs.skills.icon',
@@ -91,10 +93,12 @@ export const getJobOffers = async (workerId: string): Promise<Offer[]> => {
     return res.rows.map((offer) => ({
       id: offer.$id,
       job: {
-        id: offer.jobs?.$id,
+        id: offer.jobs.$id,
         title: offer.jobs?.title,
         type: offer.jobs?.type,
-        salary: offer.jobs?.salary,
+        description: offer.jobs?.description,
+        minSalary: offer.jobs?.minSalary,
+        maxSalary: offer.jobs?.maxSalary,
         paymentType: offer.jobs?.paymentType,
         skills: offer.jobs?.skills
           ? {
@@ -124,17 +128,15 @@ export const getRecommendedJobs = async (
   isPro: boolean,
 ) => {
   try {
-    // 1️⃣ Always query jobs by industry first
     const baseQueries = [
-      isPro
-        ? Query.orderDesc('$createdAt') // Pro → newest jobs first
-        : Query.orderAsc('$createdAt'),
+      isPro ? Query.orderDesc('$createdAt') : Query.orderAsc('$createdAt'),
       Query.equal('skills.industry', industryId),
       Query.select([
         '$id',
         'title',
         'type',
-        'salary',
+        'minSalary',
+        'maxSalary',
         'paymentType',
         'maxApplicants',
         'applicantsCount',
@@ -177,7 +179,8 @@ export const getRecommendedJobs = async (
         id: job.$id,
         title: job.title,
         type: job.type,
-        salary: job.salary,
+        minSalary: job.minSalary,
+        maxSalary: job.maxSalary,
         paymentType: job.paymentType,
         createdAt: job.$createdAt,
         maxApplicants: job.maxApplicants,
@@ -223,7 +226,9 @@ export const getJobsByPlan = async (isPro: boolean) => {
           '$id',
           'title',
           'type',
-          'salary',
+          'minSalary',
+          'maxSalary',
+          'description',
           'paymentType',
           'maxApplicants',
           'applicantsCount',
@@ -245,7 +250,9 @@ export const getJobsByPlan = async (isPro: boolean) => {
         id: job.$id,
         title: job.title,
         type: job.type,
-        salary: job.salary,
+        minSalary: job.minSalary,
+        maxSalary: job.maxSalary,
+        description: job.description,
         paymentType: job.paymentType,
         createdAt: job.$createdAt,
         maxApplicants: job.maxApplicants,
@@ -282,7 +289,7 @@ export const getWorkerFeed = async (user: any) => {
   const workerSkillId = user?.skills?.$id;
   const industryId = user?.skills?.industry;
   const workerRegion = user?.locations;
-  const isPro = user?.worker?.isPro;
+  const isPro = user?.workers?.isPro;
 
   const [offers, recommended, jobsByPlan] = await Promise.all([
     getJobOffers(workerId),
@@ -501,7 +508,8 @@ export const getJobsByRegionOrSkill = async (
       '$id',
       'title',
       'type',
-      'salary',
+      'minSalary',
+      'maxSalary',
       'paymentType',
       'status',
       '$createdAt',
@@ -597,7 +605,8 @@ export const getJobsByRegionOrSkill = async (
       id: job.$id,
       title: job.title,
       type: job.type,
-      salary: job.salary,
+      minSalary: job.minSalary,
+      maxSalary: job.maxSalary,
       paymentType: job.paymentType,
       maxApplicants: job.maxApplicants,
       applicantsCount: job.applicantsCount,

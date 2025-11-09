@@ -1,4 +1,5 @@
 import { getJobsByRegionOrSkill } from '@/appwriteFuncs/appwriteJobsFuncs';
+import EmptyState from '@/component/EmptyState';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobCard from '@/component/JobCard';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
@@ -7,7 +8,7 @@ import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
-import { FlatList, StatusBar, StyleSheet, Text } from 'react-native';
+import { FlatList, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Search = () => {
@@ -56,15 +57,11 @@ const Search = () => {
           )}
           contentContainerStyle={{ padding: 16 }}
           ListEmptyComponent={
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 20,
-                color: Colors.gray600,
-              }}
-            >
-              No jobs found.
-            </Text>
+            <EmptyState
+              title="No Jobs Found"
+              subtitle="Try searching for a different keyword"
+              icon="search"
+            />
           }
         />
       )}

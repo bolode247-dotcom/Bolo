@@ -96,13 +96,13 @@ const Index = () => {
           />
         );
       } else {
-        const workerData = data as WorkerFeedData;
-        const offers = workerData.offers.map((offer) => ({
+        const Data = data as WorkerFeedData;
+        const offers = Data.offers.map((offer) => ({
           id: offer.id,
           job: offer.job,
         }));
 
-        const jobsByPlanAsOffers = workerData.jobsByPlan.map((job) => ({
+        const jobsByPlanAsOffers = Data.jobsByPlan.map((job) => ({
           id: job.job.id,
           job: job.job,
         }));
@@ -126,7 +126,7 @@ const Index = () => {
                     pathname: '/jobDetails',
                     params: {
                       jobId: item.job.id,
-                      isOffer: workerData.offers.length > 0 ? 'true' : 'false',
+                      isOffer: Data.offers.length > 0 ? 'true' : 'false',
                     },
                   })
                 }
@@ -143,7 +143,11 @@ const Index = () => {
 
         {/* Categories / Job Offers Section */}
         {renderSectionHeader(
-          isRecruiter ? t('home.categories') : t('home.jobOffers'),
+          isRecruiter
+            ? t('home.categories')
+            : (data as WorkerFeedData).offers.length > 0
+              ? t('home.jobOffers')
+              : t('home.featuredJobs'),
           isRecruiter ? () => router.push('/categories') : undefined,
         )}
         {renderCategoryList()}
@@ -180,7 +184,11 @@ const Index = () => {
       <AppHeader />
 
       <SearchInputField
-        placeholder={t('home.searchPlaceholder')}
+        placeholder={
+          user?.role === 'recruiter'
+            ? t('home.searchWorkers')
+            : t('home.searchJobs')
+        }
         style={styles.searchFieldStyles}
         isRecruiter={user?.role === 'recruiter' ? true : false}
       />
@@ -207,12 +215,12 @@ const Index = () => {
                 }));
               } else if ('offers' in data) {
                 const offers = data.recommended.map((o) => ({
-                  id: o.id,
+                  id: o.id!,
                   job: o.job,
                   type: 'job' as const,
                 }));
                 const jobsByPlan = data.jobsByPlan.map((j) => ({
-                  id: j.job.id,
+                  id: j.job.id!,
                   job: j.job,
                   type: 'job' as const,
                 }));

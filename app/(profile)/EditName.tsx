@@ -1,4 +1,4 @@
-import { updateUserName } from '@/appwriteFuncs/usersFunc';
+import { updateUserSkills } from '@/appwriteFuncs/usersFunc';
 import AppForm from '@/component/Form/AppForm';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
@@ -22,7 +22,7 @@ const EditName = () => {
   const handleUpdateUser = async (values: any) => {
     try {
       setIsLoading(true);
-      await updateUserName(user.$id, values.name);
+      await updateUserSkills(user.$id, values.name);
       showToast('Name updated successfully', 'success');
       await fetchData();
     } catch (error: any) {

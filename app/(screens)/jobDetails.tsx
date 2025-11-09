@@ -5,16 +5,20 @@ import {
   rejectOffer,
   withdrawApp,
 } from '@/appwriteFuncs/appwriteJobsFuncs';
+import ConfirmModal from '@/component/ConfirmModal';
 import CustomButton from '@/component/CustomButton';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import { client } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
 import {
   formatJobType,
+  formatSalaryRange,
   formatTimestamp,
+  pastelColors,
   paymentType,
 } from '@/Utils/Formatting';
 import { viewImage } from '@/Utils/helpers';
@@ -23,7 +27,6 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   ScrollView,
@@ -36,20 +39,6 @@ import {
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const pastelColors = [
-  '#E0D7FF',
-  '#D7F5E0',
-  '#FFF3D7',
-  '#FFD7E0',
-  '#FDE7D7',
-  '#D7F0FF',
-  '#FFE0F0',
-  '#E0FFF3',
-  '#FFF0D7',
-  '#D7FFE0',
-  '#F0D7FF',
-];
-
 interface RealtimePayload {
   $id: string;
   jobs?: string;
@@ -59,13 +48,16 @@ interface RealtimePayload {
 
 const JobDetails = () => {
   const { user } = useAuth();
-
+  const { showToast } = useToast();
   const { jobId } = useLocalSearchParams<{ jobId: string }>();
 
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [declineMode, setDeclineMode] = useState(false);
   const [reason, setReason] = useState('');
   const [isApplying, setIsApplying] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   // ✅ Fetch job details dynamically based on the logged-in user
@@ -104,12 +96,12 @@ const JobDetails = () => {
     setIsApplying(true);
     try {
       await applyForJob(jobId, user?.workers?.$id, reason);
-      Alert.alert('Success', 'You have applied for this job.');
+      showToast('You have applied for this job.', 'success');
       setShowReasonModal(false);
       refetch();
     } catch (err) {
       console.error('Error applying:', err);
-      Alert.alert('Error', 'Could not apply for the job.');
+      showToast('Could not apply for the job.', 'error');
     } finally {
       setIsApplying(false);
     }
@@ -121,22 +113,26 @@ const JobDetails = () => {
       const appId = jobDetails?.appId;
       if (!appId) return;
       await withdrawApp(appId, jobId);
-      Alert.alert('Application withdrawn.');
+      showToast('Application widthdrawn.', 'success');
       refetch();
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Could not withdraw application.');
+      showToast('Error widthdrawing application.', 'error');
     } finally {
       setIsWithdrawing(false);
     }
   };
 
   const handleAcceptOffer = async () => {
+    setIsAccepting(true);
     try {
       await acceptOffer(jobDetails.offerId);
-      Alert.alert('Success', 'You have accepted the offer.');
+      showToast('You have accepted the offer.', 'success');
     } catch (err) {
       console.error(err);
+      showToast('Error accepting offer.', 'error');
+    } finally {
+      setIsAccepting(false);
     }
   };
 
@@ -150,10 +146,11 @@ const JobDetails = () => {
     try {
       await rejectOffer(jobDetails.offerId, reason);
       setShowReasonModal(false);
-      Alert.alert('You have declined the offer.');
+      showToast('You have declined the offer.', 'success');
       router.back();
     } catch (err) {
       console.error(err);
+      showToast('Error declining offer.', 'error');
     } finally {
       setIsApplying(false);
     }
@@ -229,7 +226,10 @@ const JobDetails = () => {
                   {paymentType(jobDetails?.paymentType).label}
                 </Text>
                 <Text style={styles.statValue} numberOfLines={2}>
-                  {jobDetails?.salary}
+                  {formatSalaryRange(
+                    jobDetails?.minSalary,
+                    jobDetails?.maxSalary,
+                  )}
                   {paymentType(jobDetails?.paymentType).rate}
                 </Text>
               </View>
@@ -328,21 +328,7 @@ const JobDetails = () => {
             <CustomButton
               title="Withdraw Application"
               onPress={() => {
-                Alert.alert(
-                  'Withdraw Application',
-                  'Are you sure you want to withdraw this application?',
-                  [
-                    {
-                      text: 'Cancel',
-                      onPress: () => console.log('Cancel Pressed'),
-                      style: 'cancel',
-                    },
-                    {
-                      text: 'Withdraw',
-                      onPress: () => handleWithdraw(),
-                    },
-                  ],
-                );
+                setShowConfirm(true);
               }}
               isLoading={isWithdrawing}
             />
@@ -426,6 +412,18 @@ const JobDetails = () => {
               </View>
             </View>
           </Modal>
+          <ConfirmModal
+            visible={showConfirm}
+            title="Widthdraw Application"
+            message="Are you sure you want to withdraw this application?"
+            confirmText="Yes"
+            cancelText="No"
+            onConfirm={() => {
+              setShowConfirm(false);
+              handleWithdraw();
+            }}
+            onCancel={() => setShowConfirm(false)}
+          />
         </ScrollView>
       </SafeAreaView>
     </>

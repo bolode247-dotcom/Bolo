@@ -1,4 +1,5 @@
 import { getWorkersBySkillRegion } from '@/appwriteFuncs/appwriteWorkFuncs';
+import EmptyState from '@/component/EmptyState';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import WorkerCard from '@/component/WorkerCard';
@@ -7,7 +8,7 @@ import { useAuth } from '@/context/authContex';
 import useAppwrite from '@/lib/useAppwrite';
 import { router } from 'expo-router';
 import React from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Workers = () => {
@@ -61,17 +62,15 @@ const Workers = () => {
             />
           )}
           contentContainerStyle={{ padding: 16 }}
-          ListEmptyComponent={
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 20,
-                color: Colors.gray600,
-              }}
-            >
-              No jobs found.
-            </Text>
-          }
+          ListEmptyComponent={() => (
+            <EmptyState
+              icon="briefcase-outline"
+              title="No Jobs Found"
+              subtitle="Post a job to find workers"
+              buttonLabel="Post a Job"
+              onPressButton={() => router.push('/(screens)/create')}
+            />
+          )}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

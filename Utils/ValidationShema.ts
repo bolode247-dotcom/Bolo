@@ -65,7 +65,6 @@ export const confirmationJobSchemaTwoFields = Yup.object().shape({
     .typeError('Max applicants must be a number')
     .label('Max Applicants'),
   address: Yup.string()
-    .required('Address is required')
     .label('Address')
     .max(100, 'Address cannot exceed 100 characters'),
 });
@@ -82,7 +81,6 @@ export const confirmationJobSchemaThreeFields = Yup.object().shape({
     .typeError('Max applicants must be a number')
     .label('Max Applicants'),
   address: Yup.string()
-    .required('Address is required')
     .label('Address')
     .max(100, 'Address cannot exceed 100 characters'),
 });

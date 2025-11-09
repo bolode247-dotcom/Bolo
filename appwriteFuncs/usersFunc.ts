@@ -413,6 +413,49 @@ export const updateUserName = async (userId: string, name: string) => {
     throw error;
   }
 };
+export const updateUserSkills = async (
+  userId: string,
+  workerId: string,
+  skills: string,
+  otherSkill: string,
+) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      data: { skills },
+    });
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workerCol,
+      rowId: workerId,
+      data: { otherSkill },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating user name:', error);
+    throw error;
+  }
+};
+
+export const updateUserLocation = async (
+  userId: string,
+  locations: string,
+  otherLocation: string,
+) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
+      data: { locations, otherLocation },
+    });
+  } catch (error) {
+    console.error('❌ Error updating user location:', error);
+    throw error;
+  }
+};
 
 export const updateUserBio = async (workerId: string, bio: string) => {
   try {

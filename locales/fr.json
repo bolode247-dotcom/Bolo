@@ -85,6 +85,14 @@
       "label": "Type de travailleur", 
       "placeholder": "Choisir le type de travailleur" 
     }, 
+    "mainSkill": { 
+      "label": "Profession", 
+      "placeholder": "Choisir une profession" 
+    }, 
+    "subSkill": {
+      "label": "Sous-profession",
+      "placeholder": "Electrique, Installation, etc."
+    },
     "jobType": { 
       "label": "Nature du travail", 
       "placeholder": "Choisir un type de travail..." 
@@ -186,9 +194,11 @@
     "category": "Catégorie",
     "seeAll": "Voir tout",
     "recommendedWorkers": "Travailleurs recommandés",
-    "jobOffers": "Offres d'emploi",
+    "jobOffers": "Offres d'emploi offertes à vous",
+    "featuredJobs": "Offres d'emploi en vedette",
     "recommendedForYou": "Recommandé pour vous",
-    "searchPlaceholder": "Rechercher des travailleurs...",
+    "searchWorkers": "Rechercher des travailleurs...",
+    "searchJobs": "Rechercher des offres d'emploi...",
     "createJob": "Créer une offre",
     "worker": "Travailleur",
     "worker_plural": "Travailleurs",

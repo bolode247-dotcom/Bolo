@@ -1,6 +1,11 @@
 import { Colors, Sizes } from '@/constants';
 import { JobWithDetails } from '@/types/genTypes';
-import { formatJobType, formatSalary, paymentType } from '@/Utils/Formatting';
+import {
+  formatJobType,
+  formatSalaryRange,
+  getRandomPastelColor,
+  paymentType,
+} from '@/Utils/Formatting';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -17,23 +22,20 @@ type Props = {
   onPress?: () => void;
 };
 
-const pastelColors = ['#E0D7FF', '#D7F5E0', '#FFF3D7', '#FFD7E0'];
 const screenWidth = Dimensions.get('window').width;
 
 const JobOfferCard = ({ job, onPress, cardWidth = 2.7 }: Props) => {
   const categoryItemWidth = screenWidth / cardWidth;
-  const bgColor =
-    pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
-    Colors.gray50;
+
   return (
     <TouchableOpacity
       style={[
         styles.card,
-        { width: categoryItemWidth, backgroundColor: bgColor },
+        { width: categoryItemWidth, backgroundColor: getRandomPastelColor() },
       ]}
       onPress={onPress}
     >
-      {job?.skills?.icon && (
+      {/* {job?.skills?.icon && (
         <View style={styles.iconWrapper}>
           <Ionicons
             name={job?.skills.icon || 'briefcase-outline'}
@@ -41,30 +43,34 @@ const JobOfferCard = ({ job, onPress, cardWidth = 2.7 }: Props) => {
             color={Colors.gray900}
           />
         </View>
-      )}
+      )} */}
 
-      <Text style={styles.salary} numberOfLines={1}>
-        <Text style={styles.paymentType}>
-          {job?.paymentType !== 'contract'
-            ? '' // Cast the return value to a string
-            : 'budget:'}
-        </Text>{' '}
-        {formatSalary(job?.salary)}
-        <Text style={styles.paymentType}>
-          {paymentType(job?.paymentType).rate}
-        </Text>
-      </Text>
       {/* Job info */}
       <Text style={styles.title} numberOfLines={1}>
         {job?.title}
       </Text>
 
       {/* Location */}
+      <Text style={styles.description} numberOfLines={2}>
+        {job?.description}
+      </Text>
+      {/* Location */}
       <Text style={styles.location} numberOfLines={2}>
+        <Ionicons name="location-outline" size={16} color={Colors.gray900} />
         {job?.location?.region}, {job?.location?.subdivision},{' '}
         {job?.location?.division}
       </Text>
-
+      <Text style={styles.salary} numberOfLines={1}>
+        <Text style={styles.paymentType}>
+          {job?.paymentType !== 'contract'
+            ? 'salary:' // Cast the return value to a string
+            : 'budget:'}
+        </Text>{' '}
+        {formatSalaryRange(job?.minSalary, job?.maxSalary)}
+        <Text style={styles.paymentType}>
+          {paymentType(job?.paymentType).rate}
+        </Text>
+      </Text>
       {/* Job type tag */}
       <View style={styles.typeTag}>
         <Text style={styles.typeText}>{formatJobType(job?.type)}</Text>
@@ -102,7 +108,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   salary: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.primary,
   },
@@ -120,6 +126,11 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 13,
     color: Colors.gray600,
+    marginBottom: 2,
+  },
+  description: {
+    fontSize: 14,
+    color: Colors.gray700,
     marginBottom: 2,
   },
   date: {

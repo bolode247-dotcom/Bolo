@@ -4,6 +4,7 @@ import {
 } from '@/appwriteFuncs/appwriteJobsFuncs';
 import ApplicationCard from '@/component/ApplicationCard';
 import ConfirmModal from '@/component/ConfirmModal';
+import EmptyState from '@/component/EmptyState';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobWorkerSkeleton from '@/component/JobWorkerSkeleton';
 import { Colors } from '@/constants';
@@ -33,6 +34,7 @@ const Applications = () => {
   const [showReasonModal, setShowReasonModal] = React.useState(false);
   const [declineReason, setDeclineReason] = React.useState('');
   const [showConfirm, setShowConfirm] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const fetchApplications = React.useCallback(() => {
     if (!user?.workers?.$id) return Promise.resolve([]);
@@ -41,7 +43,7 @@ const Applications = () => {
 
   const {
     data: applications,
-    isLoading,
+    isLoading: isLoadingApps,
     refetch,
   } = useAppwrite(fetchApplications);
 
@@ -52,6 +54,7 @@ const Applications = () => {
   };
 
   const handleWidthdraw = async (appId: string, jobId: string) => {
+    setIsLoading(true);
     try {
       await withdrawApp(appId, jobId);
       showToast('Application widthdrawn.', 'success');
@@ -59,6 +62,8 @@ const Applications = () => {
     } catch (error) {
       console.error('Error widthdrawing application:', error);
       showToast('Error widthdrawing application.', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,7 +72,12 @@ const Applications = () => {
       setSelectedApp(application);
       setShowModal(true);
     } else if (application.status === 'applied') {
+      setSelectedApp(application);
       setShowConfirm(true);
+    } else if (application.status === 'rejected') {
+      router.push({
+        pathname: '/(tabs)/jobs',
+      });
     } else {
       router.push({
         pathname: '/(screens)/jobDetails',
@@ -110,7 +120,7 @@ const Applications = () => {
           title="Applications"
           search="Search and apply for Jobs..."
         />
-        {isLoading ? (
+        {isLoadingApps ? (
           <JobWorkerSkeleton />
         ) : (
           <FlatList
@@ -120,19 +130,17 @@ const Applications = () => {
               <ApplicationCard
                 application={item}
                 onActionPress={() => handleActionPress(item)}
+                isLoading={isLoading}
               />
             )}
             contentContainerStyle={{ padding: 16 }}
             ListEmptyComponent={
-              <Text
-                style={{
-                  textAlign: 'center',
-                  marginTop: 20,
-                  color: Colors.gray600,
-                }}
-              >
-                No Application found.
-              </Text>
+              <EmptyState
+                title="No Application"
+                subtitle="You have not applied for any job yet."
+                buttonLabel="Apply for jobs"
+                onPressButton={() => router.push('/(tabs)/jobs')}
+              />
             }
             refreshControl={
               <RefreshControl
@@ -259,7 +267,7 @@ const Applications = () => {
         cancelText="No"
         onConfirm={() => {
           setShowConfirm(false);
-          handleWidthdraw(selectedApp.id, selectedApp.job.id);
+          handleWidthdraw(selectedApp?.id, selectedApp?.job?.id);
         }}
         onCancel={() => setShowConfirm(false)}
       />

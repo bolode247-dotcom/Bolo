@@ -1,6 +1,7 @@
 import { Colors, Sizes } from '@/constants';
 import React from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +13,7 @@ type Props = {
   style?: ViewStyle;
   application: any; // { job, status, createdAt, instructions }
   onActionPress?: (status: string) => void;
+  isLoading?: boolean;
 };
 
 type StatusStyles = Record<string, { color: string; label: string }>;
@@ -24,7 +26,12 @@ const statusStyles: StatusStyles = {
   hired: { color: Colors.success, label: 'Hired' },
 };
 
-const ApplicationCard = ({ application, style, onActionPress }: Props) => {
+const ApplicationCard = ({
+  application,
+  style,
+  onActionPress,
+  isLoading,
+}: Props) => {
   const { job, status, createdAt, instructions } = application;
 
   const statusStyle = statusStyles[status] || statusStyles.applied;
@@ -87,6 +94,13 @@ const ApplicationCard = ({ application, style, onActionPress }: Props) => {
         style={[styles.actionButton, { backgroundColor: statusStyle.color }]}
         onPress={() => onActionPress?.(status)}
       >
+        {isLoading ? (
+          <ActivityIndicator
+            size="small"
+            color="white"
+            style={{ marginRight: 8 }}
+          />
+        ) : null}
         <Text style={styles.actionText}>{getActionLabel()}</Text>
       </TouchableOpacity>
     </View>

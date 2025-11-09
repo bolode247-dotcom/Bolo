@@ -43,55 +43,10 @@ export default function ProfileLayout() {
         }}
       />
       <Stack.Screen
-        name="ChangePassword"
-        options={{
-          headerShown: true,
-          title: 'Change Password',
-          headerTitleAlign: 'center',
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
         name="ForgotPassword"
         options={{
           headerShown: true,
           title: 'Forgotten Password',
-          headerTitleAlign: 'center',
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="WorkSamples"
-        options={{
-          headerShown: true,
-          title: 'Work Samples',
-          headerTitleAlign: 'center',
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="AddWorkSample"
-        options={{
-          headerShown: true,
-          title: 'Post',
-          headerTitleAlign: 'center',
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="EditWorkSample"
-        options={{
-          headerShown: true,
-          title: 'Edit Post',
-          headerTitleAlign: 'center',
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="Verify"
-        options={{
-          headerShown: true,
-          title: 'Verify',
           headerTitleAlign: 'center',
           animation: 'slide_from_right',
         }}

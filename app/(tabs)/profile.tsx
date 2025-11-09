@@ -33,29 +33,33 @@ const DATA: { title: string; data: SectionItem[] }[] = [
       {
         label: 'Skills',
         icon: 'build',
-        route: '/(profile)/skills',
+        route: '/(settings)/EditSkill',
       },
       {
         label: 'Work Samples',
         icon: 'images',
-        route: '/(profile)/WorkSamples',
+        route: '/(settings)/WorkSamples',
       },
-      { label: 'Location', icon: 'location', route: '/(profile)/location' },
+      {
+        label: 'Location',
+        icon: 'location',
+        route: '/(settings)/EditLocation',
+      },
 
       {
         label: 'Verification',
         icon: 'shield-checkmark',
-        route: '/(profile)/Verify',
+        route: '/(settings)/Verify',
       },
       {
         label: 'Credits',
         icon: 'shield-checkmark',
-        route: '/(profile)/Credits',
+        route: '/(settings)/Credits',
       },
       {
         label: 'Change Password',
         icon: 'lock-closed',
-        route: '/(profile)/ChangePassword',
+        route: '/(settings)/ChangePassword',
       },
     ],
   },
@@ -102,7 +106,7 @@ const Profile: React.FC = () => {
   }));
   const mainSkill = user?.skills?.[`name_${lan || 'en'}`] || '';
   const otherSkills = user?.workers?.otherSkill
-    ? `, ${user.otherSkills.join(', ')}`
+    ? `, ${user.workers?.otherSkill}`
     : '';
 
   useEffect(() => {
@@ -213,7 +217,8 @@ const Profile: React.FC = () => {
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {user?.locations?.division}, {user?.locations?.subdivision}
+                  {user?.locations?.division}, {user?.locations?.subdivision},{' '}
+                  {user?.otherLocation}
                 </Text>
               </View>
             </View>
