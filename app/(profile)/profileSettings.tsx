@@ -36,8 +36,8 @@ const ProfileSettings = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images', // image, video, pdf
       allowsEditing: true,
-      aspect: [2, 2],
-      quality: 0.7,
+      aspect: [3, 4],
+      quality: 0.5,
     });
 
     if (!result.canceled) {
@@ -67,8 +67,8 @@ const ProfileSettings = () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [2, 2],
-      quality: 0.7,
+      aspect: [3, 4],
+      quality: 0.5,
     });
 
     console.log(result);

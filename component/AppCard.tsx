@@ -4,6 +4,7 @@ import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import { useToast } from '@/context/ToastContext';
 import { Location } from '@/types/genTypes';
+import { getInitials, getRandomPastelColor } from '@/Utils/Formatting';
 import { viewImage } from '@/Utils/helpers';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -29,27 +30,7 @@ type Props = {
   onStatusChange?: (id: string, status: string) => void;
 };
 
-const pastelColors = [
-  '#E0D7FF',
-  '#D7F5E0',
-  '#FFF3D7',
-  '#FFD7E0',
-  '#FDE7D7',
-  '#D7F0FF',
-  '#FFE0F0',
-  '#E0FFF3',
-  '#FFF0D7',
-  '#D7FFE0',
-  '#F0D7FF',
-];
-
 // Utility to get initials from a name
-const getInitials = (name: string) => {
-  if (!name) return '';
-  const words = name.trim().split(' ');
-  if (words.length === 1) return words[0][0].toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-};
 
 const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
   const { user } = useAuth();
@@ -57,9 +38,6 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
   const router = useRouter();
   const [status, setStatus] = React.useState(app?.status);
   const [loading, setLoading] = React.useState(false);
-  const bgColor =
-    pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
-    Colors.gray50;
 
   const initials = app?.name ? getInitials(app?.name) : '';
 
@@ -113,7 +91,12 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
     >
       <View style={styles.headerRow}>
         <View style={styles.recruiterRow}>
-          <View style={[styles.logoContainer, { backgroundColor: bgColor }]}>
+          <View
+            style={[
+              styles.logoContainer,
+              { backgroundColor: getRandomPastelColor() },
+            ]}
+          >
             {app?.avatar ? (
               <Image
                 source={{ uri: viewImage(app?.avatar) }}

@@ -25,6 +25,12 @@ export const formatTimeStampv2 = (createdAt: string): string => {
   return date.format('HH:mm');
 };
 
+export const formatDate = (date?: Date) =>
+  date ? dayjs(date).format('ddd, DD MMM YYYY') : '';
+
+export const formatTime = (time?: Date) =>
+  time ? dayjs(time).format('hh:mm A') : '';
+
 export const groupMessagesByDate = (messages: Message[]) => {
   return messages.reduce(
     (groups, message) => {

@@ -32,7 +32,7 @@ export const getWorkerSlides = (t: any, isVerified: boolean) => {
       description: t('workerSlides.verifyAccount.description'),
       button: {
         text: t('workerSlides.verifyAccount.button'),
-        onPress: () => router.push('/verify'),
+        onPress: () => router.push('/Verify'),
       },
     },
   ];
@@ -74,7 +74,7 @@ export const getRecruiterSlides = (t: any, isVerified: boolean) => {
       description: t('recruiterSlides.verifyAccount.description'),
       button: {
         text: t('recruiterSlides.verifyAccount.button'),
-        onPress: () => router.push('/verify'),
+        onPress: () => router.push('/Verify'),
       },
     },
   ];

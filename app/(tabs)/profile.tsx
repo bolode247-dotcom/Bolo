@@ -161,10 +161,23 @@ const Profile: React.FC = () => {
               <Ionicons
                 name={item.icon}
                 size={20}
-                color={Colors.text}
-                style={styles.itemIcon}
+                color={Colors.primaryDark}
+                style={[
+                  styles.itemIcon,
+                  item.icon === 'log-out' && {
+                    color: Colors.danger,
+                    backgroundColor: Colors.dangerLight,
+                  },
+                ]}
               />
-              <Text style={styles.itemText}>{item.label}</Text>
+              <Text
+                style={[
+                  styles.itemText,
+                  item.icon === 'log-out' ? { color: Colors.danger } : {},
+                ]}
+              >
+                {item.label}
+              </Text>
             </View>
             <Ionicons
               name="chevron-forward-outline"

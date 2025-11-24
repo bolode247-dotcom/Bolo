@@ -1,4 +1,9 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import {
+  router,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+} from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,
@@ -28,7 +33,14 @@ const Applicants = () => {
     data: applicants = [],
     isLoading,
     setData,
+    refetch,
   } = useAppwrite(fetchApplicants);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [jobId]),
+  );
   // 🔹 Calculate how many are "seen"
   const selectedCount = applicants?.filter((a) => a.status === 'seen').length;
 
@@ -112,6 +124,10 @@ const Applicants = () => {
                     workerId: item.workerId,
                     isRecruiter: 'true',
                     reason: item.reason,
+                    status: item.status,
+                    appId: item.id,
+                    jobId: jobId,
+                    interviewId: item.interview,
                   },
                 })
               }

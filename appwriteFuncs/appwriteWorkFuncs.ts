@@ -244,12 +244,19 @@ export const getRecruiterFeed = async (
   const recruiterRegion = user?.locations?.region;
   const recruiterSkillId = user?.skills?.$id;
   const industryId = user?.skills?.industry;
-  const [mustHaveSkills, recommendedWorkers] = await Promise.all([
-    getTopSkills(5),
-    getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId, 2),
-  ]);
+  const [mustHaveSkills, recommendedWorkers, recommendedPosts] =
+    await Promise.all([
+      getTopSkills(5),
+      getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId, 2),
+      getRecommendedWorkerPosts(
+        recruiterRegion,
+        recruiterSkillId,
+        industryId,
+        1,
+      ),
+    ]);
 
-  return { mustHaveSkills, recommendedWorkers };
+  return { mustHaveSkills, recommendedWorkers, recommendedPosts };
 };
 export const getWorkerById = async (workerId: string) => {
   try {
@@ -267,6 +274,33 @@ export const getWorkerById = async (workerId: string) => {
     return res.rows[0];
   } catch (error) {
     console.log('error getting user by id: ', error);
+    throw error;
+  }
+};
+
+export const getInterview = async (interviewId: string) => {
+  if (!interviewId) return null;
+
+  try {
+    const res = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.interviewCol,
+      queries: [Query.equal('$id', interviewId)],
+    });
+
+    if (!res.rows.length) return null; // no interview found
+
+    const interview = res.rows[0];
+
+    return {
+      id: interview.$id,
+      time: interview.time,
+      instructions: interview.instructions,
+      date: interview.date,
+      status: interview.status,
+    };
+  } catch (error: any) {
+    console.log('error getting interview: ', error);
     throw error;
   }
 };

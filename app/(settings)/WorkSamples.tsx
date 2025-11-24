@@ -119,7 +119,7 @@ const WorkSamples = () => {
                 icon="images"
                 subtitle="Add your work samples to increase your chances of getting hired."
                 buttonLabel="Add Post"
-                onPressButton={() => router.push('/(profile)/AddWorkSample')}
+                onPressButton={() => router.push('/(settings)/AddWorkSample')}
               />
             </View>
           )}

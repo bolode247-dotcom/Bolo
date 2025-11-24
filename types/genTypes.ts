@@ -91,9 +91,18 @@ export interface JobsWithSource {
   job: Job;
 }
 
+type Post = {
+  caption: string;
+  image: string;
+  createdAt: string;
+  id: string;
+  worker?: Worker;
+};
+
 export interface RecruiterFeedData {
   mustHaveSkills: Skill[];
   recommendedWorkers: Worker[];
+  recommendedPosts: Post[];
 }
 
 export interface WorkerFeedData {
@@ -127,4 +136,12 @@ export interface ChatDetails {
   chat: Chat;
   participants: string[];
   messages: Message[];
+}
+
+export interface Interview {
+  id: string;
+  time: string;
+  instructions: string;
+  date: string;
+  status: string;
 }

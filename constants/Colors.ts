@@ -34,6 +34,7 @@ const Colors = {
   success: '#22c55e',
   warning: '#facc15',
   danger: '#ef4444',
+  dangerLight: '#ecbdbdea',
 
   // Background / Surface
   background: '#ffffff',

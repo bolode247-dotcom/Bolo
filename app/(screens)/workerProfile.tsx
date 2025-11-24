@@ -1,17 +1,28 @@
+import { getOrCreateChat } from '@/appwriteFuncs/appwriteGenFunc';
 import {
+  scheduleInterview,
+  updateApplicantStatus,
+  updateInterview,
+} from '@/appwriteFuncs/appwriteJobsFuncs';
+import {
+  getInterview,
   getWorkerById,
   getWorkSample,
 } from '@/appwriteFuncs/appwriteWorkFuncs';
 import CustomButton from '@/component/CustomButton';
+import InterviewModal from '@/component/InterviewModal';
 import PostCard from '@/component/PostCard';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
+import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import useAppwrite from '@/lib/useAppwrite';
 import { viewImage } from '@/Utils/helpers';
 import { Ionicons, MaterialIcons, Octicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Modal,
@@ -21,26 +32,52 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const WorkerProfileScreen = () => {
-  const { workerId, isRecruiter, reason } = useLocalSearchParams<{
-    workerId: string;
-    isRecruiter: string;
-    reason: string;
-  }>();
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [postImageVisible, setPostImageVisible] = useState(false);
-  const [postImage, setPostImage] = useState<string>('');
+  const { showToast } = useToast();
+  const { user } = useAuth();
+  const { workerId, isRecruiter, reason, status, appId, jobId, interviewId } =
+    useLocalSearchParams<{
+      workerId: string;
+      isRecruiter: string;
+      reason: string;
+      status: string;
+      appId: string;
+      jobId: string;
+      interviewId: string;
+    }>();
+  const [ImageVisible, setImageVisible] = useState(false);
   const [postCaption, setPostCaption] = useState<string>('');
+  const [image, setImage] = useState<string>('');
 
-  const {
-    data: worker,
-    isLoading,
-    error,
-    refetch,
-  } = useAppwrite(() => getWorkerById(workerId));
+  const [interviewModalVisible, setInterviewModalVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState<Date>(new Date());
 
+  const [interviewInstructions, setInterviewInstructions] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // If editing
+  type InterviewType = {
+    id: string;
+    time: string;
+    instructions: string;
+    date: string;
+    status?: string;
+  };
+  const [existingInterview, setExistingInterview] =
+    useState<InterviewType | null>(null);
+
+  const fetchWorker = useCallback(() => getWorkerById(workerId), [workerId]);
+  const fetchInterview = useCallback(
+    () => getInterview(interviewId),
+    [interviewId],
+  );
+
+  const { data: worker, isLoading, error, refetch } = useAppwrite(fetchWorker);
+  const { data: interview } = useAppwrite(fetchInterview);
   const { data: post, isLoading: postLoading } = useAppwrite(() =>
     getWorkSample(workerId),
   );
@@ -53,7 +90,12 @@ const WorkerProfileScreen = () => {
   const renderAvatar = () => {
     if (worker?.avatar) {
       return (
-        <TouchableOpacity onPress={() => setImageModalVisible(true)}>
+        <TouchableOpacity
+          onPress={() => {
+            setImageVisible(true);
+            setImage(worker?.avatar);
+          }}
+        >
           <Image
             source={{ uri: viewImage(worker.avatar) }}
             style={styles.avatar}
@@ -85,13 +127,22 @@ const WorkerProfileScreen = () => {
               isRecruiter={true}
               cardStyles={styles.card}
               onImagePress={() => {
-                setPostImage(item.image);
+                setImage(item.image);
                 setPostCaption(item.caption);
-                setPostImageVisible(true);
+                setImageVisible(true);
               }}
             />
           )}
           ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+          ListEmptyComponent={() =>
+            postLoading ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Text style={{ color: Colors.gray500 }}>
+                No work samples found.
+              </Text>
+            )
+          }
         />
       );
     }
@@ -102,6 +153,138 @@ const WorkerProfileScreen = () => {
         <Ionicons name="image-outline" size={43} color={Colors.gray400} />
       </View>
     ));
+  };
+
+  const handleStatusChange = async (
+    newStatus: 'seen' | 'interview' | 'hired',
+  ) => {
+    setLoading(true);
+
+    try {
+      await updateApplicantStatus(appId, newStatus);
+
+      showToast(`Status updated to ${newStatus}`, 'success');
+
+      await refetch();
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMessage = async () => {
+    try {
+      setLoading(true);
+      const recruiterId = user?.recruiters?.$id;
+      if (!recruiterId || !workerId || !jobId) return;
+      console.log('handleMessage');
+
+      const chat = await getOrCreateChat(recruiterId, workerId, jobId);
+
+      router.push({
+        pathname: '/(screens)/messages',
+        params: {
+          chatId: chat?.$id,
+        },
+      });
+    } catch (err) {
+      console.error('❌ handleMessage error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScheduleInterview = async () => {
+    if (!selectedDate || !selectedTime || !interviewInstructions.trim()) {
+      showToast('Please fill all fields', 'error');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      const hours = selectedTime.getHours().toString().padStart(2, '0');
+      const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+      const formattedTime = `${hours}:${minutes}`;
+
+      await scheduleInterview(
+        appId,
+        interviewInstructions,
+        formattedTime,
+        formattedDate,
+      );
+
+      await refetch();
+
+      showToast('Interview scheduled successfully', 'success');
+      setInterviewModalVisible(false);
+    } catch (err) {
+      console.log(err);
+      showToast('Failed to schedule interview', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateInterview = async () => {
+    if (!selectedDate || !selectedTime || !interviewInstructions.trim()) {
+      showToast('Please fill all fields', 'error');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+
+      const hours = selectedTime.getHours().toString().padStart(2, '0');
+      const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+      const formattedTime = `${hours}:${minutes}`;
+
+      await updateInterview(
+        interviewId,
+        interviewInstructions,
+        formattedTime,
+        formattedDate,
+      );
+
+      await refetch();
+
+      showToast('Interview updated successfully', 'success');
+      setInterviewModalVisible(false);
+    } catch (err) {
+      console.log('Error updating interview:', err);
+      showToast('Failed to update interview', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (interview) {
+      setExistingInterview(interview);
+      setSelectedDate(new Date(interview.date));
+      const [h, m] = interview.time.split(':');
+      const timeObj = new Date();
+      timeObj.setHours(parseInt(h));
+      timeObj.setMinutes(parseInt(m));
+      timeObj.setSeconds(0);
+
+      setSelectedTime(timeObj);
+      setInterviewInstructions(interview.instructions);
+    } else {
+      // fresh schedule
+      setExistingInterview(null);
+      setSelectedDate(new Date());
+      setSelectedTime(new Date());
+      setInterviewInstructions('');
+    }
+  }, [interview]);
+
+  const openInterviewModal = () => {
+    setInterviewModalVisible(true);
   };
 
   if (isLoading) return <ProfileSkeleton />;
@@ -144,41 +327,46 @@ const WorkerProfileScreen = () => {
               )}
             </Text>
           </View>
-
           {/* Stats */}
-          {!reason && (
+          {status === 'seen' ? (
+            <View style={styles.statsRow}>
+              <CustomButton
+                title="Message"
+                onPress={() => handleMessage()}
+                style={[styles.btn, { backgroundColor: Colors.white }]}
+                textVariant="outline"
+                bgVariant="outline"
+                isLoading={loading}
+              />
+              <CustomButton
+                title={
+                  existingInterview ? 'Edit Interview' : 'Schedule Interview'
+                }
+                onPress={() => openInterviewModal()}
+                style={styles.btn}
+                textStyle={{ fontSize: Sizes.sm }}
+              />
+            </View>
+          ) : status === 'applied' ? (
+            <View style={styles.statsRow}>
+              <CustomButton
+                title="Select"
+                onPress={() => handleStatusChange('seen')}
+              />
+            </View>
+          ) : (
             <View style={styles.statsRow}>
               <CustomButton
                 title="Offer a Job"
                 onPress={() =>
                   router.push({
                     pathname: '/(screens)/create',
-                    params: { workerId },
+                    params: { workerId: worker?.$id },
                   })
                 }
               />
             </View>
           )}
-          {/* <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue} numberOfLines={2}>
-                {worker?.workers?.jobsCompleted}
-              </Text>
-              <Text style={styles.statLabel}>Jobs Complete</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>
-                {worker?.workers?.rating ?? '0.0'}{' '}
-                <Ionicons name="star" size={14} color="gold" />
-              </Text>
-              <Text style={styles.statLabel}>Ratings</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{payRate.amount}</Text>
-              <Text style={styles.statLabel}>{payRate.label}</Text>
-            </View>
-          </View> */}
-
           {/* About Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
@@ -186,11 +374,28 @@ const WorkerProfileScreen = () => {
               {worker?.locations?.region}, {worker?.locations?.division},{' '}
               {worker?.locations?.subdivision}
             </Text>
-
             {worker?.otherLocation && (
               <Text style={styles.address}>{worker?.otherLocation}</Text>
             )}
           </View>
+          {/* Interview */}
+          {interview && (
+            <View style={styles.section}>
+              <>
+                <Text style={styles.sectionTitle}>Interview</Text>
+                <View style={[styles.metaCol, { marginTop: 0 }]}>
+                  <Text style={styles.meta}>Date:</Text>
+                  <Text style={styles.sectionTitle}>{interview.date}</Text>
+                </View>
+                <View
+                  style={[styles.metaCol, { marginTop: 0, marginBottom: 0 }]}
+                >
+                  <Text style={styles.meta}>Time:</Text>
+                  <Text style={styles.sectionTitle}>{interview.time}</Text>
+                </View>
+              </>
+            </View>
+          )}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About {worker?.name}</Text>
             <Text style={styles.bio}>{worker?.workers?.bio}</Text>
@@ -212,73 +417,57 @@ const WorkerProfileScreen = () => {
               <Text style={styles.bio}>{reason}</Text>
             </View>
           )}
-
-          {/* Proof of Work (instead of "Why you should hire me") */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Work Samples</Text>
             <View style={styles.samplesRow}>{renderSamples()}</View>
           </View>
         </ScrollView>
-        <Modal
-          animationType="fade"
-          transparent
-          visible={imageModalVisible}
-          onRequestClose={() => setImageModalVisible(false)}
-        >
-          <SafeAreaView style={styles.modalBackground}>
-            <TouchableOpacity
-              style={styles.modalCloseArea}
-              onPress={() => setImageModalVisible(false)}
-            />
-            <View
-              style={{
-                width: '100%',
-                height: '40%',
-                overflow: 'hidden',
-                aspectRatio: 2 / 2,
-              }}
-            >
-              <Image
-                source={{
-                  uri: viewImage(worker?.avatar),
-                }}
-                style={styles.fullImage}
-                resizeMode="cover"
-              />
-            </View>
-          </SafeAreaView>
-        </Modal>
-        <Modal
-          animationType="fade"
-          transparent
-          visible={postImageVisible}
-          onRequestClose={() => setPostImageVisible(false)}
-        >
-          <SafeAreaView style={styles.modalBackground}>
-            <TouchableOpacity
-              style={styles.modalCloseArea}
-              onPress={() => setPostImageVisible(false)}
-            />
-            <View
-              style={{
-                width: '100%',
-                height: '40%',
-                overflow: 'hidden',
-                aspectRatio: 2 / 2,
-              }}
-            >
-              <Image
-                source={{
-                  uri: viewImage(postImage),
-                }}
-                style={styles.fullImage}
-                resizeMode="cover"
-              />
-            </View>
-            <Text style={styles.postCaption}>{postCaption}</Text>
-          </SafeAreaView>
-        </Modal>
       </SafeAreaView>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={ImageVisible}
+        onRequestClose={() => setImageVisible(false)}
+      >
+        <SafeAreaView style={styles.modalBackground}>
+          <TouchableOpacity
+            style={styles.modalCloseArea}
+            onPress={() => setImageVisible(false)}
+          />
+          <View
+            style={{
+              width: '100%',
+              height: '40%',
+              overflow: 'hidden',
+              aspectRatio: 2 / 2,
+            }}
+          >
+            <Image
+              source={{
+                uri: viewImage(image),
+              }}
+              style={styles.fullImage}
+              resizeMode="cover"
+            />
+          </View>
+          <Text style={styles.postCaption}>{postCaption || ''}</Text>
+        </SafeAreaView>
+      </Modal>
+      <InterviewModal
+        visible={interviewModalVisible}
+        onClose={() => setInterviewModalVisible(false)}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        selectedTime={selectedTime}
+        setSelectedTime={setSelectedTime}
+        interviewInstructions={interviewInstructions}
+        setInterviewInstructions={setInterviewInstructions}
+        onSubmit={
+          existingInterview ? handleUpdateInterview : handleScheduleInterview
+        }
+        loading={loading}
+        isEditing={!!existingInterview}
+      />
     </>
   );
 };
@@ -329,6 +518,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Sizes.sm,
     marginTop: 8,
+    flexWrap: 'wrap', // <== allow wrapping in row
+    alignItems: 'flex-start',
   },
   meta: { fontSize: 15, color: Colors.gray700, fontFamily: 'PoppinsSemiBold' },
   metaData: { fontSize: 15, color: Colors.text },
@@ -370,5 +561,77 @@ const styles = StyleSheet.create({
     fontFamily: 'PoppinsRegular',
     marginTop: Sizes.md,
     paddingHorizontal: Sizes.md,
+  },
+  btn: {
+    width: '48%',
+    paddingVertical: 6,
+    paddingHorizontal: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  reasonBtn: {
+    flex: 1,
+    marginHorizontal: 5,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Sizes.xsm,
+    justifyContent: 'center',
+  },
+  btnText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  instructionsContainer: {
+    backgroundColor: Colors.gray100,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  instructionsTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+    color: Colors.gray700,
+  },
+  instructionsText: {
+    fontSize: 15,
+    color: Colors.gray600,
+    lineHeight: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    color: Colors.gray700,
+    marginBottom: 20,
   },
 });

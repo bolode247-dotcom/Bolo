@@ -6,6 +6,7 @@ import CategoryCard from '@/component/CategorySection';
 import HomeSkeleton from '@/component/HomeSkeleton';
 import JobCard from '@/component/JobCard';
 import JobOfferCard from '@/component/OfferCard';
+import PostCard from '@/component/PostCard';
 import RecommendedWorkerCard, {
   RecommendedCardProps,
 } from '@/component/RecommendedCard';
@@ -268,7 +269,10 @@ const Index = () => {
                         onPress={() =>
                           router.push({
                             pathname: '/(screens)/workerProfile',
-                            params: { workerId: item.id },
+                            params: {
+                              workerId: item.id,
+                              isNotApplicant: 'true',
+                            },
                           })
                         }
                       />
@@ -291,6 +295,46 @@ const Index = () => {
                 contentContainerStyle={{
                   paddingHorizontal: 16,
                   backgroundColor: Colors.background,
+                }}
+                ListFooterComponent={() => {
+                  const workerPosts = (data as RecruiterFeedData)
+                    .recommendedPosts;
+                  if (!workerPosts || workerPosts.length === 0) return null;
+                  return (
+                    <>
+                      <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>
+                          {t('home.workerPosts')}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => router.push('/(screens)/WorkerPosts')}
+                        >
+                          <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <PostCard
+                        post={{
+                          caption: workerPosts[0].caption,
+                          image: workerPosts[0].image,
+                          createdAt: workerPosts[0].createdAt,
+                          worker: {
+                            name: workerPosts[0].worker?.name,
+                            avatar: workerPosts[0].worker?.avatar,
+                            isVerified: workerPosts[0].worker?.isVerified,
+                          },
+                          id: workerPosts[0].id,
+                        }}
+                        isRecruiter={true}
+                        showAvatar
+                        onImagePress={() =>
+                          router.push({
+                            pathname: '/(screens)/workerProfile',
+                            params: { workerId: workerPosts[0].worker?.id },
+                          })
+                        }
+                      />
+                    </>
+                  );
                 }}
               />
             );

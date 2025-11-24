@@ -185,6 +185,7 @@ export default function JobComfirmation() {
                     placeholder={t('formLabels.maxApplicants.placeholder')}
                     keyboardType="number-pad"
                     inputContainer={styles.inputStyle}
+                    minValue={1}
                   />
 
                   <Text style={styles.noteText}>

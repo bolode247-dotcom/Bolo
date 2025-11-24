@@ -171,12 +171,17 @@ const JobDetails = () => {
             }
           >
             <View style={styles.applicants}>
-              <Text style={styles.appText}>Applicants</Text>
+              <Text style={styles.appText}>Applicants (click to view)</Text>
+
               <Text style={styles.appCount}>
-                {job?.applicantsCount}{' '}
-                {job?.applicantsCount === 1 ? 'applicant' : 'applicants'}
+                {job?.applicantsCount
+                  ? `${job.applicantsCount} ${
+                      job.applicantsCount === 1 ? 'applicant' : 'applicants'
+                    }`
+                  : 'No applicants'}
               </Text>
             </View>
+
             <View style={styles.appRight}>
               <View style={styles.appAvatars}>
                 <Ionicons

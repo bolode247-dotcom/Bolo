@@ -40,6 +40,7 @@ export const createJob = async (values: Job) => {
           : 0,
         skills,
         status: 'active',
+        isOffer: workerId ? true : false,
       },
     });
 
@@ -149,6 +150,7 @@ export const getRecommendedJobs = async (
         'locations.subdivision',
       ]),
       Query.limit(50),
+      Query.notEqual('isOffer', true),
     ];
 
     const res = await tables.listRows({
@@ -222,6 +224,7 @@ export const getJobsByPlan = async (isPro: boolean) => {
           ? Query.orderDesc('$createdAt') // Pro → newest jobs first
           : Query.orderAsc('$createdAt'), // Non-Pro → oldest jobs first
         Query.limit(5),
+        Query.notEqual('isOffer', true),
         Query.select([
           '$id',
           'title',
@@ -534,6 +537,7 @@ export const getJobsByRegionOrSkill = async (
       Query.equal('locations.region', region),
       Query.select(baseSelect),
       Query.limit(10),
+      Query.notEqual('isOffer', true),
     ];
     if (search && search.trim()) {
       const s = search.trim();
@@ -556,6 +560,7 @@ export const getJobsByRegionOrSkill = async (
         Query.equal('skills', skillId),
         Query.select(baseSelect),
         Query.limit(10),
+        Query.notEqual('isOffer', true),
       ];
       if (search && search.trim()) {
         const s = search.trim();
@@ -576,7 +581,11 @@ export const getJobsByRegionOrSkill = async (
 
     // 🎲 Step 3: If still fewer than 5, fetch random jobs (optionally matching search)
     if (jobs.length < 5) {
-      const randomQueries = [Query.select(baseSelect), Query.limit(10)];
+      const randomQueries = [
+        Query.select(baseSelect),
+        Query.limit(10),
+        Query.notEqual('isOffer', true),
+      ];
       if (search && search.trim()) {
         const s = search.trim();
         randomQueries.push(
@@ -979,6 +988,7 @@ interface ApplicantApplication {
   workerId: string;
   reason: string;
   status: string;
+  interview: string | null;
 }
 
 interface ApplicantInfo {
@@ -990,6 +1000,7 @@ interface ApplicantInfo {
   skill: string;
   status: string;
   reason: string;
+  interview: string | null;
   location: {
     subdivision: string;
     division: string;
@@ -1009,7 +1020,13 @@ export const getApplicantsByJobId = async (
       tableId: appwriteConfig.applicationsCol,
       queries: [
         Query.equal('jobs', jobId),
-        Query.select(['$id', 'reason', 'status', 'workers.$id']),
+        Query.select([
+          '$id',
+          'reason',
+          'status',
+          'workers.$id',
+          'interview.$id',
+        ]),
       ],
     });
 
@@ -1023,6 +1040,7 @@ export const getApplicantsByJobId = async (
         workerId: a.workers.$id,
         reason: a?.reason || '',
         status: a?.status || 'applied',
+        interview: a?.interview?.$id || null,
       }));
 
     if (!applications.length) return [];
@@ -1060,6 +1078,7 @@ export const getApplicantsByJobId = async (
           skill: worker?.users?.skills?.[`name_${lang}`],
           status: app.status,
           reason: app.reason,
+          interview: app.interview,
           location: {
             subdivision: worker?.users?.locations?.subdivision,
             division: worker?.users?.locations?.division,
@@ -1100,6 +1119,67 @@ export const updateApplicantStatus = async (
     return true;
   } catch (error) {
     console.error('❌ Error updating applicant status:', error);
+    return false;
+  }
+};
+
+export const scheduleInterview = async (
+  applicationId: string,
+  instructions: string,
+  time: string,
+  date: string,
+  status?: string,
+) => {
+  try {
+    // 1️⃣ Create interview entry
+    const newInterview = await tables.createRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.interviewCol,
+      rowId: ID.unique(),
+      data: {
+        instructions,
+        time,
+        date,
+        status: status || 'pending',
+      },
+    });
+
+    // 2️⃣ Update application entry
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      rowId: applicationId,
+      data: { interview: newInterview.$id },
+    });
+
+    return newInterview.$id;
+  } catch (error) {
+    console.error('❌ Error scheduling interview:', error);
+    return false;
+  }
+};
+
+export const updateInterview = async (
+  interviewId: string,
+  instructions: string,
+  time: string,
+  date: string,
+) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.interviewCol,
+      rowId: interviewId,
+      data: {
+        instructions,
+        time,
+        date,
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error('❌ Error updating interview:', error);
     return false;
   }
 };

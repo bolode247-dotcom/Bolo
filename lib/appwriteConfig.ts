@@ -25,6 +25,7 @@ export const appwriteConfig = {
   boloCol: process.env.EXPO_PUBLIC_APPWRITE_BOLO_COL_ID!,
   boloBucketCol: process.env.EXPO_PUBLIC_APPWRITE_BOLO_BUCK_ID!,
   boloNotificationsCol: process.env.EXPO_PUBLIC_APPWRITE_NOTIFICATIONS_ID!,
+  interviewCol: process.env.EXPO_PUBLIC_APPWRITE_INTERVIEW_COL_ID!,
 
   workSampleCol: process.env.EXPO_PUBLIC_WORKER_WORKSAMPLES_ID!,
   workerFreePlanId: process.env.EXPO_PUBLIC_WORKER_FREE_PLAN_ID!,

@@ -179,8 +179,7 @@ const Applications = () => {
                   <Text style={styles.instructionsTitle}>Instructions</Text>
                   <ScrollView style={{ maxHeight: 200 }}>
                     <Text style={styles.instructionsText}>
-                      {selectedApp.instructions}Notify the recruiter
-                      automatically when the worker responds
+                      {selectedApp.instructions}
                     </Text>
                   </ScrollView>
                 </View>
