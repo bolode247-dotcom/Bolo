@@ -1,12 +1,17 @@
+import { getUnreadChatsCount } from '@/appwriteFuncs/appwriteGenFunc';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { client } from '@/lib/appwrite';
+import { appwriteConfig } from '@/lib/appwriteConfig';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 
 export default function TabsLayout() {
   const { user } = useAuth();
+  const [unreadChats, setUnreadChats] = React.useState(0);
+
   const isRecruiter = user?.role === 'recruiter';
 
   // Full list of possible tabs
@@ -31,6 +36,46 @@ export default function TabsLayout() {
       tabName,
     );
   };
+
+  useEffect(() => {
+    if (!user?.$id) return;
+
+    let isMounted = true;
+
+    const load = async () => {
+      const count = await getUnreadChatsCount(
+        isRecruiter ? user.recruiters?.$id : user.workers?.$id,
+        user.role,
+      );
+      if (isMounted) setUnreadChats(count);
+    };
+
+    // Initial load
+    load();
+
+    // 👉 Listen for ANY change to the chats collection
+    const unsubscribe = client.subscribe(
+      `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`,
+      async (res) => {
+        const shouldRefresh = res.events.some(
+          (e) => e.includes('.update') || e.includes('.create'),
+        );
+
+        if (shouldRefresh) {
+          const count = await getUnreadChatsCount(
+            isRecruiter ? user.recruiters?.$id : user.workers?.$id,
+            user.role,
+          );
+          if (isMounted) setUnreadChats(count);
+        }
+      },
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribe(); // prevent INVALID_STATE_ERR
+    };
+  }, [user?.$id]);
 
   return (
     <>
@@ -57,6 +102,10 @@ export default function TabsLayout() {
                   <Ionicons name={iconName as any} size={size} color={color} />
                 );
               },
+              tabBarBadge:
+                tab.name === 'chats' && unreadChats > 0
+                  ? unreadChats
+                  : undefined,
             }}
           />
         ))}

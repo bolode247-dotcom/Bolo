@@ -2,7 +2,6 @@ import { Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/authContex';
 import { useToast } from '@/context/ToastContext';
-import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -18,8 +17,6 @@ const ChangeLanguage = () => {
   const { selectedLanguage, setSelectedLanguage } = useAuth();
   const { t } = useTranslation();
   const { showToast } = useToast();
-
-  const router = useRouter();
 
   const handlLanguageChange = async (code: string) => {
     if (!selectedLanguage || selectedLanguage === code) return;
@@ -77,18 +74,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 40,
     alignItems: 'center',
+    paddingHorizontal: 10,
   },
   header: {
     alignItems: 'center',
     marginHorizontal: 20,
     justifyContent: 'center',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'PoppinsBold',
     color: Colors.gray800,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   optionsContainer: {
     flexDirection: 'column',
@@ -96,8 +94,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     justifyContent: 'center',
     gap: Sizes.sm,
+    width: '90%',
   },
   optionCard: {
+    width: '100%',
     backgroundColor: Colors.white,
     borderWidth: 2,
     borderColor: Colors.gray300,

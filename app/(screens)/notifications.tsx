@@ -1,6 +1,7 @@
 import {
   deleteNotify,
   getNotifications,
+  markNotificationsAsRead,
 } from '@/appwriteFuncs/appwriteGenFunc';
 import ConfirmModal from '@/component/ConfirmModal';
 import EmptyState from '@/component/EmptyState';
@@ -12,6 +13,7 @@ import useAppwrite from '@/lib/useAppwrite';
 import { formatTimeStampv2 } from '@/Utils/Formatting';
 import { AntDesign, Entypo, Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
+import { useFocusEffect } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   RefreshControl,
@@ -100,6 +102,13 @@ const Notifications = () => {
     isLoading,
     refetch,
   } = useAppwrite(fetchNotifications, [user]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.$id || !Notifications?.length) return;
+      markNotificationsAsRead(user.$id, Notifications).then(() => {});
+    }, [Notifications, user]),
+  );
 
   const sections = useMemo(() => {
     if (!Notifications) return [];

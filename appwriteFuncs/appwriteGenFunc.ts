@@ -330,6 +330,27 @@ export const getChats = async (
   }
 };
 
+export const getUnreadChatsCount = async (
+  userId: string,
+  role: 'recruiter' | 'worker',
+): Promise<number> => {
+  try {
+    if (!userId) return 0;
+
+    const chats = await getChats(userId, role);
+
+    // Sum all unread counts
+    const unreadTotal = chats.reduce((sum, chat) => {
+      return sum + (chat.unreadCount || 0);
+    }, 0);
+
+    return unreadTotal;
+  } catch (error) {
+    console.error('❌ Error fetching unread chat count:', error);
+    return 0;
+  }
+};
+
 /**
  * ✅ Fetch chat + messages safely and flatten fields
  */
@@ -533,4 +554,88 @@ export const getNotifications = async (user: any) => {
     time: notify.$createdAt,
     iconName: notify.icon || 'bell',
   }));
+};
+
+export const getUnreadNotificationsCount = async (user: any) => {
+  console.log('Fetching unread notifications for user:', user);
+  if (!user?.$id) return 0;
+  console.log('User ID:', user.$id);
+
+  const queryGroup: any[] = [];
+
+  // GLOBAL
+  queryGroup.push(Query.equal('targetType', 'global'));
+
+  // PERSONAL (user-specific)
+  queryGroup.push(
+    Query.and([
+      Query.equal('targetType', 'user'),
+      Query.contains('userIds', user.$id),
+    ]),
+  );
+
+  // ROLE-BASED
+  if (user?.role) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'role'),
+        Query.equal('targetValue', user.role),
+      ]),
+    );
+  }
+
+  // LOCATION-BASED
+  if (user?.locations?.$id) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'location'),
+        Query.equal('targetValue', user.locations.$id),
+      ]),
+    );
+  }
+
+  // SKILL-BASED
+  if (user?.skills?.$id) {
+    queryGroup.push(
+      Query.and([
+        Query.equal('targetType', 'skill'),
+        Query.equal('targetValue', user.skills.$id),
+      ]),
+    );
+  }
+
+  const res = await tables.listRows({
+    databaseId: appwriteConfig.dbId,
+    tableId: appwriteConfig.boloNotificationsCol,
+    queries: [Query.or(queryGroup), Query.notContains('readBy', [user.$id])],
+  });
+
+  console.log('Unread notifications count:', res.total);
+
+  return res.total; // 🔥 Only return the count
+};
+
+export const markNotificationsAsRead = async (
+  userId: string,
+  notifications: any[],
+) => {
+  try {
+    const unread = notifications.filter((n) => !n.readBy?.includes(userId));
+
+    const promises: Promise<any>[] = unread.map((n) =>
+      tables.updateRow({
+        databaseId: appwriteConfig.dbId,
+        tableId: appwriteConfig.boloNotificationsCol,
+        rowId: n.$id,
+        data: { readBy: [...(n.readBy || []), userId] },
+      }),
+    );
+
+    await Promise.all(promises);
+
+    return true;
+  } catch (err) {
+    console.error('Error marking notifications as read:', err);
+    return false;
+  }
 };

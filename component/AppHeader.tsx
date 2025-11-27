@@ -1,60 +1,80 @@
+import { getUnreadNotificationsCount } from '@/appwriteFuncs/appwriteGenFunc';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
+import { client } from '@/lib/appwrite';
+import { appwriteConfig } from '@/lib/appwriteConfig';
 import { viewImage } from '@/Utils/helpers';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const AppHeader = () => {
   const { user } = useAuth();
-  const [notification, setNotification] = useState(10);
+  const [notification, setNotification] = useState(0);
 
   const name = user?.name || 'Guest User';
   const location =
     [user?.locations?.division, user?.locations?.subdivision]
-      .filter(Boolean) // remove undefined/null
+      .filter(Boolean)
       .join(', ') || 'Unknown Location';
   const avatar = user?.avatar || '';
 
-  // const fetchNotifications = async () => {
-  //   if (!user?.$id) return;
-  //   try {
-  //     const res = await getUnreadNotifications(user?.$id, user?.author?.$id);
-  //     setNotification(res?.length || 0);
-  //   } catch (error) {
-  //     console.error("❌ Error fetching notifications:", error);
-  //   }
-  // };
+  const fetchNotificationCount = async () => {
+    if (!user?.$id) return;
+    try {
+      const count = await getUnreadNotificationsCount(user);
+      setNotification(count);
+    } catch (error) {
+      console.error('❌ Error fetching notification count:', error);
+    }
+  };
 
-  // useEffect(() => {
-  //   // Fetch notifications initially
-  //   fetchNotifications();
+  useEffect(() => {
+    if (!user?.$id) return;
 
-  //   // Subscribe to notification collection
-  //   const unsubscribe = client.subscribe(
-  //     `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.notificationCol}.documents`,
-  //     (response) => {
-  //       if (response.events.includes('databases.*.collections.*.documents.*.create')) {
-  //         // Refresh notifications on new create
-  //         fetchNotifications();
-  //       }
-  //       if (response.events.includes('databases.*.collections.*.documents.*.delete')) {
-  //         // Refresh on delete too
-  //         fetchNotifications();
-  //       }
-  //     }
-  //   );
+    fetchNotificationCount();
 
-  //   return () => unsubscribe();
-  // }, [user?.$id]);
+    let unsubscribe: any = null;
 
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     fetchNotifications();
-  //   }, [user?.$id])
-  // );
+    try {
+      unsubscribe = client.subscribe(
+        `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.boloNotificationsCol}.documents`,
+        (response) => {
+          try {
+            if (
+              response.events.includes(
+                'databases.*.collections.*.documents.*.create',
+              ) ||
+              response.events.includes(
+                'databases.*.collections.*.documents.*.delete',
+              )
+            ) {
+              fetchNotificationCount();
+            }
+          } catch (innerError) {
+            console.log('Error handling real-time event:', innerError);
+          }
+        },
+      );
+    } catch (subError) {
+      console.log('Subscription failed:', subError);
+    }
 
+    return () => {
+      try {
+        if (unsubscribe) unsubscribe();
+      } catch (cleanError) {
+        console.log('Safe unsubscribe error:', cleanError);
+      }
+    };
+  }, [user?.$id]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchNotificationCount();
+    }, [user?.$id]),
+  );
   return (
     <View style={styles.container}>
       {/* Profile + Info */}
