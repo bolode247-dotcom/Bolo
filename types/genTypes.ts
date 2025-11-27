@@ -145,3 +145,18 @@ export interface Interview {
   date: string;
   status: string;
 }
+
+export interface ChatParticipant {
+  id: string;
+  name: string;
+  avatar: string | null;
+}
+
+export interface ChatPreview {
+  id: string; // Chat document ID
+  jobId: string; // Optional, ID of the related job
+  lastMessage?: string; // Last message in the chat
+  lastMessageAt: string; // ISO date string of last message
+  unreadCount: number; // Unread messages for this user
+  participant: ChatParticipant; // The other participant in the chat
+}

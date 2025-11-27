@@ -1,6 +1,6 @@
 import { storage, tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
-import { Chat, ChatDetails, Message } from '@/types/genTypes';
+import { Chat, ChatDetails, ChatPreview, Message } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
 export interface LocationOption {
@@ -218,19 +218,6 @@ export const getOrCreateChat = async (
   }
 };
 
-type ChatPreview = {
-  id: string;
-  jobId: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  unreadCount: number;
-  participant: {
-    id: string;
-    name: string;
-    avatar: string | null;
-  };
-};
-
 export const getChats = async (
   userId: string,
   role: 'recruiter' | 'worker',
@@ -302,16 +289,16 @@ export const getChats = async (
 
         return {
           id: chat.$id,
-          jobId: chat.jobs.$id,
+          jobId: chat.jobs?.$id,
           lastMessage: chat.lastMessage,
           lastMessageAt: chat.lastMessageAt,
           unreadCount,
           participant: {
             id: otherId,
             name: otherName,
-            avatar: otherAvatar,
+            avatar: otherAvatar || null,
           },
-        };
+        } as ChatPreview;
       }),
     );
 
@@ -557,9 +544,7 @@ export const getNotifications = async (user: any) => {
 };
 
 export const getUnreadNotificationsCount = async (user: any) => {
-  console.log('Fetching unread notifications for user:', user);
   if (!user?.$id) return 0;
-  console.log('User ID:', user.$id);
 
   const queryGroup: any[] = [];
 

@@ -1,25 +1,12 @@
 import { Colors, Sizes } from '@/constants';
+import { ChatPreview } from '@/types/genTypes';
 import { formatTimestamp } from '@/Utils/Formatting';
 import { viewImage } from '@/Utils/helpers';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type appCardProps = {
-  id: string;
-  jobId: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  unreadCount: number;
-  participant: participant;
-};
-type participant = {
-  id: string;
-  name: string;
-  avatar: string | null;
-};
-
 type Props = {
-  chat: appCardProps;
+  chat: ChatPreview;
   onPress?: () => void;
   onStatusChange?: (id: string, status: string) => void;
 };

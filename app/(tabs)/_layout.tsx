@@ -41,39 +41,57 @@ export default function TabsLayout() {
     if (!user?.$id) return;
 
     let isMounted = true;
+    let unsubscribe = () => {};
 
-    const load = async () => {
-      const count = await getUnreadChatsCount(
-        isRecruiter ? user.recruiters?.$id : user.workers?.$id,
-        user.role,
-      );
-      if (isMounted) setUnreadChats(count);
+    const loadUnread = async () => {
+      try {
+        const count = await getUnreadChatsCount(
+          isRecruiter ? user.recruiters?.$id : user.workers?.$id,
+          user.role,
+        );
+        if (isMounted) setUnreadChats(count);
+      } catch (err) {
+        console.error('❌ Error fetching unread chats count:', err);
+      }
     };
 
     // Initial load
-    load();
+    loadUnread();
 
-    // 👉 Listen for ANY change to the chats collection
-    const unsubscribe = client.subscribe(
-      `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`,
-      async (res) => {
-        const shouldRefresh = res.events.some(
-          (e) => e.includes('.update') || e.includes('.create'),
-        );
+    // Realtime subscription
+    try {
+      unsubscribe = client.subscribe(
+        `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`,
+        async (res) => {
+          try {
+            const shouldRefresh = res.events.some(
+              (e) => e.includes('.update') || e.includes('.create'),
+            );
 
-        if (shouldRefresh) {
-          const count = await getUnreadChatsCount(
-            isRecruiter ? user.recruiters?.$id : user.workers?.$id,
-            user.role,
-          );
-          if (isMounted) setUnreadChats(count);
-        }
-      },
-    );
+            if (shouldRefresh) {
+              const count = await getUnreadChatsCount(
+                isRecruiter ? user.recruiters?.$id : user.workers?.$id,
+                user.role,
+              );
+              if (isMounted) setUnreadChats(count);
+            }
+          } catch (innerErr) {
+            console.error('⚠️ Error inside realtime callback:', innerErr);
+          }
+        },
+      );
+    } catch (err) {
+      console.error('❌ Failed to initialize realtime subscription:', err);
+    }
 
+    // Cleanup
     return () => {
       isMounted = false;
-      unsubscribe(); // prevent INVALID_STATE_ERR
+      try {
+        unsubscribe();
+      } catch (cleanupErr) {
+        console.error('⚠️ Error during realtime unsubscribe:', cleanupErr);
+      }
     };
   }, [user?.$id]);
 
