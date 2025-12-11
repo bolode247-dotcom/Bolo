@@ -1,4 +1,7 @@
-import { getOrCreateChat } from '@/appwriteFuncs/appwriteGenFunc';
+import {
+  getOrCreateChat,
+  sendPushNotification,
+} from '@/appwriteFuncs/appwriteGenFunc';
 import {
   scheduleInterview,
   updateApplicantStatus,
@@ -51,6 +54,8 @@ const WorkerProfileScreen = () => {
   const [ImageVisible, setImageVisible] = useState(false);
   const [postCaption, setPostCaption] = useState<string>('');
   const [image, setImage] = useState<string>('');
+  const [currentStatus, setCurrentStatus] = useState(status);
+  const [currentInterviewId, setCurrentInterviewId] = useState(interviewId);
 
   const [interviewModalVisible, setInterviewModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -72,12 +77,13 @@ const WorkerProfileScreen = () => {
 
   const fetchWorker = useCallback(() => getWorkerById(workerId), [workerId]);
   const fetchInterview = useCallback(
-    () => getInterview(interviewId),
-    [interviewId],
+    () => getInterview(currentInterviewId),
+    [currentInterviewId],
   );
 
   const { data: worker, isLoading, error, refetch } = useAppwrite(fetchWorker);
-  const { data: interview } = useAppwrite(fetchInterview);
+  const { data: interview, refetch: refetchInterview } =
+    useAppwrite(fetchInterview);
   const { data: post, isLoading: postLoading } = useAppwrite(() =>
     getWorkSample(workerId),
   );
@@ -162,10 +168,14 @@ const WorkerProfileScreen = () => {
 
     try {
       await updateApplicantStatus(appId, newStatus);
+      await sendPushNotification(
+        worker?.pushToken, // token of the applicant
+        'Application Update', // title
+        `${newStatus === 'seen' ? 'Your application has been seen!' : newStatus === 'interview' ? 'You have been shortlisted for an interview!' : 'Congratulations! You have been hired!'}`, // if status === 'seen' ? 'Your application has been seen!' : status === 'interview' ? 'You have been shortlisted for an interview!' : 'Congratulations! You have been hired!',
+      );
+      setCurrentStatus(newStatus);
 
       showToast(`Status updated to ${newStatus}`, 'success');
-
-      await refetch();
     } catch (error: any) {
       showToast(error.message, 'error');
     } finally {
@@ -201,6 +211,8 @@ const WorkerProfileScreen = () => {
       return;
     }
 
+    if (loading) return;
+
     setLoading(true);
 
     try {
@@ -209,14 +221,21 @@ const WorkerProfileScreen = () => {
       const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
       const formattedTime = `${hours}:${minutes}`;
 
-      await scheduleInterview(
+      const res = await scheduleInterview(
         appId,
         interviewInstructions,
         formattedTime,
         formattedDate,
       );
 
-      await refetch();
+      if (res) {
+        await sendPushNotification(
+          worker?.pushToken, // token of the applicant
+          'Interview Scheduled', // title
+          'You have been scheduled for an interview', // body
+        );
+        setCurrentInterviewId(res);
+      }
 
       showToast('Interview scheduled successfully', 'success');
       setInterviewModalVisible(false);
@@ -250,7 +269,13 @@ const WorkerProfileScreen = () => {
         formattedDate,
       );
 
-      await refetch();
+      await sendPushNotification(
+        worker?.pushToken, // token of the applicant
+        'Interview Updated', // title
+        'Your interview has been updated', // body
+      );
+
+      await refetchInterview();
 
       showToast('Interview updated successfully', 'success');
       setInterviewModalVisible(false);
@@ -328,7 +353,7 @@ const WorkerProfileScreen = () => {
             </Text>
           </View>
           {/* Stats */}
-          {status === 'seen' ? (
+          {currentStatus === 'seen' ? (
             <View style={styles.statsRow}>
               <CustomButton
                 title="Message"
@@ -347,11 +372,12 @@ const WorkerProfileScreen = () => {
                 textStyle={{ fontSize: Sizes.sm }}
               />
             </View>
-          ) : status === 'applied' ? (
+          ) : currentStatus === 'applied' ? (
             <View style={styles.statsRow}>
               <CustomButton
                 title="Select"
                 onPress={() => handleStatusChange('seen')}
+                isLoading={loading}
               />
             </View>
           ) : (
@@ -398,7 +424,7 @@ const WorkerProfileScreen = () => {
           )}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About {worker?.name}</Text>
-            <Text style={styles.bio}>{worker?.workers?.bio}</Text>
+            <Text style={styles.bio}>{worker?.bio}</Text>
 
             <View style={styles.metaCol}>
               <Text style={styles.meta}>Main Skill:</Text>

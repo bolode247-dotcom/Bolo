@@ -1,4 +1,6 @@
 import { getCurrentUser } from '@/appwriteFuncs/usersFunc';
+import { tables } from '@/lib/appwrite';
+import { appwriteConfig } from '@/lib/appwriteConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18next from 'i18next';
 import React, {
@@ -8,6 +10,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import { useNotification } from './NotificationContext';
 
 interface AuthContextType {
   isLoading: boolean;
@@ -33,6 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [selectedLanguage, setSelectedLanguageState] = useState<string | null>(
     null,
   );
+  const { expoPushToken } = useNotification();
 
   // Save and change language
   const setSelectedLanguage = async (lang: string) => {
@@ -80,6 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       console.log('Error reading onboarding status:', error);
     }
   };
+  // ExponentPushToken[2k__aiGTUcNs1kDAFPMOqy]
 
   // Fetch user session
   const fetchData = async () => {
@@ -100,6 +105,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      !session ||
+      !user ||
+      !expoPushToken ||
+      user.pushToken === expoPushToken
+    ) {
+      return;
+    }
+
+    const saveToken = async () => {
+      try {
+        await tables.updateRow({
+          databaseId: appwriteConfig.dbId,
+          tableId: appwriteConfig.userCol,
+          rowId: user.$id,
+          data: { pushToken: expoPushToken },
+        });
+
+        // keep local state in sync
+        setUser((prev: any) =>
+          prev ? { ...prev, pushToken: expoPushToken } : prev,
+        );
+      } catch (err) {
+        console.warn('Failed to save push token:', err);
+      }
+    };
+
+    saveToken();
+  }, [session, user, expoPushToken]);
 
   useEffect(() => {
     const init = async () => {

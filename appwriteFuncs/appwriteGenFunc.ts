@@ -1,4 +1,4 @@
-import { storage, tables } from '@/lib/appwrite';
+import { functions, storage, tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import { Chat, ChatDetails, ChatPreview, Message } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,9 +50,9 @@ export const getFilteredLocations = async (
   if (search) {
     queries.push(
       Query.or([
-        Query.search('region', search),
-        Query.search('division', search),
-        Query.search('subdivision', search),
+        Query.startsWith('region', search),
+        Query.startsWith('division', search),
+        Query.startsWith('subdivision', search),
       ]),
     );
   }
@@ -79,16 +79,24 @@ export const getFilteredSkills = async (
   search = '',
 ): Promise<LocationOption[]> => {
   const lang = (await AsyncStorage.getItem('appLanguage')) || 'en';
+
   const queries = [];
-  if (search) {
-    queries.push(Query.search('name_en', search));
-    queries.push(Query.search('name_fr', search));
+
+  if (search.trim()) {
+    const q = search.trim();
+    queries.push(
+      Query.or([
+        Query.startsWith('name_en', q),
+        Query.startsWith('name_fr', q),
+      ]),
+    );
   }
+
   try {
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.skillsCol,
-      queries: queries,
+      queries,
     });
 
     const rows = res?.rows ?? [];
@@ -99,8 +107,8 @@ export const getFilteredSkills = async (
       value: row.$id,
     }));
   } catch (error) {
-    console.error('Failed to fetch locations:', error);
-    return []; // ✅ safe fallback
+    console.error('Failed to fetch skills:', error);
+    return [];
   }
 };
 
@@ -595,8 +603,6 @@ export const getUnreadNotificationsCount = async (user: any) => {
     queries: [Query.or(queryGroup), Query.notContains('readBy', [user.$id])],
   });
 
-  console.log('Unread notifications count:', res.total);
-
   return res.total; // 🔥 Only return the count
 };
 
@@ -622,5 +628,35 @@ export const markNotificationsAsRead = async (
   } catch (err) {
     console.error('Error marking notifications as read:', err);
     return false;
+  }
+};
+
+export const sendPushNotification = async (
+  tokens: string | string[],
+  title: string,
+  body: string,
+  data: any = {},
+) => {
+  try {
+    const payload = {
+      tokens: Array.isArray(tokens) ? tokens : [tokens],
+      title,
+      body,
+      data,
+    };
+
+    const execution = await functions.createExecution({
+      functionId: '693a2ad30010ede487f8', // your Appwrite Function ID
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      success: true,
+      executionId: execution.$id,
+      response: execution.responseBody,
+    };
+  } catch (err: any) {
+    console.error('❌ sendPushNotification error:', err);
+    return { success: false, error: err.message };
   }
 };

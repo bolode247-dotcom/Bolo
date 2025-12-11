@@ -21,11 +21,11 @@ const EditBio = () => {
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log('user bio: ', user?.workers?.bio);
+  console.log('user bio: ', user?.bio);
   const handleUpdateUser = async (values: any) => {
     try {
       setIsLoading(true);
-      await updateUserBio(user?.workers?.$id, values.bio);
+      await updateUserBio(user?.$id, values.bio);
       showToast('Bio updated successfully', 'success');
       await fetchData();
     } catch (error: any) {
@@ -42,7 +42,7 @@ const EditBio = () => {
     >
       <AppForm
         initialValues={{
-          bio: user?.workers?.bio,
+          bio: user?.bio,
         }}
         onSubmit={handleUpdateUser}
         validationSchema={validationSchema}

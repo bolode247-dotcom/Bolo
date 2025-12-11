@@ -1,17 +1,15 @@
-import { getUnreadNotificationsCount } from '@/appwriteFuncs/appwriteGenFunc';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
-import { client } from '@/lib/appwrite';
-import { appwriteConfig } from '@/lib/appwriteConfig';
+import { useNotifications } from '@/context/useNotification';
 import { viewImage } from '@/Utils/helpers';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const AppHeader = () => {
   const { user } = useAuth();
-  const [notification, setNotification] = useState(0);
+  const notification = useNotifications();
 
   const name = user?.name || 'Guest User';
   const location =
@@ -20,61 +18,6 @@ const AppHeader = () => {
       .join(', ') || 'Unknown Location';
   const avatar = user?.avatar || '';
 
-  const fetchNotificationCount = async () => {
-    if (!user?.$id) return;
-    try {
-      const count = await getUnreadNotificationsCount(user);
-      setNotification(count);
-    } catch (error) {
-      console.error('❌ Error fetching notification count:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (!user?.$id) return;
-
-    fetchNotificationCount();
-
-    let unsubscribe: any = null;
-
-    try {
-      unsubscribe = client.subscribe(
-        `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.boloNotificationsCol}.documents`,
-        (response) => {
-          try {
-            if (
-              response.events.includes(
-                'databases.*.collections.*.documents.*.create',
-              ) ||
-              response.events.includes(
-                'databases.*.collections.*.documents.*.delete',
-              )
-            ) {
-              fetchNotificationCount();
-            }
-          } catch (innerError) {
-            console.log('Error handling real-time event:', innerError);
-          }
-        },
-      );
-    } catch (subError) {
-      console.log('Subscription failed:', subError);
-    }
-
-    return () => {
-      try {
-        if (unsubscribe) unsubscribe();
-      } catch (cleanError) {
-        console.log('Safe unsubscribe error:', cleanError);
-      }
-    };
-  }, [user?.$id]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchNotificationCount();
-    }, [user?.$id]),
-  );
   return (
     <View style={styles.container}>
       {/* Profile + Info */}

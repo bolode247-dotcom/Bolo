@@ -38,11 +38,6 @@ yarn-error.*
 
 app-example
 
-google-services
-
 # generated native folders
 /ios
 /android
-
-.vercel
-.env*.local

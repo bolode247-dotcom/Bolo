@@ -1,3 +1,4 @@
+import { sendPushNotification } from '@/appwriteFuncs/appwriteGenFunc';
 import {
   acceptOffer,
   applyForJob,
@@ -96,6 +97,11 @@ const JobDetails = () => {
     setIsApplying(true);
     try {
       await applyForJob(jobId, user?.workers?.$id, reason);
+      await sendPushNotification(
+        jobDetails?.recruiter?.pushToken, // recruiter's push token
+        'New Application Received 📩', // title
+        `${user?.workers?.name} has applied for ${jobDetails?.title}.`, // body
+      );
       showToast('You have applied for this job.', 'success');
       setShowReasonModal(false);
       refetch();
@@ -113,6 +119,11 @@ const JobDetails = () => {
       const appId = jobDetails?.appId;
       if (!appId) return;
       await withdrawApp(appId, jobId);
+      await sendPushNotification(
+        jobDetails?.recruiter?.pushToken, // recruiter's push token
+        'Application Withdrawn ❌', // title
+        `${user?.workers?.name} has withdrawn their application for ${jobDetails?.title}.`, // body
+      );
       showToast('Application widthdrawn.', 'success');
       refetch();
     } catch (err) {
@@ -127,6 +138,11 @@ const JobDetails = () => {
     setIsAccepting(true);
     try {
       await acceptOffer(jobDetails.offerId);
+      await sendPushNotification(
+        jobDetails?.recruiter?.pushToken, // recruiter's push token
+        'Offer Accepted 🎉', // title
+        `${user?.workers?.name} has accepted the job offer for ${jobDetails?.title}.`, // body
+      );
       showToast('You have accepted the offer.', 'success');
     } catch (err) {
       console.error(err);
@@ -146,6 +162,11 @@ const JobDetails = () => {
     try {
       await rejectOffer(jobDetails.offerId, reason);
       setShowReasonModal(false);
+      await sendPushNotification(
+        jobDetails?.recruiter?.pushToken, // recruiter's push token
+        'Offer Declined ❌', // title
+        `${user?.workers?.name} has declined the job offer for ${jobDetails?.title}.`, // body
+      );
       showToast('You have declined the offer.', 'success');
       router.back();
     } catch (err) {
@@ -197,7 +218,10 @@ const JobDetails = () => {
           ),
         }}
       />
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <SafeAreaView
+        style={styles.container}
+        edges={['top', 'left', 'right', 'bottom']}
+      >
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <View style={styles.header}>

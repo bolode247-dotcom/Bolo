@@ -1,5 +1,5 @@
 import { Colors, Sizes } from '@/constants';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ImageBackground,
   StyleSheet,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import SearchInputField from './SearchField';
 
+import { useNotifications } from '@/context/useNotification';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import SearchInput from './SearchInput';
@@ -28,7 +29,7 @@ const ExploreHeader = ({
   isRecruiter?: boolean;
   onSearch?: (query: string) => void;
 }) => {
-  const [notification, setNotification] = useState(10);
+  const notification = useNotifications();
   return (
     <ImageBackground
       source={require('@/assets/images/banner.png')}

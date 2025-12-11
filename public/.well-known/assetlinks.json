@@ -1,0 +1,13 @@
+[
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.uniforge.bolode",
+            "sha256_cert_fingerprints": [
+                "30:8C:86:3B:78:A2:7B:29:84:18:FD:AA:C1:E3:14:7E:18:18:09:FE:64:7E:AA:27:DF:03:09:25:5F:EA:5E:B2",
+                "61:85:C7:92:87:EB:86:BE:E6:93:3D:01:70:78:E9:A7:65:03:56:4B:F9:38:37:0D:6E:E5:70:A4:96:CF:E7:72"
+            ]
+        }
+    }
+]

@@ -121,7 +121,7 @@ const ProfileSettings = () => {
           </Text>
         </View>
       </View>
-      <TouchableOpacity>
+      <TouchableOpacity onPress={onEdit}>
         <Ionicons name="create-outline" size={22} color={Colors.primary} />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -180,7 +180,7 @@ const ProfileSettings = () => {
 
         <InfoRow
           label="About"
-          value={user?.workers?.bio || 'Hey there!'}
+          value={user?.bio || 'Hey there!'}
           icon="information-circle-outline"
           onEdit={() => router.push('/(profile)/EditBio')}
         />
@@ -250,16 +250,6 @@ const ProfileSettings = () => {
             >
               <Ionicons name="trash-outline" size={20} color={Colors.white} />
               <Text style={styles.editBtnText}>Delete</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => {
-                setImageModalVisible(false);
-                setCustMenuVisible(true);
-              }}
-            >
-              <Ionicons name="camera-outline" size={20} color={Colors.white} />
-              <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -351,10 +341,10 @@ const styles = StyleSheet.create({
   fullImage: { flex: 1, width: '100%', height: '100%', aspectRatio: 2 / 2 },
   editButtonRow: {
     position: 'absolute',
-    bottom: 200,
+    bottom: 180,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     width: '90%',
     paddingHorizontal: 20,
     paddingVertical: 12,

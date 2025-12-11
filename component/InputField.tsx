@@ -45,7 +45,7 @@ const InputField = ({
   numberOfLines = 4,
   ...props
 }: InputFieldProps) => {
-  const isPasswordField = label?.toLowerCase().includes('password');
+  const isPasswordField = secureTextEntry === true;
   const [showPassword, setShowPassword] = useState(
     isPasswordField ? false : true,
   );

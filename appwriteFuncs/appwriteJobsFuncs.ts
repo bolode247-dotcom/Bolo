@@ -3,6 +3,7 @@ import { appwriteConfig } from '@/lib/appwriteConfig';
 import { Job, Offer } from '@/types/genTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ID, Query } from 'react-native-appwrite';
+import { sendPushNotification } from './appwriteGenFunc';
 
 export const createJob = async (values: Job) => {
   const {
@@ -343,6 +344,7 @@ export const getJobById = async (jobId: string, workerId: string) => {
           'recruiters.logo',
           'description',
           'recruiters.companyName',
+          'recruiters.users.pushToken',
           'recruiters.users.name',
           'recruiters.users.avatar',
           'skills.icon',
@@ -388,6 +390,7 @@ export const getJobById = async (jobId: string, workerId: string) => {
       status: job.status,
       recruiter: job.recruiters
         ? {
+            pushToken: job.recruiters.users.pushToken,
             name: job.recruiters.users.name,
             logo: job.recruiters.logo,
             companyName: job.recruiters.companyName,
@@ -663,6 +666,11 @@ export const getApplicationsByWorkerId = async (workerId: string) => {
           '$createdAt',
           'status',
           'instructions',
+          'interview.$id',
+          'interview.time',
+          'interview.date',
+          'interview.instructions',
+          'interview.status',
           'jobs.$id',
           'jobs.title',
           'jobs.recruiters.$id', // only recruiter ID reference
@@ -699,7 +707,15 @@ export const getApplicationsByWorkerId = async (workerId: string) => {
       id: app.$id,
       createdAt: app.$createdAt,
       status: app.status,
-      instructions: app.instructions || null,
+      interview: app.interview
+        ? {
+            id: app.interview.$id,
+            time: app.interview.time,
+            date: app.interview.date,
+            instructions: app.interview.instructions,
+            status: app.interview.status,
+          }
+        : null,
       job: app.jobs
         ? {
             id: app.jobs.$id,
@@ -716,7 +732,7 @@ export const getApplicationsByWorkerId = async (workerId: string) => {
     console.error('Error fetching applications by workerId:', error);
     throw error;
   }
-}; // adjust paths
+};
 
 export const applyForJob = async (
   jobId: string,
@@ -750,6 +766,11 @@ export const applyForJob = async (
 
     // 3️⃣ Check if job is still open
     if (status === 'closed') {
+      await sendPushNotification(
+        job.recruiters?.users?.pushToken, // recruiter's push token
+        'Maximum number of applicants reached', // title
+        `Maximum number of applicants reached for ${job.title}.`, // body
+      );
       throw new Error('This job is already closed.');
     }
 
@@ -998,6 +1019,7 @@ interface ApplicantInfo {
   avatar: string | null;
   isPro: boolean;
   skill: string;
+  pushToken: string;
   status: string;
   reason: string;
   interview: string | null;
@@ -1061,6 +1083,7 @@ export const getApplicantsByJobId = async (
               'users.locations.subdivision',
               'users.locations.division',
               'users.locations.region',
+              'users.pushToken',
               `users.skills.name_${lang}`,
             ]),
           ],
@@ -1075,6 +1098,7 @@ export const getApplicantsByJobId = async (
           name: worker?.users?.name,
           avatar: worker?.users?.avatar,
           isPro: worker?.isPro ?? false,
+          pushToken: worker?.users?.pushToken || null,
           skill: worker?.users?.skills?.[`name_${lang}`],
           status: app.status,
           reason: app.reason,
@@ -1131,7 +1155,22 @@ export const scheduleInterview = async (
   status?: string,
 ) => {
   try {
-    // 1️⃣ Create interview entry
+    // 1️⃣ Fetch application to check if interview exists
+    const appRes = await tables.getRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      rowId: applicationId,
+    });
+
+    const existingInterviewId = appRes?.interview;
+
+    // 2️⃣ If an interview already exists → return it
+    if (existingInterviewId) {
+      console.log('Interview already exists:', existingInterviewId);
+      return existingInterviewId;
+    }
+
+    // 3️⃣ Create NEW interview
     const newInterview = await tables.createRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.interviewCol,
@@ -1144,7 +1183,7 @@ export const scheduleInterview = async (
       },
     });
 
-    // 2️⃣ Update application entry
+    // 4️⃣ Attach it to the application
     await tables.updateRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.applicationsCol,

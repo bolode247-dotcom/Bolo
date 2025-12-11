@@ -27,7 +27,8 @@
     "continue": "Continue",
     "getStarted": "Get Started",
     "viewDetails": "View details",
-    "backToHome": "Back to home"
+    "backToHome": "Back to home",
+    "completeProfile": "Complete Profile"
   },
 
   "signIn": {
@@ -190,7 +191,9 @@
   },
   "successModal": {
     "jobPostingSuccessful": "Job posting successful",
-    "jobPostingSubtitle": "You have successfully created a job posting. Choose from the applicants who you want to hire."
+    "jobPostingSubtitle": "You have successfully created a job posting. Choose from the applicants who you want to hire.",
+    "accountCreationSuccessful": "Account created successfully",
+    "accountCreationSubtitle": "Complete your profile to start applying for jobs and get hired faster."
   },
   "home": {
     "seeAll": "See all",

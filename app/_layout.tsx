@@ -4,14 +4,22 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/authContex';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../i18n';
 import LoadingScreen from './LoadingScreen';
 
-// Prevent splash screen auto-hide until fonts are loaded
-SplashScreen.preventAutoHideAsync();
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowList: true,
+  }),
+});
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -23,6 +31,9 @@ export default function RootLayout() {
     PoppinsRegular: require('../assets/fonts/Poppins-Regular.ttf'),
     PoppinsSemiBold: require('../assets/fonts/Poppins-SemiBold.ttf'),
   });
+  useEffect(() => {
+    SplashScreen.preventAutoHideAsync();
+  }, []);
 
   useEffect(() => {
     if (loaded) {
@@ -33,16 +44,18 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <AuthProvider>
-      <GestureHandlerRootView>
-        <BottomSheetModalProvider>
-          <ToastProvider>
-            <AppRouter />
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-          </ToastProvider>
-        </BottomSheetModalProvider>
-      </GestureHandlerRootView>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <AppRouter />
+              <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+            </ToastProvider>
+          </AuthProvider>
+        </NotificationProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 

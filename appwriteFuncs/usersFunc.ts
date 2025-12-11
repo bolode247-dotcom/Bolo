@@ -27,6 +27,19 @@ export const createAccount = async (values: SignUpPayload) => {
 
     await account.createEmailPasswordSession({ email, password });
 
+    const signupDate = new Date(newAccount.$createdAt);
+    const firstJan = new Date(signupDate.getFullYear(), 0, 1);
+
+    // Calculate the number of days since Jan 1
+    const numberOfDays = Math.floor(
+      (signupDate.getTime() - firstJan.getTime()) / (24 * 60 * 60 * 1000),
+    );
+
+    // Compute cohortWeek consistently (ignoring getDay shift)
+    const cohortWeek = Math.ceil((numberOfDays + 1) / 7);
+
+    console.log('✅ cohortWeek:', cohortWeek);
+
     // 2️⃣ Create user record
     const newUser = await tables.createRow({
       databaseId: appwriteConfig.dbId,
@@ -43,6 +56,7 @@ export const createAccount = async (values: SignUpPayload) => {
         locations: location,
         recruiters: null,
         workers: null,
+        cohortWeek,
       },
     });
 
@@ -72,31 +86,10 @@ export const createAccount = async (values: SignUpPayload) => {
         data: { count: currentCount + 1 },
       });
 
-      const today = new Date();
-      const endDate = new Date();
-      endDate.setDate(today.getDate() + 30);
-
-      const subscriptionPromise = tables.createRow({
-        databaseId: appwriteConfig.dbId,
-        tableId: appwriteConfig.subscriptionsCol,
-        rowId: ID.unique(),
-        data: {
-          users: newUser.$id,
-          plans: appwriteConfig.workerFreePlan,
-          status: 'active',
-          startDate: today.toISOString(),
-          endDate: endDate.toISOString(),
-          remainingApps: 2,
-          remainingJobs: null,
-          payments: null,
-        },
-      });
-
       // Run parallel tasks
       const [workerRow] = await Promise.all([
         workerRowPromise,
         updateSkillPromise,
-        subscriptionPromise,
       ]);
 
       // Link worker row to user
@@ -106,10 +99,7 @@ export const createAccount = async (values: SignUpPayload) => {
         rowId: newUser.$id,
         data: { workers: workerRow.$id },
       });
-    }
-
-    // ✅ Recruiter logic (create collection entry but no subscription)
-    else if (role === 'recruiter') {
+    } else if (role === 'recruiter') {
       const recruiterRow = await tables.createRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.recruiterCol,
@@ -457,12 +447,12 @@ export const updateUserLocation = async (
   }
 };
 
-export const updateUserBio = async (workerId: string, bio: string) => {
+export const updateUserBio = async (userId: string, bio: string) => {
   try {
     await tables.updateRow({
       databaseId: appwriteConfig.dbId,
-      tableId: appwriteConfig.workerCol,
-      rowId: workerId,
+      tableId: appwriteConfig.userCol,
+      rowId: userId,
       data: { bio },
     });
     return { success: true };
@@ -494,7 +484,7 @@ export const passwordRecovery = async (email: string) => {
     });
     return { success: true };
   } catch (error) {
-    console.error('❌ Error updating user bio:', error);
+    console.error('❌ Error updating user password:', error);
     throw error;
   }
 };

@@ -22,7 +22,7 @@ const LanguageSelection = () => {
 
   const handleContinue = () => {
     if (!selectedLanguage) return;
-    router.push('/(auth)/signIn');
+    router.push('/(auth)/userRole');
   };
 
   const languages = [
@@ -89,29 +89,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   optionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: 'column',
     marginHorizontal: 20,
     marginTop: 10,
+    justifyContent: 'center',
+    gap: Sizes.sm,
+    width: '90%',
   },
   optionCard: {
-    flex: 1,
+    width: '100%',
     backgroundColor: Colors.white,
     borderWidth: 2,
     borderColor: Colors.gray300,
     borderRadius: 20,
-    paddingVertical: 30,
+    paddingVertical: Sizes.x3sm,
+    paddingHorizontal: Sizes.sm,
     marginHorizontal: 10,
     alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
   },
   selectedCard: {
     borderColor: Colors.primary,
   },
   flag: {
-    width: 60,
+    width: 40,
     height: 40,
-    marginBottom: 10,
   },
   label: {
     fontSize: 18,
@@ -120,9 +123,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.primaryDark,
-    paddingVertical: Sizes.sm,
+    paddingVertical: Sizes.xsm,
     borderRadius: 9999,
-    marginHorizontal: 20,
+    marginHorizontal: Sizes.md,
     alignItems: 'center',
     marginBottom: 30,
     flexDirection: 'row',

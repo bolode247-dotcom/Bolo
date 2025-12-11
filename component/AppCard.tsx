@@ -1,4 +1,7 @@
-import { getOrCreateChat } from '@/appwriteFuncs/appwriteGenFunc';
+import {
+  getOrCreateChat,
+  sendPushNotification,
+} from '@/appwriteFuncs/appwriteGenFunc';
 import { updateApplicantStatus } from '@/appwriteFuncs/appwriteJobsFuncs';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
@@ -20,6 +23,7 @@ type appCardProps = {
   skill: string;
   reason: string;
   status: string;
+  pushToken: string;
 };
 
 type Props = {
@@ -46,6 +50,13 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
     try {
       const success = await updateApplicantStatus(app.id, 'seen');
       if (success) {
+        await sendPushNotification(
+          app.pushToken, // token of the applicant
+          'Shortlisted 🎉', // title
+          'Your application has been Seen!', // body
+          { applicantId: app.id }, // optional data
+        );
+
         showToast('Application shortlisted successfully', 'success');
         setStatus('seen');
         onStatusChange?.(app.id, 'seen');
@@ -140,7 +151,7 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
             />
           ) : (
             <CustomButton
-              title={loading ? 'Selecting...' : 'Select'}
+              title={loading ? 'Wait...' : 'Select'}
               style={[styles.btn, { backgroundColor: Colors.white }]}
               textStyle={styles.btnText}
               textVariant="outline"

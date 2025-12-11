@@ -1,6 +1,9 @@
-import { getLocations, getSkills } from '@/appwriteFuncs/appwriteGenFunc';
+import {
+  getFilteredLocations,
+  getFilteredSkills,
+} from '@/appwriteFuncs/appwriteGenFunc';
 import { createAccount } from '@/appwriteFuncs/usersFunc';
-import CustomPickerModal from '@/component/CustomPickerModal';
+import CustomPickerModal, { PickerItem } from '@/component/CustomPickerModal';
 import AppForm from '@/component/Form/AppForm';
 import CustomPickerField from '@/component/Form/CurstomPickerField';
 import FormField from '@/component/Form/FormField';
@@ -8,7 +11,7 @@ import SubmitButton from '@/component/Form/SubmitButton';
 import { images, Sizes } from '@/constants';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/authContex';
-import useAppwrite from '@/lib/useAppwrite';
+import { useToast } from '@/context/ToastContext';
 import { signupValidationSchema } from '@/Utils/ValidationShema';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { FormikConsumer } from 'formik';
@@ -29,14 +32,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const SignUp = () => {
   const { t } = useTranslation();
   const { role } = useLocalSearchParams();
+  const { showToast } = useToast();
   const { fetchData } = useAuth();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const [showLocModal, setShowLocModal] = React.useState(false);
   const [showSkillsModal, setShowSkillsModal] = React.useState(false);
+  const [locations, setLocations] = React.useState<PickerItem<string>[]>([]);
 
-  const { data: locations = [] } = useAppwrite(() => getLocations());
-  const { data: skills = [] } = useAppwrite(() => getSkills());
+  const [loadingLocations, setLoadingLocations] = React.useState(false);
+
+  const handleSearchLocation = async (text: string) => {
+    setLoadingLocations(true);
+    const res = await getFilteredLocations(text);
+    setLocations(res.map((loc: any) => ({ id: loc.id, label: loc.label })));
+    setLoadingLocations(false);
+  };
+
+  const [skills, setSkills] = React.useState<PickerItem<string>[]>([]);
+  const [loadingSkills, setLoadingSkills] = React.useState(false);
+
+  const handleSearchSkill = async (text: string) => {
+    setLoadingSkills(true);
+    const res = await getFilteredSkills(text);
+    setSkills(res.map((s: any) => ({ id: s.id, label: s.label })));
+    setLoadingSkills(false);
+  };
 
   const handleSignup = async (values: {
     fullName: string;
@@ -48,10 +68,10 @@ const SignUp = () => {
   }) => {
     setIsSubmitting(true);
     try {
-      const res = await createAccount({ ...values, role } as any);
+      await createAccount({ ...values, role } as any);
       await fetchData();
     } catch (error: any) {
-      setError(error.message);
+      showToast(error.message, 'error');
       return;
     } finally {
       setIsSubmitting(false);
@@ -89,7 +109,6 @@ const SignUp = () => {
                 <Text style={styles.headerTitle}>
                   {t('signUp.headerTitle')}
                 </Text>
-                {error && <Text style={styles.headerSubtitle}>{error}</Text>}
               </View>
             </View>
             <AppForm
@@ -159,9 +178,11 @@ const SignUp = () => {
                   <CustomPickerModal
                     visible={showLocModal}
                     onClose={() => setShowLocModal(false)}
-                    data={locations || []}
+                    data={locations}
                     title="Select Location"
                     showSearch
+                    isLoading={loadingLocations}
+                    onSearch={handleSearchLocation}
                     initialSelectedId={values.location}
                     onSelect={(item) => setFieldValue('location', item.id)}
                   />
@@ -172,9 +193,11 @@ const SignUp = () => {
                   <CustomPickerModal
                     visible={showSkillsModal}
                     onClose={() => setShowSkillsModal(false)}
-                    data={skills || []}
-                    title="Select Profession"
+                    data={skills}
+                    title="Select Skill"
                     showSearch
+                    isLoading={loadingSkills}
+                    onSearch={handleSearchSkill}
                     initialSelectedId={values.skills}
                     onSelect={(item) => setFieldValue('skills', item.id)}
                   />

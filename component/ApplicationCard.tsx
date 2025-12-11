@@ -26,15 +26,27 @@ const statusStyles: StatusStyles = {
   hired: { color: Colors.success, label: 'Hired' },
 };
 
+const interviewStatusStyles: StatusStyles = {
+  pending: { color: Colors.gray700, label: 'Pending' },
+  accepted: { color: Colors.success, label: 'Accepted' },
+  rejected: { color: Colors.danger, label: 'Declined' },
+};
+
 const ApplicationCard = ({
   application,
   style,
   onActionPress,
   isLoading,
 }: Props) => {
-  const { job, status, createdAt, instructions } = application;
+  const { job, status, createdAt, interview } = application;
 
   const statusStyle = statusStyles[status] || statusStyles.applied;
+  if (status === 'interview' && interview) {
+    const interviewStyle =
+      interviewStatusStyles[interview.status] || interviewStatusStyles.pending;
+    statusStyle.color = interviewStyle.color;
+    statusStyle.label = `Interview - ${interviewStyle.label}`;
+  }
 
   const getActionLabel = () => {
     switch (status) {
@@ -76,16 +88,21 @@ const ApplicationCard = ({
       </View>
 
       {/* Date applied */}
-      {createdAt && (
+      {createdAt && !interview && (
         <Text style={styles.infoText}>
           Applied on {new Date(createdAt).toLocaleDateString()}
         </Text>
       )}
+      {interview && (
+        <Text style={styles.infoText}>
+          Interview on {interview.date} at {interview.time}
+        </Text>
+      )}
 
       {/* Recruiter instructions */}
-      {instructions && status !== 'applied' && status !== 'seen' && (
+      {interview?.instructions && status !== 'applied' && status !== 'seen' && (
         <Text style={styles.infoText} numberOfLines={2}>
-          Instructions: {instructions}
+          Instructions: {interview?.instructions}
         </Text>
       )}
 
@@ -94,7 +111,7 @@ const ApplicationCard = ({
         style={[styles.actionButton, { backgroundColor: statusStyle.color }]}
         onPress={() => onActionPress?.(status)}
       >
-        {isLoading ? (
+        {isLoading && status === 'applied' ? (
           <ActivityIndicator
             size="small"
             color="white"

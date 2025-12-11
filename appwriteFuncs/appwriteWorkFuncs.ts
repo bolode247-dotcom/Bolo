@@ -305,6 +305,23 @@ export const getInterview = async (interviewId: string) => {
   }
 };
 
+export const updateInterviewStatus = async (
+  interviewId: string,
+  status: string,
+) => {
+  try {
+    await tables.updateRow({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.interviewCol,
+      rowId: interviewId,
+      data: { status },
+    });
+  } catch (error: any) {
+    console.log('error updating interview status: ', error);
+    throw error;
+  }
+};
+
 export const getWorkersBySkillRegion = async (
   region?: string,
   skillId?: string,
@@ -326,7 +343,7 @@ export const getWorkersBySkillRegion = async (
       'skills.icon',
       `skills.name_${lang}`,
       'workers.$id',
-      'workers.bio',
+      'bio',
       'workers.isPro',
       'workers.payRate',
       'workers.$createdAt',
@@ -350,7 +367,7 @@ export const getWorkersBySkillRegion = async (
       id: user.workers?.$id,
       name: user.name,
       avatar: user.avatar,
-      bio: user.workers?.bio ?? null,
+      bio: user.bio ?? null,
       isPro: user.workers?.isPro ?? false,
       isVerified: user.isVerified ?? false,
       payRate: user.workers?.payRate ?? null,
@@ -393,7 +410,7 @@ export const getWorkersBySkillRegion = async (
           id: user.workers?.$id,
           name: user.name,
           avatar: user.avatar,
-          bio: user.workers?.bio ?? null,
+          bio: user.bio ?? null,
           isPro: user.workers?.isPro ?? false,
           isVerified: user.isVerified ?? false,
           payRate: user.workers?.payRate ?? null,
@@ -441,7 +458,7 @@ export const getWorkersBySearch = async (search?: string) => {
       'skills.icon',
       `skills.name_${lang}`,
       'workers.$id',
-      'workers.bio',
+      'bio',
       'workers.payRate',
       'workers.rating',
       'workers.$createdAt',
@@ -507,7 +524,7 @@ export const getWorkersBySearch = async (search?: string) => {
       id: user.workers?.$id,
       name: user.name,
       avatar: user.avatar,
-      bio: user.workers?.bio ?? null,
+      bio: user.bio ?? null,
       payRate: user.workers?.payRate ?? null,
       rating: user.workers?.rating ?? null,
       createdAt: user.workers?.$createdAt ?? null,
@@ -551,7 +568,7 @@ export const getWorkersBySearch = async (search?: string) => {
           id: user.workers?.$id,
           name: user.name,
           avatar: user.avatar,
-          bio: user.workers?.bio ?? null,
+          bio: user.bio ?? null,
           payRate: user.workers?.payRate ?? null,
           rating: user.workers?.rating ?? null,
           createdAt: user.workers?.$createdAt ?? null,

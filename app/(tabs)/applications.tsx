@@ -2,6 +2,7 @@ import {
   getApplicationsByWorkerId,
   withdrawApp,
 } from '@/appwriteFuncs/appwriteJobsFuncs';
+import { updateInterviewStatus } from '@/appwriteFuncs/appwriteWorkFuncs';
 import ApplicationCard from '@/component/ApplicationCard';
 import ConfirmModal from '@/component/ConfirmModal';
 import EmptyState from '@/component/EmptyState';
@@ -20,7 +21,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -31,8 +31,6 @@ const Applications = () => {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [selectedApp, setSelectedApp] = React.useState<any>(null);
   const [showModal, setShowModal] = React.useState(false);
-  const [showReasonModal, setShowReasonModal] = React.useState(false);
-  const [declineReason, setDeclineReason] = React.useState('');
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -86,27 +84,15 @@ const Applications = () => {
     }
   };
 
-  const handleInterviewResponse = async (response: 'accepted' | 'declined') => {
+  const handleInterviewResponse = async (response: 'accepted' | 'rejected') => {
     if (!selectedApp) return;
     try {
-      let newStatus = selectedApp.status;
-      if (selectedApp.status === 'interview') {
-        newStatus =
-          response === 'accepted' ? 'interview_accepted' : 'interview_declined';
-      } else if (selectedApp.status === 'hired') {
-        newStatus =
-          response === 'accepted' ? 'hire_confirmed' : 'hire_declined';
-      }
-
-      const payload: any = { status: newStatus };
-      if (response === 'declined' && declineReason.trim()) {
-        payload.declineReason = declineReason.trim();
-      }
-
-      console.log('Updating application with:', payload);
+      await updateInterviewStatus(selectedApp.interview.id, response);
+      showToast(
+        `Interview ${response === 'accepted' ? 'accepted' : 'declined'} successfully.`,
+        `${response === 'accepted' ? 'success' : 'info'}`,
+      );
       setShowModal(false);
-      setShowReasonModal(false);
-      setDeclineReason('');
       refetch();
     } catch (error) {
       console.error('Error updating interview response:', error);
@@ -146,8 +132,8 @@ const Applications = () => {
               <RefreshControl
                 refreshing={isRefreshing}
                 onRefresh={handleRefresh}
-                tintColor={Colors.primary} // iOS spinner color
-                colors={[Colors.primary]} // Android spinner color
+                tintColor={Colors.primary}
+                colors={[Colors.primary]}
               />
             }
           />
@@ -174,85 +160,34 @@ const Applications = () => {
                 </Text>
               </Text>
 
-              {selectedApp?.instructions ? (
+              {selectedApp?.interview?.instructions ? (
                 <View style={styles.instructionsContainer}>
                   <Text style={styles.instructionsTitle}>Instructions</Text>
                   <ScrollView style={{ maxHeight: 200 }}>
                     <Text style={styles.instructionsText}>
-                      {selectedApp.instructions}
+                      {selectedApp?.interview?.instructions}
                     </Text>
                   </ScrollView>
                 </View>
               ) : null}
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: Colors.danger }]}
-                  onPress={() => {
-                    setShowModal(false);
-                    setShowReasonModal(true); // open reason modal instead
-                  }}
-                >
-                  <Text style={styles.btnText}>Decline</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: Colors.primary }]}
-                  onPress={() => handleInterviewResponse('accepted')}
-                >
-                  <Text style={styles.btnText}>Accept</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-        <Modal
-          visible={showReasonModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowReasonModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Reason for Declining</Text>
-
-              <Text style={styles.modalSubtitle}>
-                {selectedApp?.status === 'interview'
-                  ? 'Please tell us why you are declining this interview.'
-                  : selectedApp?.status === 'hired'
-                    ? 'Please tell us why you are declining this job offer.'
-                    : 'Please provide a reason for declining.'}
-              </Text>
-
-              <TextInput
-                value={declineReason}
-                onChangeText={setDeclineReason}
-                placeholder={
-                  selectedApp?.status === 'interview'
-                    ? 'Type your reason for declining the interview...'
-                    : 'Type your reason for declining the job offer...'
-                }
-                placeholderTextColor={Colors.gray600}
-                multiline
-                style={styles.input}
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: Colors.gray400 }]}
-                  onPress={() => {
-                    setShowReasonModal(false);
-                    setDeclineReason('');
-                  }}
-                >
-                  <Text style={styles.btnText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: Colors.danger }]}
-                  onPress={() => handleInterviewResponse('declined')}
-                >
-                  <Text style={styles.btnText}>Submit</Text>
-                </TouchableOpacity>
+                {selectedApp?.interview?.status !== 'rejected' && (
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: Colors.danger }]}
+                    onPress={() => handleInterviewResponse('rejected')}
+                  >
+                    <Text style={styles.btnText}>Decline</Text>
+                  </TouchableOpacity>
+                )}
+                {selectedApp?.interview?.status !== 'accepted' && (
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: Colors.primary }]}
+                    onPress={() => handleInterviewResponse('accepted')}
+                  >
+                    <Text style={styles.btnText}>Accept</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
