@@ -23,11 +23,7 @@ const AppHeader = () => {
       {/* Profile + Info */}
       <TouchableOpacity
         style={styles.profileWrapper}
-        onPress={() => {
-          if (user?.userRole === 'Author') {
-            // router.push('/(profile)/profileSettings');
-          }
-        }}
+        onPress={() => router.push('/(profile)/profileSettings')}
         activeOpacity={user?.userRole === 'Author' ? 0.9 : 1}
       >
         {/* Avatar or Ionicon fallback */}

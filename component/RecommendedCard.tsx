@@ -9,6 +9,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 type User = {
   $id: string;
   name: string;
+  bio?: string;
   avatar?: string | null;
   skills: Skill[];
   locations?: Location | null;
@@ -17,7 +18,6 @@ type User = {
 
 export type RecommendedCardProps = {
   users?: User;
-  bio: string;
   rating: number;
   location: string;
   avatar: string;
@@ -43,7 +43,7 @@ const pastelColors = [
 ];
 
 const RecommendedWorkerCard = ({ worker, onPress }: Props) => {
-  const { users: user, bio, avatar } = worker;
+  const { users: user, avatar } = worker;
   const bgColor =
     pastelColors[Math.floor(Math.random() * pastelColors.length)] ||
     Colors.gray50;
@@ -85,7 +85,7 @@ const RecommendedWorkerCard = ({ worker, onPress }: Props) => {
           {user?.skills[0]?.name}
         </Text>
         <Text style={styles.role} numberOfLines={1} ellipsizeMode="tail">
-          {bio}
+          {user?.bio}
         </Text>
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={16} color={Colors.gray600} />

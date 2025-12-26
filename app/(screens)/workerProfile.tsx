@@ -13,6 +13,7 @@ import {
   getWorkSample,
 } from '@/appwriteFuncs/appwriteWorkFuncs';
 import CustomButton from '@/component/CustomButton';
+import ImageFooter from '@/component/ImageFooter';
 import InterviewModal from '@/component/InterviewModal';
 import PostCard from '@/component/PostCard';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
@@ -28,13 +29,13 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import ImageViewing from 'react-native-image-viewing';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -51,7 +52,7 @@ const WorkerProfileScreen = () => {
       jobId: string;
       interviewId: string;
     }>();
-  const [ImageVisible, setImageVisible] = useState(false);
+  const [imageVisible, setImageVisible] = useState(false);
   const [postCaption, setPostCaption] = useState<string>('');
   const [image, setImage] = useState<string>('');
   const [currentStatus, setCurrentStatus] = useState(status);
@@ -168,14 +169,19 @@ const WorkerProfileScreen = () => {
 
     try {
       await updateApplicantStatus(appId, newStatus);
-      await sendPushNotification(
-        worker?.pushToken, // token of the applicant
-        'Application Update', // title
-        `${newStatus === 'seen' ? 'Your application has been seen!' : newStatus === 'interview' ? 'You have been shortlisted for an interview!' : 'Congratulations! You have been hired!'}`, // if status === 'seen' ? 'Your application has been seen!' : status === 'interview' ? 'You have been shortlisted for an interview!' : 'Congratulations! You have been hired!',
-      );
+      sendPushNotification({
+        type: 'application_submitted',
+        applicationId: appId,
+        messageTitle: 'Application Update',
+        message: `${
+          newStatus === 'seen'
+            ? 'Your application has been seen!'
+            : newStatus === 'interview'
+              ? 'You have been shortlisted for an interview!'
+              : 'Congratulations! You have been hired!'
+        }`,
+      });
       setCurrentStatus(newStatus);
-
-      showToast(`Status updated to ${newStatus}`, 'success');
     } catch (error: any) {
       showToast(error.message, 'error');
     } finally {
@@ -228,12 +234,13 @@ const WorkerProfileScreen = () => {
         formattedDate,
       );
 
+      await handleStatusChange('interview');
+
       if (res) {
-        await sendPushNotification(
-          worker?.pushToken, // token of the applicant
-          'Interview Scheduled', // title
-          'You have been scheduled for an interview', // body
-        );
+        sendPushNotification({
+          type: 'interview_scheduled',
+          interviewId: res,
+        });
         setCurrentInterviewId(res);
       }
 
@@ -269,11 +276,12 @@ const WorkerProfileScreen = () => {
         formattedDate,
       );
 
-      await sendPushNotification(
-        worker?.pushToken, // token of the applicant
-        'Interview Updated', // title
-        'Your interview has been updated', // body
-      );
+      sendPushNotification({
+        type: 'interview_scheduled',
+        interviewId,
+        messageTitle: 'Interview Updated',
+        message: 'Your interview details have been updated.',
+      });
 
       await refetchInterview();
 
@@ -424,7 +432,7 @@ const WorkerProfileScreen = () => {
           )}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About {worker?.name}</Text>
-            <Text style={styles.bio}>{worker?.bio}</Text>
+            <Text style={styles.bio}>{worker?.bio || 'No bio yet!'}</Text>
 
             <View style={styles.metaCol}>
               <Text style={styles.meta}>Main Skill:</Text>
@@ -448,37 +456,19 @@ const WorkerProfileScreen = () => {
             <View style={styles.samplesRow}>{renderSamples()}</View>
           </View>
         </ScrollView>
+        <ImageViewing
+          images={[{ uri: viewImage(image) }]}
+          imageIndex={0}
+          visible={imageVisible}
+          onRequestClose={() => {
+            setPostCaption('');
+            setImageVisible(false);
+          }}
+          doubleTapToZoomEnabled
+          FooterComponent={() => <ImageFooter caption={postCaption} />}
+        />
       </SafeAreaView>
-      <Modal
-        animationType="fade"
-        transparent
-        visible={ImageVisible}
-        onRequestClose={() => setImageVisible(false)}
-      >
-        <SafeAreaView style={styles.modalBackground}>
-          <TouchableOpacity
-            style={styles.modalCloseArea}
-            onPress={() => setImageVisible(false)}
-          />
-          <View
-            style={{
-              width: '100%',
-              height: '40%',
-              overflow: 'hidden',
-              aspectRatio: 2 / 2,
-            }}
-          >
-            <Image
-              source={{
-                uri: viewImage(image),
-              }}
-              style={styles.fullImage}
-              resizeMode="cover"
-            />
-          </View>
-          <Text style={styles.postCaption}>{postCaption || ''}</Text>
-        </SafeAreaView>
-      </Modal>
+
       <InterviewModal
         visible={interviewModalVisible}
         onClose={() => setInterviewModalVisible(false)}

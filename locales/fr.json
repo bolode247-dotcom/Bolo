@@ -252,5 +252,32 @@
       "description": "Vérifiez votre identité pour instaurer la confiance et attirer les meilleurs talents.",
       "button": "Vérifier maintenant"
     }
+  },
+  "tabs": {
+    "home": "Accueil",
+    "workers": "Travailleurs",
+    "jobs": "Emplois",
+    "applications": "Candidatures",
+    "myJobs": "Mes offres",
+    "chats": "Messages",
+    "profile": "Profil"
+  },
+  "settings": {
+    "sections": {
+      "account": "Mon compte",
+      "general": "Général"
+    },
+    "items": {
+      "skills": "Compétences",
+      "workSamples": "Réalisations",
+      "location": "Localisation",
+      "verification": "Vérification",
+      "credits": "Crédits",
+      "changePassword": "Changer le mot de passe",
+      "changeLanguage": "Changer la langue",
+      "privacyPolicy": "Politique de confidentialité",
+      "helpCenter": "Centre d’aide",
+      "logout": "Se déconnecter"
+    }
   }
 }

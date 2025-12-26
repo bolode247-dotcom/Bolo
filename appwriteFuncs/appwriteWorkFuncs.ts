@@ -108,10 +108,10 @@ export const getRecommendedWorkers = async (
     // Common SELECT fields
     const selectFields = [
       '$id',
-      'bio',
       'rating',
       'isPro',
       'users.*',
+      'users.bio',
       'users.skills.*',
       'users.locations.*',
     ];
@@ -210,7 +210,7 @@ export const getRecommendedWorkers = async (
     return sorted.slice(0, limit).map((worker) => ({
       id: worker.$id,
       rating: worker.rating,
-      bio: worker.bio,
+      bio: worker.users?.bio,
       name: worker.users?.name,
       avatar: worker.users?.avatar,
       isVerified: worker.users?.isVerified,

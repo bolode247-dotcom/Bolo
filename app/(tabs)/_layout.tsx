@@ -6,23 +6,33 @@ import { appwriteConfig } from '@/lib/appwriteConfig';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBar } from 'react-native';
 
 export default function TabsLayout() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [unreadChats, setUnreadChats] = React.useState(0);
 
   const isRecruiter = user?.role === 'recruiter';
 
   // Full list of possible tabs
   const allTabs = [
-    { name: 'index', title: 'Home', icon: 'home' as const },
-    { name: 'workers', title: 'Workers', icon: 'people' as const },
-    { name: 'jobs', title: 'Jobs', icon: 'briefcase' as const },
-    { name: 'applications', title: 'Applications', icon: 'document' as const },
-    { name: 'myJobs', title: 'My Jobs', icon: 'briefcase' as const },
-    { name: 'chats', title: 'Chats', icon: 'chatbox-ellipses' as const },
-    { name: 'profile', title: 'Profile', icon: 'person' as const },
+    { name: 'index', title: t('tabs.home'), icon: 'home' as const },
+    { name: 'workers', title: t('tabs.workers'), icon: 'people' as const },
+    { name: 'jobs', title: t('tabs.jobs'), icon: 'briefcase' as const },
+    {
+      name: 'applications',
+      title: t('tabs.applications'),
+      icon: 'document' as const,
+    },
+    { name: 'myJobs', title: t('tabs.myJobs'), icon: 'briefcase' as const },
+    {
+      name: 'chats',
+      title: t('tabs.chats'),
+      icon: 'chatbox-ellipses' as const,
+    },
+    { name: 'profile', title: t('tabs.profile'), icon: 'person' as const },
   ];
 
   // Helper: determine if a tab should be visible for this user

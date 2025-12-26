@@ -79,7 +79,7 @@ const WorkerCard = ({ worker, style, onPress, onBtnPress }: Props) => {
       </View>
 
       <Text style={styles.bio} numberOfLines={2}>
-        {worker?.bio}
+        {worker?.bio || 'Hey there! I am a worker.'}
       </Text>
 
       <View style={styles.rowBetween}>

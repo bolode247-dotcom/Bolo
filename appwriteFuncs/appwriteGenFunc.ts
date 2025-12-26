@@ -631,32 +631,59 @@ export const markNotificationsAsRead = async (
   }
 };
 
-export const sendPushNotification = async (
-  tokens: string | string[],
-  title: string,
-  body: string,
-  data: any = {},
-) => {
+// export const sendPushNotification = async (
+//   tokens: string | string[],
+//   title: string,
+//   body: string,
+//   data: any = {},
+// ) => {
+//   try {
+//     const payload = {
+//       tokens: Array.isArray(tokens) ? tokens : [tokens],
+//       title,
+//       body,
+//       data,
+//     };
+
+//     const execution = await functions.createExecution({
+//       functionId: '693a2ad30010ede487f8', // your Appwrite Function ID
+//       body: JSON.stringify(payload),
+//     });
+
+//     return {
+//       success: true,
+//       executionId: execution.$id,
+//       response: execution.responseBody,
+//     };
+//   } catch (err: any) {
+//     console.error('❌ sendPushNotification error:', err);
+//     return { success: false, error: err.message };
+//   }
+// };
+
+export const sendPushNotification = (payload: {
+  type: string;
+  jobId?: string;
+  receiverId?: string;
+  applicationId?: string;
+  interviewId?: string;
+  message?: string;
+  messageTitle?: string;
+  //messageTitle
+}) => {
   try {
-    const payload = {
-      tokens: Array.isArray(tokens) ? tokens : [tokens],
-      title,
-      body,
-      data,
-    };
-
-    const execution = await functions.createExecution({
-      functionId: '693a2ad30010ede487f8', // your Appwrite Function ID
-      body: JSON.stringify(payload),
-    });
-
-    return {
-      success: true,
-      executionId: execution.$id,
-      response: execution.responseBody,
-    };
+    functions
+      .createExecution({
+        functionId: '693a2ad30010ede487f8', // your Appwrite Function ID
+        body: JSON.stringify(payload),
+      })
+      .then((execution) => {
+        console.log('✅ Push notification function triggered', execution.$id);
+      })
+      .catch((err) => {
+        console.error('❌ sendPushNotification error:', err.message);
+      });
   } catch (err: any) {
-    console.error('❌ sendPushNotification error:', err);
-    return { success: false, error: err.message };
+    console.error('❌ sendPushNotification unexpected error:', err.message);
   }
 };

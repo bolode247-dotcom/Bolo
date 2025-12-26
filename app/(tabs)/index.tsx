@@ -253,8 +253,8 @@ const Index = () => {
                         isVerified: item.isVerified ?? false,
                         skills: item.skill ? [item.skill] : [],
                         locations: item.location ?? null,
+                        bio: item.bio ?? 'Hey there! I am a worker.',
                       },
-                      bio: item.bio ?? 'N/A',
                       rating: item.rating ?? 0,
                       avatar: item.avatar ?? '',
                       location:

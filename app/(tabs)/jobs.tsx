@@ -43,6 +43,7 @@ const JObs = () => {
           <JobWorkerSkeleton />
         ) : (
           <FlatList
+            contentInsetAdjustmentBehavior="automatic"
             data={jobs}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (

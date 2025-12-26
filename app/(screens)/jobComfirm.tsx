@@ -1,3 +1,4 @@
+import { sendPushNotification } from '@/appwriteFuncs/appwriteGenFunc';
 import { createJob } from '@/appwriteFuncs/appwriteJobsFuncs';
 import AppForm from '@/component/Form/AppForm';
 import DropdownPicker from '@/component/Form/DropdownPicker';
@@ -81,6 +82,10 @@ export default function JobComfirmation() {
       const jobId = await createJob(fullJobData);
       setJobId(jobId);
       seIsModalVisible(true);
+      sendPushNotification({
+        type: 'job_created',
+        jobId,
+      });
     } catch (error: any) {
       showToast(error.message, 'error');
     }

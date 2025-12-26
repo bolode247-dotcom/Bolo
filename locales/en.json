@@ -254,5 +254,32 @@
       "description": "Verify your identity to increase your chances of getting hired.",
       "button": "Verify Now"
     }
+  },
+  "tabs": {
+    "home": "Home",
+    "workers": "Workers",
+    "jobs": "Jobs",
+    "applications": "Applications",
+    "myJobs": "My Jobs",
+    "chats": "Chats",
+    "profile": "Profile"
+  },
+  "settings": {
+    "sections": {
+      "account": "My Account",
+      "general": "General"
+    },
+    "items": {
+      "skills": "Skills",
+      "workSamples": "Work Samples",
+      "location": "Location",
+      "verification": "Verification",
+      "credits": "Credits",
+      "changePassword": "Change Password",
+      "changeLanguage": "Change Language",
+      "privacyPolicy": "Privacy Policy",
+      "helpCenter": "Help Center",
+      "logout": "Log Out"
+    }
   }
 }

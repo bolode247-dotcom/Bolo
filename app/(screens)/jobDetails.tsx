@@ -56,9 +56,9 @@ const JobDetails = () => {
   const [declineMode, setDeclineMode] = useState(false);
   const [reason, setReason] = useState('');
   const [isApplying, setIsApplying] = useState(false);
-  const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showWidthConfirm, setShowWidthConfirm] = useState(false);
+  const [showBioConfirm, setShowBioConfirm] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   // ✅ Fetch job details dynamically based on the logged-in user
@@ -94,6 +94,10 @@ const JobDetails = () => {
 
   // --- ACTION HANDLERS ---
   const handleApply = async () => {
+    if (user?.bio === '' || user?.avatar === '') {
+      setShowBioConfirm(true);
+      return;
+    }
     setIsApplying(true);
     try {
       await applyForJob(jobId, user?.workers?.$id, reason);
@@ -135,7 +139,7 @@ const JobDetails = () => {
   };
 
   const handleAcceptOffer = async () => {
-    setIsAccepting(true);
+    setIsApplying(true);
     try {
       await acceptOffer(jobDetails.offerId);
       await sendPushNotification(
@@ -148,7 +152,7 @@ const JobDetails = () => {
       console.error(err);
       showToast('Error accepting offer.', 'error');
     } finally {
-      setIsAccepting(false);
+      setIsApplying(false);
     }
   };
 
@@ -158,7 +162,7 @@ const JobDetails = () => {
   };
 
   const confirmDecline = async () => {
-    setIsApplying(true);
+    setIsDeclining(true);
     try {
       await rejectOffer(jobDetails.offerId, reason);
       setShowReasonModal(false);
@@ -173,7 +177,7 @@ const JobDetails = () => {
       console.error(err);
       showToast('Error declining offer.', 'error');
     } finally {
-      setIsApplying(false);
+      setIsDeclining(false);
     }
   };
 
@@ -220,7 +224,7 @@ const JobDetails = () => {
       />
       <SafeAreaView
         style={styles.container}
-        edges={['top', 'left', 'right', 'bottom']}
+        edges={['left', 'right', 'bottom']}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
@@ -338,8 +342,10 @@ const JobDetails = () => {
                 textStyle={styles.cusBtnText}
                 bgVariant="danger-outline"
                 textVariant="danger-outline"
+                isLoading={isDeclining}
               />
               <CustomButton
+                isLoading={isApplying}
                 title="Accept"
                 onPress={() => handleAcceptOffer()}
                 style={styles.btn}
@@ -352,7 +358,7 @@ const JobDetails = () => {
             <CustomButton
               title="Withdraw Application"
               onPress={() => {
-                setShowConfirm(true);
+                setShowWidthConfirm(true);
               }}
               isLoading={isWithdrawing}
             />
@@ -437,16 +443,25 @@ const JobDetails = () => {
             </View>
           </Modal>
           <ConfirmModal
-            visible={showConfirm}
+            visible={showWidthConfirm}
             title="Widthdraw Application"
             message="Are you sure you want to withdraw this application?"
             confirmText="Yes"
             cancelText="No"
             onConfirm={() => {
-              setShowConfirm(false);
+              setShowWidthConfirm(false);
               handleWithdraw();
             }}
-            onCancel={() => setShowConfirm(false)}
+            onCancel={() => setShowWidthConfirm(false)}
+          />
+          <ConfirmModal
+            visible={showBioConfirm}
+            title="Incomplete Profile"
+            message="Please complete your Profile before applying for this job"
+            confirmText="Profile"
+            cancelText="cancel"
+            onConfirm={() => router.push('/(profile)/profileSettings')}
+            onCancel={() => setShowBioConfirm(false)}
           />
         </ScrollView>
       </SafeAreaView>

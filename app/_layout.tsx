@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import React, { useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { AppState, StatusBar } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/authContex';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -13,12 +13,40 @@ import '../i18n';
 import LoadingScreen from './LoadingScreen';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const appState = AppState.currentState;
+
+    const type = notification.request.content.data?.type;
+
+    if (appState === 'active' && type === 'new_message') {
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      };
+    }
+
+    if (appState === 'active' && type === 'new_message') {
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      };
+    }
+
+    // ✅ background or killed → show normally
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 export default function RootLayout() {

@@ -8,6 +8,7 @@ import { Ionicons, MaterialIcons, Octicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useState, type ComponentProps } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   SectionList,
@@ -21,86 +22,103 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 
 type SectionItem = {
+  key: string;
   label: string;
   icon: IoniconsName;
   route: string;
 };
-
-const DATA: { title: string; data: SectionItem[] }[] = [
-  {
-    title: 'My Account',
-    data: [
-      {
-        label: 'Skills',
-        icon: 'build',
-        route: '/(settings)/EditSkill',
-      },
-      {
-        label: 'Work Samples',
-        icon: 'images',
-        route: '/(settings)/WorkSamples',
-      },
-      {
-        label: 'Location',
-        icon: 'location',
-        route: '/(settings)/EditLocation',
-      },
-
-      {
-        label: 'Verification',
-        icon: 'shield-checkmark',
-        route: '/(settings)/Verify',
-      },
-      {
-        label: 'Credits',
-        icon: 'shield-checkmark',
-        route: '/(settings)/Credits',
-      },
-      {
-        label: 'Change Password',
-        icon: 'lock-closed',
-        route: '/(settings)/ChangePassword',
-      },
-    ],
-  },
-  {
-    title: 'General',
-    data: [
-      {
-        label: 'Change Language',
-        icon: 'language',
-        route: '/(settings)/ChangeLanguage',
-      },
-      {
-        label: 'Privacy Policy',
-        icon: 'document-text',
-        route: '/(settings)/PrivacyPolicy',
-      },
-      {
-        label: 'Help Center',
-        icon: 'help-circle',
-        route: '/(settings)/Support',
-      },
-      { label: 'Log Out', icon: 'log-out', route: 'logout' }, // special case
-    ],
-  },
-];
 
 const Profile: React.FC = () => {
   const { user, fetchData } = useAuth();
   const { showToast } = useToast();
   const [lan, setLan] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const { t } = useTranslation();
+
+  const DATA: { title: string; data: SectionItem[] }[] = React.useMemo(
+    () => [
+      {
+        title: t('settings.sections.account'),
+        data: [
+          {
+            key: 'skills',
+            label: t('settings.items.skills'),
+            icon: 'build',
+            route: '/(settings)/EditSkill',
+          },
+          {
+            key: 'workSamples',
+            label: t('settings.items.workSamples'),
+            icon: 'images',
+            route: '/(settings)/WorkSamples',
+          },
+          {
+            key: 'location',
+            label: t('settings.items.location'),
+            icon: 'location',
+            route: '/(settings)/EditLocation',
+          },
+          {
+            key: 'verification',
+            label: t('settings.items.verification'),
+            icon: 'shield-checkmark',
+            route: '/(settings)/Verify',
+          },
+          {
+            key: 'credits',
+            label: t('settings.items.credits'),
+            icon: 'shield-checkmark',
+            route: '/(settings)/Credits',
+          },
+          {
+            key: 'changePassword',
+            label: t('settings.items.changePassword'),
+            icon: 'lock-closed',
+            route: '/(settings)/ChangePassword',
+          },
+        ],
+      },
+      {
+        title: t('settings.sections.general'),
+        data: [
+          {
+            key: 'changeLanguage',
+            label: t('settings.items.changeLanguage'),
+            icon: 'language',
+            route: '/(settings)/ChangeLanguage',
+          },
+          {
+            key: 'privacyPolicy',
+            label: t('settings.items.privacyPolicy'),
+            icon: 'document-text',
+            route: '/(settings)/PrivacyPolicy',
+          },
+          {
+            key: 'helpCenter',
+            label: t('settings.items.helpCenter'),
+            icon: 'help-circle',
+            route: '/(settings)/Support',
+          },
+          {
+            key: 'logout',
+            label: t('settings.items.logout'),
+            icon: 'log-out',
+            route: 'logout',
+          },
+        ],
+      },
+    ],
+    [t],
+  );
+
+  const HIDDEN_FOR_RECRUITER = ['skills', 'workSamples', 'location', 'credits'];
 
   const filteredData = DATA.map((section) => ({
     ...section,
     data:
       user?.role === 'recruiter'
         ? section.data.filter(
-            (item) =>
-              !['Skills', 'Work Samples', 'Location', 'Credits'].includes(
-                item.label,
-              ),
+            (item) => !HIDDEN_FOR_RECRUITER.includes(item.key),
           )
         : section.data,
   }));

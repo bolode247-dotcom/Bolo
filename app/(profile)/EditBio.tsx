@@ -13,6 +13,7 @@ import * as Yup from 'yup';
 const validationSchema = Yup.object().shape({
   bio: Yup.string()
     .required('Bio is required')
+    .min(100, 'Bio cannot be less than 100 characters')
     .max(300, 'Bio cannot exceed 300 characters'),
 });
 
@@ -21,7 +22,6 @@ const EditBio = () => {
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log('user bio: ', user?.bio);
   const handleUpdateUser = async (values: any) => {
     try {
       setIsLoading(true);

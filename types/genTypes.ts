@@ -160,3 +160,12 @@ export interface ChatPreview {
   unreadCount: number; // Unread messages for this user
   participant: ChatParticipant; // The other participant in the chat
 }
+
+export type UIMsg = {
+  id: string;
+  clientMessageId?: string;
+  message: string;
+  senderId: string;
+  createdAt: string;
+  status?: 'sending' | 'failed';
+};

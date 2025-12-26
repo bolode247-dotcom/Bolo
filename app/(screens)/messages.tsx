@@ -1,13 +1,15 @@
-import { getChatDetailsWithMessages } from '@/appwriteFuncs/appwriteGenFunc';
+import {
+  getChatDetailsWithMessages,
+  sendPushNotification,
+} from '@/appwriteFuncs/appwriteGenFunc';
 import EmptyState from '@/component/EmptyState';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
-import { useToast } from '@/context/ToastContext';
 import { client, tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
-import { ChatDetails, Message } from '@/types/genTypes';
-import { Feather } from '@expo/vector-icons';
+import { ChatDetails, UIMsg } from '@/types/genTypes';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LegendList } from '@legendapp/list';
 import dayjs from 'dayjs';
 import { Stack, useLocalSearchParams } from 'expo-router';
@@ -74,9 +76,10 @@ const MessagesContent = () => {
     participantName: string;
   }>();
   const { user } = useAuth();
-  const { showToast } = useToast();
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState<UIMsg[]>([]);
+
   const { data, isLoading } = useAppwrite(() =>
     getChatDetailsWithMessages(chatId),
   );
@@ -101,7 +104,7 @@ const MessagesContent = () => {
         unsubscribe = await client.subscribe(channel, async (event) => {
           if (!isMounted) return;
 
-          const payload = event.payload as { chats?: string };
+          const payload = event.payload as any;
 
           if (
             event.events.includes(
@@ -109,8 +112,24 @@ const MessagesContent = () => {
             ) &&
             payload.chats === chatId
           ) {
-            const updated = await getChatDetailsWithMessages(chatId);
-            if (isMounted) setChatDetails(updated);
+            // 1. Remove matching optimistic message
+            if (payload.clientMessageId) {
+              setOptimisticMessages((prev) =>
+                prev.filter(
+                  (m) => m.clientMessageId !== payload.clientMessageId,
+                ),
+              );
+            }
+
+            // 2. Append real message
+            setChatDetails((prev) => {
+              if (!prev) return prev;
+
+              return {
+                ...prev,
+                messages: [...prev.messages, payload],
+              };
+            });
           }
         });
       } catch (err) {
@@ -154,7 +173,7 @@ const MessagesContent = () => {
     };
 
     markAsRead();
-  }, [chatDetails?.chat?.$id, user]);
+  }, [chatDetails, user]);
 
   const { height } = useGradualAnimation();
 
@@ -164,36 +183,66 @@ const MessagesContent = () => {
   }));
 
   const handleSendMessage = async () => {
-    setIsSending(true);
     if (!newMessage.trim()) return;
     if (!user?.workers?.$id && !user?.recruiters?.$id) return;
     if (!chatDetails) return;
 
-    const senderId = user?.workers?.$id || user?.recruiters?.$id;
-    const isRecruiter = !!user?.recruiters?.$id;
+    const trimmedMessage = newMessage.trim();
+    const senderId = user.workers?.$id || user.recruiters?.$id;
+    const isRecruiter = !!user.recruiters?.$id;
+    const receiverId = chatDetails.chat.participants.find(
+      (p: string) => p !== senderId,
+    );
 
-    const messageData = {
-      message: newMessage.trim(),
+    if (!receiverId) {
+      console.warn('❌ No receiver found in participants');
+      return;
+    }
+
+    const tempId = `temp-${Date.now()}`;
+
+    const clientMessageId = tempId;
+
+    // 1️⃣ Create optimistic bubble
+    const optimisticMsg: UIMsg = {
+      id: tempId,
+      clientMessageId,
+      message: trimmedMessage,
       senderId,
-      chats: chatDetails.chat.$id,
+      createdAt: new Date().toISOString(),
+      status: 'sending',
     };
 
+    setOptimisticMessages((prev) => [...prev, optimisticMsg]);
+    setNewMessage('');
+    setIsSending(true);
+
     try {
-      // 1️⃣ Create the new message
+      // 2️⃣ Create message in Appwrite
       await tables.createRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.messagesCol,
         rowId: ID.unique(),
-        data: messageData,
+        data: {
+          message: trimmedMessage,
+          senderId,
+          chats: chatDetails.chat.$id,
+          clientMessageId,
+        },
       });
 
-      // 2️⃣ Prepare chat update
+      sendPushNotification({
+        type: 'new_message',
+        receiverId,
+        message: `${trimmedMessage.slice(0, 50)}`,
+      });
+
+      // 3️⃣ Update chat metadata
       const updateData: any = {
-        lastMessage: newMessage.trim(),
+        lastMessage: trimmedMessage,
         lastMessageAt: new Date().toISOString(),
       };
 
-      // increment the unread count for the opposite party
       if (isRecruiter) {
         updateData.unreadBySeeker = (chatDetails.chat.unreadBySeeker ?? 0) + 1;
       } else {
@@ -201,18 +250,19 @@ const MessagesContent = () => {
           (chatDetails.chat.unreadByRecruiter ?? 0) + 1;
       }
 
-      // 3️⃣ Update the chat
       await tables.updateRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.chatsCol,
         rowId: chatDetails.chat.$id,
         data: updateData,
       });
-      showToast('Message sent successfully', 'success', 3000);
-      setNewMessage('');
-    } catch (err: any) {
-      console.error('Error sending message:', err);
-      showToast(err.message, 'error', 3000);
+    } catch (err) {
+      console.error('Send failed:', err);
+
+      // 5️⃣ Mark optimistic bubble as failed
+      setOptimisticMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...m, status: 'failed' } : m)),
+      );
     } finally {
       setIsSending(false);
     }
@@ -225,10 +275,28 @@ const MessagesContent = () => {
       </SafeAreaView>
     );
 
+  const uiMessages: UIMsg[] = [
+    ...(chatDetails?.messages ?? []).map((m) => ({
+      id: m.$id,
+      message: m.message,
+      senderId: m.senderId,
+      createdAt: m.$createdAt,
+    })),
+    ...optimisticMessages.map((m) => ({
+      id: m.id,
+      message: m.message,
+      senderId: m.senderId,
+      createdAt: m.createdAt,
+      status: m.status,
+    })),
+  ].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
   const groupedMessages = Object.entries(
-    (chatDetails?.messages ?? []).reduce(
+    uiMessages.reduce(
       (groups, message) => {
-        const date = dayjs(message.$createdAt);
+        const date = dayjs(message.createdAt);
         let label = '';
 
         if (date.isToday()) label = 'Today';
@@ -239,7 +307,7 @@ const MessagesContent = () => {
         groups[label].push(message);
         return groups;
       },
-      {} as Record<string, Message[]>,
+      {} as Record<string, UIMsg[]>,
     ),
   );
 
@@ -266,32 +334,50 @@ const MessagesContent = () => {
 
                   return (
                     <View
-                      key={msg.$id}
+                      key={msg.id}
                       style={[
                         styles.messageBubble,
                         isCurrentUser ? styles.myMessage : styles.otherMessage,
+                        msg.status === 'failed' && { opacity: 0.6 },
                       ]}
                     >
                       <Text
                         style={[
                           styles.messageText,
-                          {
-                            color: isCurrentUser ? Colors.white : Colors.text,
-                          },
+                          { color: isCurrentUser ? Colors.white : Colors.text },
                         ]}
                       >
                         {msg.message}
                       </Text>
-
-                      <Text
+                      <View
                         style={[
-                          styles.messageTime,
-                          { color: isCurrentUser ? '#dce6ff' : '#888' },
+                          {
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: 4,
+                          },
+                          styles.messageTimeContainer,
                         ]}
                       >
-                        {dayjs(msg.$createdAt).format('HH:mm')}{' '}
-                        {/* Always show time */}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.messageTime,
+                            { color: isCurrentUser ? '#dce6ff' : '#888' },
+                          ]}
+                        >
+                          {dayjs(msg.createdAt).format('HH:mm')}
+                          {msg.status === 'sending' && ' • Sending'}
+                          {msg.status === 'failed' && ' • Failed'}
+                        </Text>
+                        {isCurrentUser && msg.status !== 'sending' && (
+                          <MaterialCommunityIcons
+                            name="check-all"
+                            size={16}
+                            color="#dce6ff"
+                          />
+                        )}
+                      </View>
                     </View>
                   );
                 })}
@@ -314,7 +400,7 @@ const MessagesContent = () => {
             alignItemsAtEnd
             maintainScrollAtEnd
             maintainVisibleContentPosition
-            estimatedItemSize={120} // slightly bigger to accommodate headers
+            estimatedItemSize={120}
           />
 
           {/* Message input bar */}
@@ -326,6 +412,7 @@ const MessagesContent = () => {
               style={styles.input}
               multiline
               placeholderTextColor={Colors.gray400}
+              scrollEnabled={true}
             />
             <Pressable
               disabled={newMessage === ''}
@@ -359,7 +446,8 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '75%',
-    padding: 10,
+
+    paddingHorizontal: 10,
     marginVertical: 4,
     borderRadius: Sizes.sm,
   },
@@ -378,6 +466,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'PoppinsRegular',
   },
+  messageTimeContainer: {
+    marginTop: 0,
+  },
   messageTime: {
     fontSize: 11,
     alignSelf: 'flex-end',
@@ -393,9 +484,12 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 40,
+    maxHeight: 120,
     flexGrow: 1,
     flexShrink: 1,
     padding: 10,
+    textAlignVertical: 'top',
+    color: Colors.text,
   },
   sendButton: {
     width: 50,

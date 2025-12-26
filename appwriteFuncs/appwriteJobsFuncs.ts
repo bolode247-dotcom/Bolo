@@ -766,11 +766,12 @@ export const applyForJob = async (
 
     // 3️⃣ Check if job is still open
     if (status === 'closed') {
-      await sendPushNotification(
-        job.recruiters?.users?.pushToken, // recruiter's push token
-        'Maximum number of applicants reached', // title
-        `Maximum number of applicants reached for ${job.title}.`, // body
-      );
+      sendPushNotification({
+        type: 'application_submitted',
+        jobId,
+        receiverId: job.recruiters?.$id, // notify recruiter
+        message: `Job "${job.title}" is already closed.`,
+      });
       throw new Error('This job is already closed.');
     }
 
@@ -783,13 +784,21 @@ export const applyForJob = async (
         rowId: jobId,
         data: { status: 'closed' },
       });
+
+      // Notify recruiter in a unified way
+      sendPushNotification({
+        type: 'admin_notification',
+        receiverId: job.recruiters?.$id,
+        message: `Maximum number of applicants reached for job "${job.title}". The job is now closed.`,
+      });
+
       throw new Error(
         'Maximum number of applicants reached. The job is now closed.',
       );
     }
 
     // 5️⃣ Create new application
-    await tables.createRow({
+    const newApplication = await tables.createRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.applicationsCol,
       rowId: ID.unique(),
@@ -814,6 +823,24 @@ export const applyForJob = async (
         status: shouldClose ? 'closed' : 'active',
       },
     });
+
+    // 7️⃣ Notify recruiter of new application (fire-and-forget)
+    sendPushNotification({
+      type: 'application_submitted',
+      applicationId: newApplication.$id,
+      jobId,
+      receiverId: job.recruiters?.$id,
+      message: `New applicant for job "${job.title}".`,
+    });
+
+    // 8️⃣ If max applicants reached now, notify recruiter
+    if (shouldClose) {
+      sendPushNotification({
+        type: 'admin_notification',
+        receiverId: job.recruiters?.$id,
+        message: `Job "${job.title}" has reached maximum applicants and is now closed.`,
+      });
+    }
 
     return updatedJob;
   } catch (error) {
