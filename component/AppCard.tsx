@@ -50,12 +50,12 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
     try {
       const success = await updateApplicantStatus(app.id, 'seen');
       if (success) {
-        await sendPushNotification(
-          app.pushToken, // token of the applicant
-          'Shortlisted 🎉', // title
-          'Your application has been Seen!', // body
-          { applicantId: app.id }, // optional data
-        );
+        sendPushNotification({
+          type: 'application_status_update',
+          applicationId: app.id,
+          messageTitle: 'Application Update',
+          message: 'Your application has been seen!',
+        });
 
         showToast('Application shortlisted successfully', 'success');
         setStatus('seen');
@@ -140,16 +140,7 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
             onPress={onPress}
           />
 
-          {status === 'seen' ? (
-            <CustomButton
-              title={loading ? 'Wait...' : 'Message'}
-              style={[styles.btn, { backgroundColor: Colors.white }]}
-              textStyle={styles.btnText}
-              textVariant="outline"
-              bgVariant="outline"
-              onPress={handleMessage}
-            />
-          ) : (
+          {status === 'applied' ? (
             <CustomButton
               title={loading ? 'Wait...' : 'Select'}
               style={[styles.btn, { backgroundColor: Colors.white }]}
@@ -157,6 +148,15 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
               textVariant="outline"
               bgVariant="outline"
               onPress={handleSelect}
+            />
+          ) : (
+            <CustomButton
+              title={loading ? 'Wait...' : 'Message'}
+              style={[styles.btn, { backgroundColor: Colors.white }]}
+              textStyle={styles.btnText}
+              textVariant="outline"
+              bgVariant="outline"
+              onPress={handleMessage}
             />
           )}
         </View>

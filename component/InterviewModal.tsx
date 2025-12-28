@@ -5,6 +5,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -122,24 +123,44 @@ const InterviewModal = ({
 
           {/* Buttons */}
           <View style={styles.buttonsRow}>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: Colors.gray500 }]}
+            <Pressable
               onPress={onClose}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.btn,
+                { backgroundColor: Colors.gray500 },
+                pressed && !loading && { opacity: 0.8 },
+                loading && { opacity: 0.6 },
+              ]}
             >
               <Text style={styles.btnText}>Cancel</Text>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: Colors.success }]}
+            <Pressable
               onPress={onSubmit}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.btn,
+                { backgroundColor: Colors.success },
+                pressed && !loading && { opacity: 0.8 },
+                loading && { opacity: 0.7 },
+              ]}
             >
-              <Text style={styles.btnText}>
-                {isEditing ? 'Update' : 'Schedule'}
-              </Text>
-              {loading && (
-                <ActivityIndicator size="small" color={Colors.white} />
+              {loading ? (
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                >
+                  <ActivityIndicator size="small" color={Colors.white} />
+                  <Text style={styles.btnText}>
+                    {isEditing ? 'Updating…' : 'Scheduling…'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.btnText}>
+                  {isEditing ? 'Update' : 'Schedule'}
+                </Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>

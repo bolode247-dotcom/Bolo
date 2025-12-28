@@ -15,7 +15,7 @@ import {
 import { Colors, Sizes } from '../constants';
 
 export type PickerItem<T> = {
-  id: string | number;
+  id: string;
   label: string;
   value?: T;
 };
@@ -133,10 +133,10 @@ function CustomPickerSheet<T>({
         {/* List */}
         <BottomSheetFlatList
           data={filteredData}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item: PickerItem<T>) => item.id.toString()}
           nestedScrollEnabled={true} // ✅ important
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: PickerItem<T> }) => (
             <TouchableOpacity
               style={[
                 styles.item,

@@ -346,9 +346,6 @@ export const getUnreadChatsCount = async (
   }
 };
 
-/**
- * ✅ Fetch chat + messages safely and flatten fields
- */
 export const getChatDetailsWithMessages = async (
   chatId: string,
 ): Promise<ChatDetails> => {
@@ -669,7 +666,7 @@ export const sendPushNotification = (payload: {
   interviewId?: string;
   message?: string;
   messageTitle?: string;
-  //messageTitle
+  workerId?: string;
 }) => {
   try {
     functions

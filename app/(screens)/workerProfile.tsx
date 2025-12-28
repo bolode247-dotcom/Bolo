@@ -64,6 +64,7 @@ const WorkerProfileScreen = () => {
 
   const [interviewInstructions, setInterviewInstructions] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSheduling, setIsScheduling] = useState(false);
 
   // If editing
   type InterviewType = {
@@ -217,9 +218,9 @@ const WorkerProfileScreen = () => {
       return;
     }
 
-    if (loading) return;
+    if (isSheduling) return;
 
-    setLoading(true);
+    setIsScheduling(true);
 
     try {
       const formattedDate = selectedDate.toISOString().split('T')[0];
@@ -250,7 +251,7 @@ const WorkerProfileScreen = () => {
       console.log(err);
       showToast('Failed to schedule interview', 'error');
     } finally {
-      setLoading(false);
+      setIsScheduling(false);
     }
   };
 
@@ -260,7 +261,9 @@ const WorkerProfileScreen = () => {
       return;
     }
 
-    setLoading(true);
+    if (isSheduling) return;
+
+    setIsScheduling(true);
 
     try {
       const formattedDate = selectedDate.toISOString().split('T')[0];
@@ -283,6 +286,10 @@ const WorkerProfileScreen = () => {
         message: 'Your interview details have been updated.',
       });
 
+      if (currentStatus !== 'interview') {
+        await handleStatusChange('interview');
+      }
+
       await refetchInterview();
 
       showToast('Interview updated successfully', 'success');
@@ -291,7 +298,7 @@ const WorkerProfileScreen = () => {
       console.log('Error updating interview:', err);
       showToast('Failed to update interview', 'error');
     } finally {
-      setLoading(false);
+      setIsScheduling(false);
     }
   };
 
@@ -361,7 +368,7 @@ const WorkerProfileScreen = () => {
             </Text>
           </View>
           {/* Stats */}
-          {currentStatus === 'seen' ? (
+          {currentStatus === 'seen' || currentStatus === 'interview' ? (
             <View style={styles.statsRow}>
               <CustomButton
                 title="Message"
@@ -481,7 +488,7 @@ const WorkerProfileScreen = () => {
         onSubmit={
           existingInterview ? handleUpdateInterview : handleScheduleInterview
         }
-        loading={loading}
+        loading={isSheduling}
         isEditing={!!existingInterview}
       />
     </>

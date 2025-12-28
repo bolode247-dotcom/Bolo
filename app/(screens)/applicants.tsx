@@ -42,12 +42,16 @@ const Applicants = () => {
     }, [jobId]),
   );
   // 🔹 Calculate how many are "seen"
-  const selectedCount = applicants?.filter((a) => a.status === 'seen').length;
+  const selectedCount = applicants?.filter(
+    (a) => a.status !== 'pending' && a.status !== 'rejected',
+  ).length;
 
   // 🔹 Filter for tab
   const filteredApplicants =
     activeTab === 'selected'
-      ? applicants?.filter((item) => item.status === 'seen')
+      ? applicants?.filter(
+          (item) => item.status !== 'pending' && item.status !== 'rejected',
+        )
       : applicants;
 
   const handleStatusChange = (id: string, newStatus: string) => {

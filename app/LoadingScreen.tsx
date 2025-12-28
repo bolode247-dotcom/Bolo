@@ -20,7 +20,7 @@ const LoadingScreen = () => {
       </View>
 
       <View style={styles.footerContainer}>
-        <Text style={styles.footerText}>by Uniforge</Text>
+        <Text style={styles.footerText}>from Uniforge</Text>
       </View>
     </SafeAreaView>
   );

@@ -27,8 +27,9 @@ const WorkersByCategory = () => {
   }>();
 
   const [categoryId, setCategoryId] = useState(initialCategoryId);
-  const [selectedLocation, setSelectedLocation] =
-    useState<PickerItem<string> | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<PickerItem<
+    string | number
+  > | null>(null);
 
   // --- Lazy data states ---
   const [locations, setLocations] = useState<PickerItem<string>[]>([]);
@@ -127,8 +128,8 @@ const WorkersByCategory = () => {
               skills: item.skill ? [item.skill] : [],
               locations: item.location ?? null,
               isVerified: item.isVerified ?? false,
+              bio: item.bio ?? `Hi, I'm ${item.name}`,
             },
-            bio: item.bio ?? 'N/A',
             rating: item.rating ?? 0,
             avatar: item.avatar ?? '',
             location:
@@ -165,7 +166,9 @@ const WorkersByCategory = () => {
         visible={locationSheetVisible}
         onClose={() => setLocationSheetVisible(false)}
         data={locations}
-        onSelect={(item) => setSelectedLocation(item)}
+        onSelect={(item) =>
+          setSelectedLocation({ ...item, id: String(item.id) })
+        }
         title="Select Location"
         showSearch
         onSearch={handleSearchLocation} // 👈 triggers backend search
@@ -176,7 +179,7 @@ const WorkersByCategory = () => {
         visible={workerTypeSheetVisible}
         onClose={() => setWorkerTypeSheetVisible(false)}
         data={skills}
-        onSelect={(item) => setCategoryId(item.id)}
+        onSelect={(item) => setCategoryId(String(item.id))}
         title="Select Worker Type"
         showSearch
         onSearch={handleSearchSkill}

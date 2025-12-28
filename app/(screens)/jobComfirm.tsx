@@ -61,6 +61,10 @@ export default function JobComfirmation() {
   const [jobId, setJobId] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
+  console.log('params: ', {
+    workerId,
+  });
+
   const handleSubmit = async (values: SalaryFormValues) => {
     const fullJobData: Job = {
       title,
@@ -82,10 +86,17 @@ export default function JobComfirmation() {
       const jobId = await createJob(fullJobData);
       setJobId(jobId);
       seIsModalVisible(true);
-      sendPushNotification({
-        type: 'job_created',
-        jobId,
-      });
+      if (workerId) {
+        sendPushNotification({
+          type: 'job_offer',
+          workerId,
+        });
+      } else {
+        sendPushNotification({
+          type: 'job_created',
+          jobId,
+        });
+      }
     } catch (error: any) {
       showToast(error.message, 'error');
     }
@@ -218,11 +229,15 @@ export default function JobComfirmation() {
         title={t('successModal.jobPostingSuccessful')}
         subtitle={t('successModal.jobPostingSubtitle')}
         primaryButtonTitle={t('buttons.viewDetails')}
-        onPrimaryPress={() =>
-          router.push({ pathname: '/myJobDetails', params: { jobId } })
-        }
+        onPrimaryPress={() => {
+          router.replace('/');
+          router.push({
+            pathname: '/myJobDetails',
+            params: { jobId },
+          });
+        }}
         secondaryButtonTitle={t('buttons.backToHome')}
-        onSecondaryPress={() => router.push('/')}
+        onSecondaryPress={() => router.replace('/')}
       />
     </>
   );

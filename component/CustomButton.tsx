@@ -4,11 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   StyleProp,
   StyleSheet,
   Text,
   TextStyle,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
@@ -98,20 +98,23 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   };
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
-      style={[
+      disabled={isLoading}
+      style={({ pressed }) => [
         styles.button,
-        { opacity: isLoading ? 0.5 : 1 },
         getBgVariantStyle(),
         style,
+        {
+          opacity: isLoading ? 0.5 : pressed ? 0.8 : 1,
+        },
       ]}
-      disabled={isLoading}
       {...props}
     >
       {IconLeft && (
         <IconLeft style={[styles.iconLeft, { color: getTextColor() }]} />
       )}
+
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {isLoading && (
           <ActivityIndicator
@@ -120,14 +123,16 @@ const CustomButton: React.FC<CustomButtonProps> = ({
             style={{ marginRight: Sizes.x2sm }}
           />
         )}
+
         <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
           {title}
         </Text>
       </View>
+
       {IconRight && (
         <Ionicons name={IconRight} color={getTextColor()} size={24} />
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

@@ -46,13 +46,14 @@ export const createJob = async (values: Job) => {
     });
 
     if (workerId) {
+      console.log('Creating job offer for workerId:', workerId);
       await tables.createRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.jobOffersCol,
         rowId: ID.unique(),
         data: {
           jobs: newJob.$id,
-          workers: workerId,
+          workers: [workerId],
           recruiters,
           status: 'pending',
         },

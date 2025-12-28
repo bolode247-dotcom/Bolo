@@ -5,9 +5,9 @@ import {
 } from '@/appwriteFuncs/appwriteJobsFuncs';
 import ConfirmModal from '@/component/ConfirmModal';
 import CustomButton from '@/component/CustomButton';
+import EmptyState from '@/component/EmptyState';
 import ProfileSkeleton from '@/component/ProfileSkeleton';
 import { Colors, Sizes } from '@/constants';
-import { useAuth } from '@/context/authContex';
 import { useToast } from '@/context/ToastContext';
 import useAppwrite from '@/lib/useAppwrite';
 import {
@@ -21,6 +21,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect } from 'react';
 import {
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -45,7 +46,6 @@ const pastelColors = [
 ];
 
 const JobDetails = () => {
-  const { user } = useAuth();
   const { jobId } = useLocalSearchParams<{
     jobId: string;
     isOffer: string;
@@ -110,6 +110,16 @@ const JobDetails = () => {
   };
 
   if (isLoading) return <ProfileSkeleton />;
+
+  if (!job)
+    return (
+      <EmptyState
+        title="Oops!"
+        subtitle="Job not found."
+        icon="alert-circle-outline"
+        iconsStyle={styles.emptyIcon}
+      />
+    );
   return (
     <>
       <Stack.Screen
@@ -163,12 +173,14 @@ const JobDetails = () => {
             </Text>
             <Text style={styles.address}>{job?.address}</Text>
           </View>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.appContainer}
+          <Pressable
             onPress={() =>
-              router.push({ pathname: '/applicants', params: { jobId: jobId } })
+              router.push({ pathname: '/applicants', params: { jobId } })
             }
+            style={({ pressed }) => [
+              styles.appContainer,
+              { opacity: pressed ? 0.8 : 1 },
+            ]}
           >
             <View style={styles.applicants}>
               <Text style={styles.appText}>Applicants (click to view)</Text>
@@ -218,7 +230,7 @@ const JobDetails = () => {
                 />
               </View>
             </View>
-          </TouchableOpacity>
+          </Pressable>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <View
@@ -312,7 +324,7 @@ const JobDetails = () => {
 
           <View style={styles.btnRow}>
             <CustomButton
-              title="Delete Job"
+              title={isDeleting ? 'Deleting...' : 'Delete Job'}
               onPress={() => setShowConfirm(true)}
               style={styles.btnOutline}
               bgVariant="danger-outline"
@@ -435,7 +447,7 @@ const styles = StyleSheet.create({
     // width: '48%',
   },
   appContainer: {
-    backgroundColor: Colors.secondaryDark,
+    backgroundColor: Colors.primaryDark,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -450,7 +462,7 @@ const styles = StyleSheet.create({
   appText: {
     fontSize: 13,
     fontFamily: 'PoppinsSemiBold',
-    color: Colors.gray400,
+    color: Colors.gray200,
   },
   appCount: {
     fontSize: 16,
@@ -467,5 +479,8 @@ const styles = StyleSheet.create({
   },
   appArrow: {
     marginLeft: 2,
+  },
+  emptyIcon: {
+    backgroundColor: Colors.white,
   },
 });

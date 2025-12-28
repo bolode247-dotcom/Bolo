@@ -16,11 +16,11 @@ export const getWorkersBySkillLocation = async (
     const baseQueries = [
       Query.select([
         '$id',
-        'bio',
         'rating',
         'isPro', // ensure you have this at top level
         'users.$id',
         'users.name',
+        'users.bio',
         'users.isVerified',
         'users.avatar',
         'users.skills.$id',
@@ -55,7 +55,7 @@ export const getWorkersBySkillLocation = async (
     // 3️⃣ Map results
     const workers = res.rows.map((worker) => ({
       id: worker.$id,
-      bio: worker.bio,
+      bio: worker.users?.bio,
       rating: worker.rating,
       isPro: worker.isPro,
       name: worker.users?.name,

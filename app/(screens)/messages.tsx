@@ -203,7 +203,6 @@ const MessagesContent = () => {
 
     const clientMessageId = tempId;
 
-    // 1️⃣ Create optimistic bubble
     const optimisticMsg: UIMsg = {
       id: tempId,
       clientMessageId,

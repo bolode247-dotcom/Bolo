@@ -81,6 +81,7 @@ const MyJobs = () => {
               icon="briefcase-outline"
               buttonLabel="Post a Job"
               onPressButton={() => router.push('/(screens)/create')}
+              iconsStyle={styles.emptyIcon}
             />
           }
           refreshControl={
@@ -93,7 +94,7 @@ const MyJobs = () => {
           }
         />
       )}
-      {user?.role === 'recruiter' && (
+      {user?.role === 'recruiter' && filterJobs.length > 0 && (
         <View style={styles.fabContainer}>
           <View style={styles.hintWrapper}>
             <View style={styles.hintContainer}>
@@ -172,5 +173,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
     elevation: 5,
+  },
+  emptyIcon: {
+    backgroundColor: Colors.white,
   },
 });

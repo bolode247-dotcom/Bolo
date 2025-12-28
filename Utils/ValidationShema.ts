@@ -59,7 +59,7 @@ export const createJobSchema = Yup.object().shape({
     .label('Location'),
 });
 export const confirmationJobSchemaTwoFields = Yup.object().shape({
-  minSalary: Yup.number().max(7).label('Min Salary'),
+  minSalary: Yup.number().min(1000).label('Min Salary'),
   maxApplicants: Yup.number()
     .required('Maximum number of applicants is required')
     .typeError('Max applicants must be a number')
@@ -71,8 +71,8 @@ export const confirmationJobSchemaTwoFields = Yup.object().shape({
 
 // Schema when there are 3 fields
 export const confirmationJobSchemaThreeFields = Yup.object().shape({
-  minSalary: Yup.number().label('Min Salary'),
-  maxSalary: Yup.number().label('Max Salary'),
+  minSalary: Yup.number().min(1000).label('Min Salary'),
+  maxSalary: Yup.number().min(1000).label('Max Salary'),
   paymentType: Yup.string()
     .required('Payment rate is required')
     .label('Payment rate'),
