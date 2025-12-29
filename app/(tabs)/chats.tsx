@@ -9,7 +9,7 @@ import { client } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
 import { ChatPreview } from '@/types/genTypes';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,43 +34,32 @@ const Chats = () => {
 
   const mergedChats = realtimeChats || chats; // use realtime updates if available
 
-  React.useEffect(() => {
-    if (!user?.$id) return;
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.$id) return;
 
-    let unsubscribe = () => {};
-
-    try {
-      unsubscribe = client.subscribe(
+      const unsubscribe = client.subscribe(
         `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`,
         async (event) => {
-          try {
-            const shouldUpdate = event.events.some(
-              (e) => e.includes('.update') || e.includes('.create'),
-            );
+          const shouldUpdate = event.events.some(
+            (e) => e.includes('.update') || e.includes('.create'),
+          );
 
-            if (shouldUpdate) {
-              const userId =
-                role === 'recruiter' ? user.recruiters?.$id : user.workers?.$id;
-              const updated = await getChats(userId, role);
-              setRealtimeChats(updated); // only updates realtime state, avoids isLoading
-            }
-          } catch (innerErr) {
-            console.error('⚠️ Error inside realtime event callback:', innerErr);
+          if (shouldUpdate) {
+            const userId =
+              role === 'recruiter' ? user.recruiters?.$id : user.workers?.$id;
+
+            const updated = await getChats(userId, role);
+            setRealtimeChats(updated);
           }
         },
       );
-    } catch (err) {
-      console.error('❌ Failed to initialize realtime subscription:', err);
-    }
 
-    return () => {
-      try {
+      return () => {
         unsubscribe();
-      } catch (cleanupErr) {
-        console.error('⚠️ Error during realtime cleanup:', cleanupErr);
-      }
-    };
-  }, [user?.$id]);
+      };
+    }, [user?.$id, role]),
+  );
 
   const handleOpenChat = (chat: any) => {
     router.push({

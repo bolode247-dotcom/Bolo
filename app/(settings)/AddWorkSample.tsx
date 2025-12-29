@@ -52,7 +52,6 @@ const AddPost = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [3, 4],
       quality: 0.5,
     });
 
@@ -72,7 +71,6 @@ const AddPost = () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [3, 4],
       quality: 0.5,
     });
 

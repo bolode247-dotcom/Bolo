@@ -1,11 +1,10 @@
 import { getUnreadChatsCount } from '@/appwriteFuncs/appwriteGenFunc';
 import { Colors } from '@/constants';
 import { useAuth } from '@/context/authContex';
-import { client } from '@/lib/appwrite';
-import { appwriteConfig } from '@/lib/appwriteConfig';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React, { useEffect } from 'react';
+import { Tabs, useFocusEffect } from 'expo-router';
+
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBar } from 'react-native';
 
@@ -47,63 +46,25 @@ export default function TabsLayout() {
     );
   };
 
-  useEffect(() => {
-    if (!user?.$id) return;
+  useFocusEffect(
+    React.useCallback(() => {
+      let isMounted = true;
 
-    let isMounted = true;
-    let unsubscribe = () => {};
-
-    const loadUnread = async () => {
-      try {
+      const loadUnread = async () => {
         const count = await getUnreadChatsCount(
           isRecruiter ? user.recruiters?.$id : user.workers?.$id,
           user.role,
         );
         if (isMounted) setUnreadChats(count);
-      } catch (err) {
-        console.error('❌ Error fetching unread chats count:', err);
-      }
-    };
+      };
 
-    // Initial load
-    loadUnread();
+      loadUnread();
 
-    // Realtime subscription
-    try {
-      unsubscribe = client.subscribe(
-        `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`,
-        async (res) => {
-          try {
-            const shouldRefresh = res.events.some(
-              (e) => e.includes('.update') || e.includes('.create'),
-            );
-
-            if (shouldRefresh) {
-              const count = await getUnreadChatsCount(
-                isRecruiter ? user.recruiters?.$id : user.workers?.$id,
-                user.role,
-              );
-              if (isMounted) setUnreadChats(count);
-            }
-          } catch (innerErr) {
-            console.error('⚠️ Error inside realtime callback:', innerErr);
-          }
-        },
-      );
-    } catch (err) {
-      console.error('❌ Failed to initialize realtime subscription:', err);
-    }
-
-    // Cleanup
-    return () => {
-      isMounted = false;
-      try {
-        unsubscribe();
-      } catch (cleanupErr) {
-        console.error('⚠️ Error during realtime unsubscribe:', cleanupErr);
-      }
-    };
-  }, [user?.$id]);
+      return () => {
+        isMounted = false;
+      };
+    }, [isRecruiter, user.recruiters?.$id, user.workers?.$id, user.role]),
+  );
 
   return (
     <>

@@ -5,7 +5,7 @@ import {
 import EmptyState from '@/component/EmptyState';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
-import { client, tables } from '@/lib/appwrite';
+import { tables } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
 import { ChatDetails, UIMsg } from '@/types/genTypes';
@@ -13,7 +13,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LegendList } from '@legendapp/list';
 import dayjs from 'dayjs';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -88,63 +88,6 @@ const MessagesContent = () => {
     if (data) setChatDetails(data);
   }, [data]);
 
-  const subscribed = useRef(false);
-  useEffect(() => {
-    if (!chatId || !client || !client.headers['x-appwrite-project']) return;
-    if (subscribed.current) return;
-    subscribed.current = true;
-
-    let unsubscribe: (() => void) | null = null;
-    let isMounted = true;
-
-    const subscribe = async () => {
-      try {
-        const channel = `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.messagesCol}.documents`;
-
-        unsubscribe = await client.subscribe(channel, async (event) => {
-          if (!isMounted) return;
-
-          const payload = event.payload as any;
-
-          if (
-            event.events.includes(
-              'databases.*.collections.*.documents.*.create',
-            ) &&
-            payload.chats === chatId
-          ) {
-            // 1. Remove matching optimistic message
-            if (payload.clientMessageId) {
-              setOptimisticMessages((prev) =>
-                prev.filter(
-                  (m) => m.clientMessageId !== payload.clientMessageId,
-                ),
-              );
-            }
-
-            // 2. Append real message
-            setChatDetails((prev) => {
-              if (!prev) return prev;
-
-              return {
-                ...prev,
-                messages: [...prev.messages, payload],
-              };
-            });
-          }
-        });
-      } catch (err) {
-        console.warn('Realtime subscription failed:', err);
-      }
-    };
-
-    subscribe();
-
-    return () => {
-      isMounted = false;
-      unsubscribe?.();
-    };
-  }, [chatId]);
-
   useEffect(() => {
     if (!chatDetails || !user) return;
 
@@ -183,6 +126,7 @@ const MessagesContent = () => {
   }));
 
   const handleSendMessage = async () => {
+    if (isSending) return;
     if (!newMessage.trim()) return;
     if (!user?.workers?.$id && !user?.recruiters?.$id) return;
     if (!chatDetails) return;
@@ -190,35 +134,35 @@ const MessagesContent = () => {
     const trimmedMessage = newMessage.trim();
     const senderId = user.workers?.$id || user.recruiters?.$id;
     const isRecruiter = !!user.recruiters?.$id;
+
     const receiverId = chatDetails.chat.participants.find(
       (p: string) => p !== senderId,
     );
 
     if (!receiverId) {
-      console.warn('❌ No receiver found in participants');
+      console.warn('No receiver found');
       return;
     }
 
     const tempId = `temp-${Date.now()}`;
 
-    const clientMessageId = tempId;
-
     const optimisticMsg: UIMsg = {
       id: tempId,
-      clientMessageId,
+      clientMessageId: tempId,
       message: trimmedMessage,
       senderId,
       createdAt: new Date().toISOString(),
       status: 'sending',
     };
 
+    // add optimistic bubble
     setOptimisticMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage('');
     setIsSending(true);
 
     try {
-      // 2️⃣ Create message in Appwrite
-      await tables.createRow({
+      // create message in DB
+      const created = await tables.createRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.messagesCol,
         rowId: ID.unique(),
@@ -226,39 +170,62 @@ const MessagesContent = () => {
           message: trimmedMessage,
           senderId,
           chats: chatDetails.chat.$id,
-          clientMessageId,
+          clientMessageId: tempId,
         },
       });
 
       sendPushNotification({
         type: 'new_message',
         receiverId,
-        message: `${trimmedMessage.slice(0, 50)}`,
+        message: trimmedMessage.slice(0, 50),
       });
 
-      // 3️⃣ Update chat metadata
-      const updateData: any = {
-        lastMessage: trimmedMessage,
-        lastMessageAt: new Date().toISOString(),
-      };
+      // 🔥 update UI state in ONE place
+      setChatDetails((prev) => {
+        if (!prev) return prev;
 
-      if (isRecruiter) {
-        updateData.unreadBySeeker = (chatDetails.chat.unreadBySeeker ?? 0) + 1;
-      } else {
-        updateData.unreadByRecruiter =
-          (chatDetails.chat.unreadByRecruiter ?? 0) + 1;
-      }
+        return {
+          ...prev,
+          messages: [...prev.messages, created as any],
+          chat: {
+            ...prev.chat,
+            lastMessage: trimmedMessage,
+            lastMessageAt: new Date().toISOString(),
+            unreadBySeeker: isRecruiter
+              ? (prev.chat.unreadBySeeker ?? 0) + 1
+              : prev.chat.unreadBySeeker,
+            unreadByRecruiter: !isRecruiter
+              ? (prev.chat.unreadByRecruiter ?? 0) + 1
+              : prev.chat.unreadByRecruiter,
+          },
+        };
+      });
 
+      // remove optimistic bubble
+      setOptimisticMessages((prev) =>
+        prev.filter((m) => m.clientMessageId !== tempId),
+      );
+
+      // backend sync (not needed for UI)
       await tables.updateRow({
         databaseId: appwriteConfig.dbId,
         tableId: appwriteConfig.chatsCol,
         rowId: chatDetails.chat.$id,
-        data: updateData,
+        data: {
+          lastMessage: trimmedMessage,
+          lastMessageAt: new Date().toISOString(),
+          unreadBySeeker: isRecruiter
+            ? (chatDetails.chat.unreadBySeeker ?? 0) + 1
+            : chatDetails.chat.unreadBySeeker,
+          unreadByRecruiter: !isRecruiter
+            ? (chatDetails.chat.unreadByRecruiter ?? 0) + 1
+            : chatDetails.chat.unreadByRecruiter,
+        },
       });
     } catch (err) {
       console.error('Send failed:', err);
 
-      // 5️⃣ Mark optimistic bubble as failed
+      // show failed bubble
       setOptimisticMessages((prev) =>
         prev.map((m) => (m.id === tempId ? { ...m, status: 'failed' } : m)),
       );
@@ -274,21 +241,20 @@ const MessagesContent = () => {
       </SafeAreaView>
     );
 
-  const uiMessages: UIMsg[] = [
+  const all = [
     ...(chatDetails?.messages ?? []).map((m) => ({
       id: m.$id,
       message: m.message,
       senderId: m.senderId,
       createdAt: m.$createdAt,
     })),
-    ...optimisticMessages.map((m) => ({
-      id: m.id,
-      message: m.message,
-      senderId: m.senderId,
-      createdAt: m.createdAt,
-      status: m.status,
-    })),
-  ].sort(
+    ...optimisticMessages,
+  ];
+
+  // remove duplicates by id
+  const uiMessages = Array.from(
+    new Map(all.map((m) => [m.id, m])).values(),
+  ).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
@@ -414,8 +380,8 @@ const MessagesContent = () => {
               scrollEnabled={true}
             />
             <Pressable
-              disabled={newMessage === ''}
-              style={styles.sendButton}
+              disabled={newMessage === '' || isSending}
+              style={[styles.sendButton, { opacity: isSending ? 0.5 : 1 }]}
               onPress={handleSendMessage}
             >
               {isSending ? (

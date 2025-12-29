@@ -8,10 +8,11 @@ import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
 import VerificationModal from '@/component/VerificationsModal';
 import { useAuth } from '@/context/authContex';
+import { useToast } from '@/context/ToastContext';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import * as Yup from 'yup';
 import { Colors, Sizes } from '../../constants';
 
@@ -24,6 +25,7 @@ const validationSchema = Yup.object().shape({
 
 const EmailVerification = () => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const { fetchData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
@@ -45,7 +47,7 @@ const EmailVerification = () => {
       setShowVerification(true);
     } catch (error: any) {
       console.error('Failed to send OTP:', error);
-      setError(error.message);
+      showToast(error.message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +76,6 @@ const EmailVerification = () => {
       style={[styles.screenContainer, { backgroundColor: Colors.background }]}
     >
       <View style={styles.container}>
-        {/* <Text style={[styles.title, { color: Colors.text }]}>
-          {t('emailVerification.title')}
-        </Text> */}
-        {error && <Text style={styles.headerSubtitle}>{error}</Text>}
         <AppForm
           initialValues={{ email: '' }}
           onSubmit={(values) => handleContinue(values)}

@@ -1,6 +1,7 @@
 import { removeAvatar, updateUserAvatar } from '@/appwriteFuncs/usersFunc';
 import ConfirmModal from '@/component/ConfirmModal';
 import CustomMenu from '@/component/CustomMenu';
+import ImageHeader from '@/component/ImageHeader';
 import { Colors, Sizes } from '@/constants';
 import { useAuth } from '@/context/authContex';
 import { useToast } from '@/context/ToastContext';
@@ -12,13 +13,13 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-
+import ImageViewing from 'react-native-image-viewing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfileSettings = () => {
@@ -36,7 +37,6 @@ const ProfileSettings = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images', // image, video, pdf
       allowsEditing: true,
-      aspect: [3, 4],
       quality: 0.5,
     });
 
@@ -67,7 +67,6 @@ const ProfileSettings = () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [3, 4],
       quality: 0.5,
     });
 
@@ -133,8 +132,13 @@ const ProfileSettings = () => {
       <View style={styles.avatarContainer}>
         <View>
           {avatarUri || selectedImage ? (
-            <TouchableOpacity
-              style={styles.avatarWrapper}
+            <Pressable
+              style={({ pressed }) => [
+                {
+                  opacity: pressed ? 0.7 : 1,
+                },
+                styles.avatarWrapper,
+              ]}
               onPress={() => setImageModalVisible(true)}
             >
               <Image
@@ -152,7 +156,7 @@ const ProfileSettings = () => {
                   <ActivityIndicator size="large" color={Colors.primary} />
                 </View>
               )}
-            </TouchableOpacity>
+            </Pressable>
           ) : (
             <Ionicons
               name="person-circle-outline"
@@ -162,11 +166,19 @@ const ProfileSettings = () => {
           )}
         </View>
 
-        <TouchableOpacity onPress={() => setCustMenuVisible(true)}>
+        <Pressable
+          onPress={() => setCustMenuVisible(true)}
+          style={({ pressed }) => [
+            {
+              opacity: pressed ? 0.7 : 1,
+            },
+            styles.editButton,
+          ]}
+        >
           <Text style={styles.editText}>
             {user?.avatar || selectedImage ? 'Edit Photo' : 'Add Photo'}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Profile Info */}
@@ -179,8 +191,8 @@ const ProfileSettings = () => {
         />
 
         <InfoRow
-          label="About"
-          value={user?.bio || 'Hey there!'}
+          label="About me"
+          value={user?.bio || 'Add a bio about yourself'}
           icon="information-circle-outline"
           onEdit={() => router.push('/(profile)/EditBio')}
         />
@@ -209,52 +221,6 @@ const ProfileSettings = () => {
           },
         ]}
       />
-
-      <Modal
-        animationType="fade"
-        transparent
-        visible={imageModalVisible}
-        onRequestClose={() => setImageModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalBackground}>
-          <TouchableOpacity
-            style={styles.modalCloseArea}
-            onPress={() => setImageModalVisible(false)}
-          />
-          <View
-            style={{
-              width: '100%',
-              height: '40%',
-              overflow: 'hidden',
-              aspectRatio: 2 / 2,
-            }}
-          >
-            <Image
-              source={{
-                uri: selectedImage
-                  ? selectedImage
-                  : avatarUri
-                    ? viewImage(avatarUri)
-                    : undefined,
-              }}
-              style={styles.fullImage}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={styles.editButtonRow}>
-            <TouchableOpacity
-              style={[styles.editButton, { backgroundColor: Colors.danger }]}
-              onPress={() => {
-                setShowConfirm(true);
-              }}
-            >
-              <Ionicons name="trash-outline" size={20} color={Colors.white} />
-              <Text style={styles.editBtnText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
-
       <ConfirmModal
         visible={showConfirm}
         title="Delete Photo"
@@ -266,6 +232,27 @@ const ProfileSettings = () => {
           handleDeleteAvatar();
         }}
         onCancel={() => setShowConfirm(false)}
+      />
+      <ImageViewing
+        images={[
+          {
+            uri: selectedImage
+              ? selectedImage
+              : avatarUri
+                ? viewImage(avatarUri)
+                : undefined,
+          },
+        ]}
+        imageIndex={0}
+        visible={imageModalVisible}
+        onRequestClose={() => setImageModalVisible(false)}
+        doubleTapToZoomEnabled
+        HeaderComponent={() => (
+          <ImageHeader
+            onDelete={() => setShowConfirm(true)}
+            onEdit={() => setCustMenuVisible(true)}
+          />
+        )}
       />
     </SafeAreaView>
   );
@@ -300,12 +287,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editText: {
-    marginTop: Sizes.lg,
-    color: Colors.primary,
-    fontSize: Sizes.md,
-    fontFamily: 'PoppinsSemiBold',
-  },
+
   section: {
     paddingHorizontal: 15,
     marginTop: 20,
@@ -352,16 +334,17 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
+    justifyContent: 'center',
+    backgroundColor: Colors.gray100,
+    paddingVertical: Sizes.x3sm,
+    marginTop: Sizes.lg,
     paddingHorizontal: 20,
-    borderRadius: 30,
+    borderRadius: Sizes.xsm,
   },
-  editBtnText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+  editText: {
+    color: Colors.primary,
+    fontSize: Sizes.md,
+    fontFamily: 'PoppinsSemiBold',
   },
   icon: { fontWeight: 'bold' },
   optionText: {

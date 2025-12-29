@@ -230,8 +230,7 @@ export default function JobComfirmation() {
         subtitle={t('successModal.jobPostingSubtitle')}
         primaryButtonTitle={t('buttons.viewDetails')}
         onPrimaryPress={() => {
-          router.replace('/');
-          router.push({
+          router.replace({
             pathname: '/myJobDetails',
             params: { jobId },
           });

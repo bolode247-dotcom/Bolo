@@ -51,10 +51,10 @@ const Applications = () => {
     setIsRefreshing(false);
   };
 
-  const handleWidthdraw = async (appId: string, jobId: string) => {
+  const handleWidthdraw = async (appId: string, userId: string) => {
     setIsLoading(true);
     try {
-      await withdrawApp(appId, jobId);
+      await withdrawApp(appId, userId);
       showToast('Application widthdrawn.', 'success');
       await refetch();
     } catch (error) {
@@ -201,7 +201,7 @@ const Applications = () => {
         cancelText="No"
         onConfirm={() => {
           setShowConfirm(false);
-          handleWidthdraw(selectedApp?.id, selectedApp?.job?.id);
+          handleWidthdraw(selectedApp?.id, selectedApp?.recruiterUserId);
         }}
         onCancel={() => setShowConfirm(false)}
       />

@@ -106,7 +106,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
         getBgVariantStyle(),
         style,
         {
-          opacity: isLoading ? 0.5 : pressed ? 0.8 : 1,
+          opacity: isLoading ? 0.5 : pressed ? 0.7 : 1,
         },
       ]}
       {...props}

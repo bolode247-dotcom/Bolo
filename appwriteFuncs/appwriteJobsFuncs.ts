@@ -53,7 +53,7 @@ export const createJob = async (values: Job) => {
         rowId: ID.unique(),
         data: {
           jobs: newJob.$id,
-          workers: [workerId],
+          workers: workerId,
           recruiters,
           status: 'pending',
         },
@@ -344,10 +344,11 @@ export const getJobById = async (jobId: string, workerId: string) => {
           'applicantsCount',
           'recruiters.logo',
           'description',
+          'recruiters.$id',
           'recruiters.companyName',
-          'recruiters.users.pushToken',
           'recruiters.users.name',
           'recruiters.users.avatar',
+          'recruiters.users.$id',
           'skills.icon',
           `skills.name_${lang}`,
           'locations.region',
@@ -391,7 +392,8 @@ export const getJobById = async (jobId: string, workerId: string) => {
       status: job.status,
       recruiter: job.recruiters
         ? {
-            pushToken: job.recruiters.users.pushToken,
+            id: job.recruiters.$id,
+            userId: job.recruiters.users.$id,
             name: job.recruiters.users.name,
             logo: job.recruiters.logo,
             companyName: job.recruiters.companyName,
@@ -674,8 +676,8 @@ export const getApplicationsByWorkerId = async (workerId: string) => {
           'interview.status',
           'jobs.$id',
           'jobs.title',
-          'jobs.recruiters.$id', // only recruiter ID reference
-          'jobs.recruiters.companyName', // only recruiter ID reference
+          'jobs.recruiters.$id',
+          'jobs.recruiters.companyName',
         ]),
       ],
     });
@@ -688,7 +690,7 @@ export const getApplicationsByWorkerId = async (workerId: string) => {
     );
 
     // Step 3: Fetch recruiter users from users table
-    const usersMap: Record<string, string> = {};
+    const usersMap: Record<string, { userId: string; name: string }> = {};
 
     if (recruiterIds.length) {
       const usersRes = await tables.listRows({
@@ -699,36 +701,54 @@ export const getApplicationsByWorkerId = async (workerId: string) => {
 
       usersRes.rows.forEach((user: any) => {
         if (user.recruiters) {
-          usersMap[user.recruiters] = user.name || 'Unknown Recruiter';
+          usersMap[user.recruiters] = {
+            userId: user.$id,
+            name: user.name || 'Unknown Recruiter',
+          };
         }
       });
     }
 
-    return res.rows.map((app: any) => ({
-      id: app.$id,
-      createdAt: app.$createdAt,
-      status: app.status,
-      interview: app.interview
-        ? {
-            id: app.interview.$id,
-            time: app.interview.time,
-            date: app.interview.date,
-            instructions: app.interview.instructions,
-            status: app.interview.status,
-          }
-        : null,
-      job: app.jobs
-        ? {
-            id: app.jobs.$id,
-            title: app.jobs.title,
-            recruiter: {
-              name: usersMap[app.jobs.recruiters?.$id] || 'Unknown Recruiter',
-              companyName:
-                app.jobs.recruiters?.companyName || 'Unknown Company',
-            },
-          }
-        : null,
-    }));
+    // Step 4: Normalize response
+    return res.rows.map((app: any) => {
+      const recruiterId = app.jobs?.recruiters?.$id;
+
+      return {
+        id: app.$id,
+        createdAt: app.$createdAt,
+        status: app.status,
+
+        // ✅ Recruiter USER id (for notifications, withdraw, interview response)
+        recruiterUserId: recruiterId
+          ? usersMap[recruiterId]?.userId || null
+          : null,
+
+        interview: app.interview
+          ? {
+              id: app.interview.$id,
+              time: app.interview.time,
+              date: app.interview.date,
+              instructions: app.interview.instructions,
+              status: app.interview.status,
+            }
+          : null,
+
+        job: app.jobs
+          ? {
+              id: app.jobs.$id,
+              title: app.jobs.title,
+              recruiter: {
+                name:
+                  recruiterId && usersMap[recruiterId]
+                    ? usersMap[recruiterId].name
+                    : 'Unknown Recruiter',
+                companyName:
+                  app.jobs.recruiters?.companyName || 'Unknown Company',
+              },
+            }
+          : null,
+      };
+    });
   } catch (error) {
     console.error('Error fetching applications by workerId:', error);
     throw error;
@@ -752,29 +772,47 @@ export const applyForJob = async (
       throw new Error('You have already applied for this job.');
     }
 
-    // 2️⃣ Fetch job details
-    const job = await tables.getRow({
+    // // 2️⃣ Fetch job details
+    // const job = await tables.getRow({
+    //   databaseId: appwriteConfig.dbId,
+    //   tableId: appwriteConfig.jobsCol,
+    //   rowId: jobId,
+    // });
+
+    // if (!job) {
+    //   throw new Error('Job not found.');
+    // }
+
+    const jobRes = await tables.listRows({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.jobsCol,
-      rowId: jobId,
+      queries: [
+        Query.equal('$id', jobId),
+        Query.select([
+          '$id',
+          'title',
+          'applicantsCount',
+          'maxApplicants',
+          'status',
+          'recruiters.users.$id',
+        ]),
+      ],
     });
 
-    if (!job) {
+    if (jobRes.total === 0) {
       throw new Error('Job not found.');
     }
 
-    const { applicantsCount = 0, maxApplicants = 0, status } = job;
+    const job = jobRes.rows[0];
+
+    // const { applicantsCount = 0, maxApplicants = 0, status } = job;
+    const applicantsCount = job.applicantsCount || 0;
+    const maxApplicants = job.maxApplicants || 0;
+    const status = job.status;
+    const recruiters = job.recruiters?.users?.$id;
 
     // 3️⃣ Check if job is still open
-    if (status === 'closed') {
-      sendPushNotification({
-        type: 'application_submitted',
-        jobId,
-        receiverId: job.recruiters?.$id, // notify recruiter
-        message: `Job "${job.title}" is already closed.`,
-      });
-      throw new Error('This job is already closed.');
-    }
+    if (status === 'closed') throw new Error('This job is already closed.');
 
     // 4️⃣ Check if max applicants reached
     if (applicantsCount >= maxApplicants) {
@@ -788,8 +826,9 @@ export const applyForJob = async (
 
       // Notify recruiter in a unified way
       sendPushNotification({
-        type: 'admin_notification',
-        receiverId: job.recruiters?.$id,
+        type: 'notify_user',
+        receiverId: recruiters,
+        messageTitle: 'Job Closed',
         message: `Maximum number of applicants reached for job "${job.title}". The job is now closed.`,
       });
 
@@ -799,7 +838,7 @@ export const applyForJob = async (
     }
 
     // 5️⃣ Create new application
-    const newApplication = await tables.createRow({
+    await tables.createRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.applicationsCol,
       rowId: ID.unique(),
@@ -827,19 +866,19 @@ export const applyForJob = async (
 
     // 7️⃣ Notify recruiter of new application (fire-and-forget)
     sendPushNotification({
-      type: 'application_submitted',
-      applicationId: newApplication.$id,
-      jobId,
-      receiverId: job.recruiters?.$id,
+      type: 'notify_user',
+      receiverId: recruiters,
+      messageTitle: 'New Application',
       message: `New applicant for job "${job.title}".`,
     });
 
     // 8️⃣ If max applicants reached now, notify recruiter
     if (shouldClose) {
       sendPushNotification({
-        type: 'admin_notification',
-        receiverId: job.recruiters?.$id,
-        message: `Job "${job.title}" has reached maximum applicants and is now closed.`,
+        type: 'notify_user',
+        receiverId: recruiters,
+        messageTitle: 'Job Closed',
+        message: `Your job "${job.title}" has reached maximum applicants and is now closed.`,
       });
     }
 
@@ -850,14 +889,38 @@ export const applyForJob = async (
   }
 };
 
-export const withdrawApp = async (appId: string, jobId: string) => {
+export const withdrawApp = async (appId: string, userId: string) => {
   try {
+    // 1️⃣ Fetch application (needed for job + notifications)
+    const applicationRes = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.applicationsCol,
+      queries: [
+        Query.equal('$id', appId),
+        Query.select(['jobs.$id', 'jobs.title', 'jobs.recruiters.$id']),
+      ],
+    });
+
+    if (applicationRes.total === 0) {
+      throw new Error('Application not found.');
+    }
+
+    const application = applicationRes.rows[0];
+
+    if (!application?.jobs?.$id) {
+      throw new Error('Application or related job not found.');
+    }
+
+    const jobId = application.jobs.$id;
+
+    // 2️⃣ Delete application
     await tables.deleteRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.applicationsCol,
       rowId: appId,
     });
 
+    // 3️⃣ Fetch job (fresh state)
     const job = await tables.getRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.jobsCol,
@@ -865,21 +928,19 @@ export const withdrawApp = async (appId: string, jobId: string) => {
     });
 
     if (!job) {
-      throw new Error('Job not found.');
+      throw new Error('Related job not found.');
     }
 
-    console.log('applicants count: ', job.applicantsCount);
-    console.log('max applicants: ', job.maxApplicants);
+    const { applicantsCount = 0, maxApplicants = 0, status, title } = job;
 
-    const { applicantsCount = 0, maxApplicants = 0, status } = job;
-
+    // 4️⃣ Update applicants count
     const newApplicantCount = Math.max(applicantsCount - 1, 0);
-    console.log('new applicants count: ', newApplicantCount);
 
     const shouldReopen =
-      status === 'closed' && newApplicantCount < maxApplicants;
+      status === 'closed' &&
+      maxApplicants > 0 &&
+      newApplicantCount < maxApplicants;
 
-    // 5️⃣ Update the job
     const updatedJob = await tables.updateRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.jobsCol,
@@ -890,6 +951,25 @@ export const withdrawApp = async (appId: string, jobId: string) => {
       },
     });
 
+    // 5️⃣ Notify recruiter (fire-and-forget)
+    if (userId) {
+      sendPushNotification({
+        type: 'notify_user',
+        receiverId: userId,
+        messageTitle: 'Applicant Withdrawn',
+        message: `An applicant has withdrawn from your job "${title}".`,
+      });
+    }
+
+    // 6️⃣ Optional: notify recruiter if job reopened
+    if (shouldReopen && userId) {
+      sendPushNotification({
+        type: 'notify_user',
+        receiverId: userId,
+        message: `Your job "${title}" has been reopened and is accepting applications again.`,
+      });
+    }
+
     return updatedJob;
   } catch (error) {
     console.error('❌ Error withdrawing application:', error);
@@ -897,7 +977,7 @@ export const withdrawApp = async (appId: string, jobId: string) => {
   }
 };
 
-export const acceptOffer = async (offerId: string) => {
+export const acceptOffer = async (offerId: string, receiverId: string) => {
   try {
     await tables.updateRow({
       databaseId: appwriteConfig.dbId,
@@ -905,19 +985,36 @@ export const acceptOffer = async (offerId: string) => {
       rowId: offerId,
       data: { status: 'accepted' },
     });
+
+    sendPushNotification({
+      type: 'notify_user',
+      receiverId,
+      messageTitle: 'Offer Accepted',
+      message: `Your job offer has been accepted.`,
+    });
   } catch (error) {
     console.error('❌ Error accepting offer:', error);
     throw error;
   }
 };
 
-export const rejectOffer = async (offerId: string, reason: string) => {
+export const rejectOffer = async (
+  offerId: string,
+  reason: string,
+  receiverId: string,
+) => {
   try {
     await tables.updateRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.jobOffersCol,
       rowId: offerId,
       data: { status: 'declined', reason },
+    });
+    sendPushNotification({
+      type: 'notify_user',
+      receiverId,
+      messageTitle: 'Offer Declined',
+      message: `Your job offer has been declined.`,
     });
   } catch (error) {
     console.error('❌ Error rejecting offer:', error);

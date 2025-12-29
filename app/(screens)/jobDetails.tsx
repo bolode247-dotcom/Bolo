@@ -1,4 +1,4 @@
-import { sendPushNotification } from '@/appwriteFuncs/appwriteGenFunc';
+import { getOrCreateChat } from '@/appwriteFuncs/appwriteGenFunc';
 import {
   acceptOffer,
   applyForJob,
@@ -30,11 +30,11 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -94,18 +94,18 @@ const JobDetails = () => {
 
   // --- ACTION HANDLERS ---
   const handleApply = async () => {
-    if (user?.bio === '' || user?.avatar === '') {
+    if (
+      user?.bio === '' ||
+      user?.bio === null ||
+      user?.avatar === '' ||
+      user?.avatar === null
+    ) {
       setShowBioConfirm(true);
       return;
     }
     setIsApplying(true);
     try {
       await applyForJob(jobId, user?.workers?.$id, reason);
-      await sendPushNotification(
-        jobDetails?.recruiter?.pushToken, // recruiter's push token
-        'New Application Received 📩', // title
-        `${user?.workers?.name} has applied for ${jobDetails?.title}.`, // body
-      );
       showToast('You have applied for this job.', 'success');
       setShowReasonModal(false);
       refetch();
@@ -117,17 +117,29 @@ const JobDetails = () => {
     }
   };
 
+  const handleBioCheck = () => {
+    console.log('user bio:', user?.bio, 'avatar:', user?.avatar);
+    if (
+      user?.bio === '' ||
+      user?.bio === null ||
+      user?.avatar === '' ||
+      user?.avatar === null
+    ) {
+      setShowBioConfirm(true);
+      return false;
+    } else {
+      setShowReasonModal(true);
+    }
+  };
+
   const handleWithdraw = async () => {
     setIsWithdrawing(true);
     try {
       const appId = jobDetails?.appId;
       if (!appId) return;
-      await withdrawApp(appId, jobId);
-      await sendPushNotification(
-        jobDetails?.recruiter?.pushToken, // recruiter's push token
-        'Application Withdrawn ❌', // title
-        `${user?.workers?.name} has withdrawn their application for ${jobDetails?.title}.`, // body
-      );
+
+      await withdrawApp(appId, jobDetails?.recruiter?.userId);
+
       showToast('Application widthdrawn.', 'success');
       refetch();
     } catch (err) {
@@ -141,13 +153,9 @@ const JobDetails = () => {
   const handleAcceptOffer = async () => {
     setIsApplying(true);
     try {
-      await acceptOffer(jobDetails.offerId);
-      await sendPushNotification(
-        jobDetails?.recruiter?.pushToken, // recruiter's push token
-        'Offer Accepted 🎉', // title
-        `${user?.workers?.name} has accepted the job offer for ${jobDetails?.title}.`, // body
-      );
+      await acceptOffer(jobDetails?.offerId, jobDetails?.recruiter?.userId);
       showToast('You have accepted the offer.', 'success');
+      await refetch();
     } catch (err) {
       console.error(err);
       showToast('Error accepting offer.', 'error');
@@ -164,13 +172,12 @@ const JobDetails = () => {
   const confirmDecline = async () => {
     setIsDeclining(true);
     try {
-      await rejectOffer(jobDetails.offerId, reason);
-      setShowReasonModal(false);
-      await sendPushNotification(
-        jobDetails?.recruiter?.pushToken, // recruiter's push token
-        'Offer Declined ❌', // title
-        `${user?.workers?.name} has declined the job offer for ${jobDetails?.title}.`, // body
+      await rejectOffer(
+        jobDetails.offerId,
+        reason,
+        jobDetails?.recruiter?.userId,
       );
+      setShowReasonModal(false);
       showToast('You have declined the offer.', 'success');
       router.back();
     } catch (err) {
@@ -178,6 +185,32 @@ const JobDetails = () => {
       showToast('Error declining offer.', 'error');
     } finally {
       setIsDeclining(false);
+    }
+  };
+
+  const handleMessage = async () => {
+    try {
+      setIsApplying(true);
+      const workerId = user?.workers?.$id;
+      if (!jobDetails?.recruiter?.id || !workerId || !jobId) return;
+      console.log('handleMessage');
+
+      const chat = await getOrCreateChat(
+        jobDetails?.recruiter?.id,
+        workerId,
+        jobId,
+      );
+
+      router.push({
+        pathname: '/(screens)/messages',
+        params: {
+          chatId: chat?.$id,
+        },
+      });
+    } catch (err) {
+      console.error('❌ handleMessage error:', err);
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -346,7 +379,7 @@ const JobDetails = () => {
               />
               <CustomButton
                 isLoading={isApplying}
-                title="Accept"
+                title={isApplying ? 'Accepting...' : 'Accept'}
                 onPress={() => handleAcceptOffer()}
                 style={styles.btn}
                 textStyle={styles.cusBtnText}
@@ -364,12 +397,17 @@ const JobDetails = () => {
             />
           )}
 
+          {(jobDetails?.isApp && jobDetails?.appStatus === 'interview') ||
+            (jobDetails?.isOffer && jobDetails?.offerStatus === 'accepted' && (
+              <CustomButton
+                title={isApplying ? 'Opening Chat...' : 'Message Employer'}
+                onPress={() => handleMessage()}
+                isLoading={isApplying}
+              />
+            ))}
+
           {!jobDetails?.isApp && !jobDetails?.isOffer && (
-            <CustomButton
-              title="Apply"
-              onPress={() => setShowReasonModal(true)}
-              // style={styles.btn}
-            />
+            <CustomButton title="Apply" onPress={() => handleBioCheck()} />
           )}
 
           <Modal
@@ -407,7 +445,7 @@ const JobDetails = () => {
                 />
 
                 <View style={styles.modalButtons}>
-                  <TouchableOpacity
+                  <Pressable
                     style={[
                       styles.reasonBtn,
                       { backgroundColor: Colors.gray400 },
@@ -416,11 +454,12 @@ const JobDetails = () => {
                       setShowReasonModal(false);
                       setReason('');
                     }}
+                    disabled={isDeclining || isApplying}
                   >
                     <Text style={styles.btnText}>Cancel</Text>
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity
+                  <Pressable
                     style={[
                       styles.reasonBtn,
                       {
@@ -428,16 +467,18 @@ const JobDetails = () => {
                           ? Colors.danger
                           : Colors.success,
                       },
+                      { opacity: isDeclining || isApplying ? 0.6 : 1 },
                     ]}
                     onPress={() =>
                       declineMode ? confirmDecline() : handleApply()
                     }
+                    disabled={isDeclining || isApplying}
                   >
-                    <Text style={styles.btnText}>Confirm</Text>
                     {isApplying && (
                       <ActivityIndicator size="small" color={Colors.white} />
                     )}
-                  </TouchableOpacity>
+                    <Text style={styles.btnText}>Confirm</Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -445,7 +486,7 @@ const JobDetails = () => {
           <ConfirmModal
             visible={showWidthConfirm}
             title="Widthdraw Application"
-            message="Are you sure you want to withdraw this application?"
+            message="Are you sure you want to withdraw your application?"
             confirmText="Yes"
             cancelText="No"
             onConfirm={() => {
@@ -457,10 +498,13 @@ const JobDetails = () => {
           <ConfirmModal
             visible={showBioConfirm}
             title="Incomplete Profile"
-            message="Please complete your Profile before applying for this job"
+            message="Please add a bio and profile picture before applying for jobs."
             confirmText="Profile"
             cancelText="cancel"
-            onConfirm={() => router.push('/(profile)/profileSettings')}
+            onConfirm={() => {
+              setShowBioConfirm(false);
+              router.push('/(profile)/profileSettings');
+            }}
             onCancel={() => setShowBioConfirm(false)}
           />
         </ScrollView>

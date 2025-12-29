@@ -463,18 +463,18 @@ const WorkerProfileScreen = () => {
             <View style={styles.samplesRow}>{renderSamples()}</View>
           </View>
         </ScrollView>
-        <ImageViewing
-          images={[{ uri: viewImage(image) }]}
-          imageIndex={0}
-          visible={imageVisible}
-          onRequestClose={() => {
-            setPostCaption('');
-            setImageVisible(false);
-          }}
-          doubleTapToZoomEnabled
-          FooterComponent={() => <ImageFooter caption={postCaption} />}
-        />
       </SafeAreaView>
+      <ImageViewing
+        images={[{ uri: viewImage(image) }]}
+        imageIndex={0}
+        visible={imageVisible}
+        onRequestClose={() => {
+          setPostCaption('');
+          setImageVisible(false);
+        }}
+        doubleTapToZoomEnabled
+        FooterComponent={() => <ImageFooter caption={postCaption} />}
+      />
 
       <InterviewModal
         visible={interviewModalVisible}

@@ -84,7 +84,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       console.log('Error reading onboarding status:', error);
     }
   };
-  // ExponentPushToken[2k__aiGTUcNs1kDAFPMOqy]
 
   // Fetch user session
   const fetchData = async () => {

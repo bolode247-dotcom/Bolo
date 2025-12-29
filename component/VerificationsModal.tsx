@@ -73,6 +73,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
       isVisible={visible}
       deviceHeight={deviceHeight}
       deviceWidth={deviceWidth}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
     >
       <View style={styles.container}>
         <Text style={styles.title}>{t('verification.title')}</Text>

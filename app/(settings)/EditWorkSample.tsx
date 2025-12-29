@@ -8,7 +8,6 @@ import AppForm from '@/component/Form/AppForm';
 import FormField from '@/component/Form/FormField';
 import SubmitButton from '@/component/Form/SubmitButton';
 import { Colors, Sizes } from '@/constants';
-import { useAuth } from '@/context/authContex';
 import { useToast } from '@/context/ToastContext';
 import { viewImage } from '@/Utils/helpers';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,7 +66,6 @@ const EditWorkSample = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [3, 4],
       quality: 0.5,
     });
 
@@ -90,7 +88,6 @@ const EditWorkSample = () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [3, 4],
       quality: 0.5,
     });
 

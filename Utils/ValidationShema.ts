@@ -72,7 +72,7 @@ export const confirmationJobSchemaTwoFields = Yup.object().shape({
 // Schema when there are 3 fields
 export const confirmationJobSchemaThreeFields = Yup.object().shape({
   minSalary: Yup.number().min(1000).label('Min Salary'),
-  maxSalary: Yup.number().min(1000).label('Max Salary'),
+  maxSalary: Yup.number().label('Max Salary'),
   paymentType: Yup.string()
     .required('Payment rate is required')
     .label('Payment rate'),

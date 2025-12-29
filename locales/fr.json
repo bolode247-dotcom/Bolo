@@ -168,7 +168,7 @@
 
   "verification": {
     "title": "Vérification",
-    "subtitle": "Nous avons envoyé un code de vérification à {{email}}.",
+    "subtitle": "Nous avons envoyé un code de vérification à {{email}} ",
     "submit": "Vérifier",
     "resend": "Renvoyer le code",
     "resendIn": "Renvoyer le code dans {{timer}}s"

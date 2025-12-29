@@ -186,7 +186,7 @@ export const getOrCreateChat = async (
   jobId: string,
 ) => {
   try {
-    // 1️⃣ Check if chat already exists
+    console.log('recruiterId, workerId, jobId:', recruiterId, workerId, jobId);
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.chatsCol,
