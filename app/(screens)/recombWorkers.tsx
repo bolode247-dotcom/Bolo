@@ -38,8 +38,8 @@ const Recommended = () => {
               skills: item.skill ? [item.skill] : [],
               locations: item.location ?? null,
               isVerified: item.isVerified ?? false,
+              bio: item.bio ?? 'Hi, I am a dedicated worker.',
             },
-            bio: item.bio ?? 'N/A',
             rating: item.rating ?? 0,
             avatar: item.avatar ?? '',
             location:

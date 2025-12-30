@@ -171,8 +171,8 @@ const WorkerProfileScreen = () => {
     try {
       await updateApplicantStatus(appId, newStatus);
       sendPushNotification({
-        type: 'application_submitted',
-        applicationId: appId,
+        type: 'notify_user',
+        receiverId: worker?.$id,
         messageTitle: 'Application Update',
         message: `${
           newStatus === 'seen'
@@ -239,8 +239,10 @@ const WorkerProfileScreen = () => {
 
       if (res) {
         sendPushNotification({
-          type: 'interview_scheduled',
-          interviewId: res,
+          type: 'notify_user',
+          receiverId: worker?.$id,
+          messageTitle: 'Interview Scheduled',
+          message: `Your interview is scheduled on ${formattedDate} at ${formattedTime}`,
         });
         setCurrentInterviewId(res);
       }
@@ -272,18 +274,18 @@ const WorkerProfileScreen = () => {
       const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
       const formattedTime = `${hours}:${minutes}`;
 
-      await updateInterview(
-        interviewId,
+      const res = await updateInterview(
+        currentInterviewId,
         interviewInstructions,
         formattedTime,
         formattedDate,
       );
 
       sendPushNotification({
-        type: 'interview_scheduled',
-        interviewId,
+        type: 'notify_user',
+        receiverId: worker?.$id,
         messageTitle: 'Interview Updated',
-        message: 'Your interview details have been updated.',
+        message: `Your interview has been updated to ${formattedDate} at ${formattedTime}`,
       });
 
       if (currentStatus !== 'interview') {

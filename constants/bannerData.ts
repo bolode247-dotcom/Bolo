@@ -20,14 +20,6 @@ export const getWorkerSlides = (t: any, isVerified: boolean) => {
       },
     },
     {
-      title: t('workerSlides.buyCredits.title'),
-      description: t('workerSlides.buyCredits.description'),
-      button: {
-        text: t('workerSlides.buyCredits.button'),
-        onPress: () => router.push('/Credits'),
-      },
-    },
-    {
       title: t('workerSlides.verifyAccount.title'),
       description: t('workerSlides.verifyAccount.description'),
       button: {
@@ -43,14 +35,24 @@ export const getWorkerSlides = (t: any, isVerified: boolean) => {
     : slides;
 };
 
-export const getRecruiterSlides = (t: any, isVerified: boolean) => {
+export const getRecruiterSlides = (
+  t: any,
+  isVerified: boolean,
+  isProfileComplete: boolean,
+) => {
   const slides = [
     {
       title: t('recruiterSlides.postJob.title'),
       description: t('recruiterSlides.postJob.description'),
       button: {
         text: t('recruiterSlides.postJob.button'),
-        onPress: () => router.push('/create'),
+        onPress: () => {
+          if (isProfileComplete) {
+            router.push('/(screens)/create');
+          } else {
+            router.push('/(profile)/profileSettings');
+          }
+        },
       },
     },
     {

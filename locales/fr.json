@@ -205,7 +205,10 @@
     "worker_plural": "Travailleurs",
     "workerByCat": "Travailleurs par catégorie",
     "categories": "Catégories",
-    "noWorkersFound": "Aucun travailleur trouvé"
+    "noWorkersFound": "Aucun travailleur trouvé",
+    "noJobsFound": "Aucune offre d'emploi trouvée",
+    "noJobsDetails": "Oops!. Aucune offre d'emploi disponible pour le moment. Veuillez revenir plus tard.",
+    "noWorkerDetails": "Oops!. Aucun profil de travailleur disponible pour le moment. Veuillez revenir plus tard."
   },
 
    "workerSlides": {

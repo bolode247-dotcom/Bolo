@@ -74,7 +74,6 @@ export const getJobOffers = async (workerId: string): Promise<Offer[]> => {
       queries: [
         Query.equal('workers', workerId),
         Query.notEqual('status', 'declined'),
-        Query.notEqual('status', 'accepted'),
         Query.select([
           '$id',
           'jobs.$id',
@@ -153,8 +152,8 @@ export const getRecommendedJobs = async (
       ]),
       Query.limit(50),
       Query.notEqual('isOffer', true),
+      Query.notEqual('has_paid', false),
     ];
-
     const res = await tables.listRows({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.jobsCol,
@@ -227,6 +226,7 @@ export const getJobsByPlan = async (isPro: boolean) => {
           : Query.orderAsc('$createdAt'), // Non-Pro → oldest jobs first
         Query.limit(5),
         Query.notEqual('isOffer', true),
+        Query.notEqual('has_paid', false),
         Query.select([
           '$id',
           'title',
@@ -349,6 +349,7 @@ export const getJobById = async (jobId: string, workerId: string) => {
           'recruiters.users.name',
           'recruiters.users.avatar',
           'recruiters.users.$id',
+          'recruiters.users.bio',
           'skills.icon',
           `skills.name_${lang}`,
           'locations.region',
@@ -398,6 +399,7 @@ export const getJobById = async (jobId: string, workerId: string) => {
             logo: job.recruiters.logo,
             companyName: job.recruiters.companyName,
             avatar: job.recruiters.users.avatar,
+            bio: job.recruiters.users.bio,
           }
         : null,
       skill: job.skills
@@ -538,12 +540,12 @@ export const getJobsByRegionOrSkill = async (
 
     let jobs = [];
 
-    // 🧭 Step 1: Query by region (and search if provided)
     const regionQueries = [
       Query.equal('locations.region', region),
       Query.select(baseSelect),
       Query.limit(10),
       Query.notEqual('isOffer', true),
+      Query.notEqual('has_paid', false),
     ];
     if (search && search.trim()) {
       const s = search.trim();
@@ -567,6 +569,7 @@ export const getJobsByRegionOrSkill = async (
         Query.select(baseSelect),
         Query.limit(10),
         Query.notEqual('isOffer', true),
+        Query.notEqual('has_paid', false),
       ];
       if (search && search.trim()) {
         const s = search.trim();
@@ -591,6 +594,7 @@ export const getJobsByRegionOrSkill = async (
         Query.select(baseSelect),
         Query.limit(10),
         Query.notEqual('isOffer', true),
+        Query.notEqual('has_paid', false),
       ];
       if (search && search.trim()) {
         const s = search.trim();
@@ -1144,7 +1148,7 @@ interface ApplicantInfo {
   avatar: string | null;
   isPro: boolean;
   skill: string;
-  pushToken: string;
+  userId: string;
   status: string;
   reason: string;
   interview: string | null;
@@ -1208,7 +1212,7 @@ export const getApplicantsByJobId = async (
               'users.locations.subdivision',
               'users.locations.division',
               'users.locations.region',
-              'users.pushToken',
+              'users.$id',
               `users.skills.name_${lang}`,
             ]),
           ],
@@ -1223,7 +1227,7 @@ export const getApplicantsByJobId = async (
           name: worker?.users?.name,
           avatar: worker?.users?.avatar,
           isPro: worker?.isPro ?? false,
-          pushToken: worker?.users?.pushToken || null,
+          userId: worker?.users?.$id || null,
           skill: worker?.users?.skills?.[`name_${lang}`],
           status: app.status,
           reason: app.reason,
@@ -1319,7 +1323,7 @@ export const scheduleInterview = async (
     return newInterview.$id;
   } catch (error) {
     console.error('❌ Error scheduling interview:', error);
-    return false;
+    throw new Error('Error scheduling interview');
   }
 };
 
@@ -1330,7 +1334,7 @@ export const updateInterview = async (
   date: string,
 ) => {
   try {
-    await tables.updateRow({
+    const res = await tables.updateRow({
       databaseId: appwriteConfig.dbId,
       tableId: appwriteConfig.interviewCol,
       rowId: interviewId,
@@ -1341,9 +1345,9 @@ export const updateInterview = async (
       },
     });
 
-    return true;
+    return res.$id;
   } catch (error) {
     console.error('❌ Error updating interview:', error);
-    return false;
+    throw new Error('Error updating interview');
   }
 };

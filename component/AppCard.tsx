@@ -23,7 +23,7 @@ type appCardProps = {
   skill: string;
   reason: string;
   status: string;
-  pushToken: string;
+  userId: string;
 };
 
 type Props = {
@@ -51,8 +51,8 @@ const AppCard = ({ app, onPress, onStatusChange, jobId }: Props) => {
       const success = await updateApplicantStatus(app.id, 'seen');
       if (success) {
         sendPushNotification({
-          type: 'application_status_update',
-          applicationId: app.id,
+          type: 'notify_user',
+          receiverId: app?.userId,
           messageTitle: 'Application Update',
           message: 'Your application has been seen!',
         });

@@ -29,6 +29,8 @@ const EditSkill = () => {
   const [skills, setSkills] = useState<PickerItem<string>[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
 
+  console.log('user skills:', user?.skills?.$id);
+
   const handleSearchSkill = async (text: string) => {
     setLoadingSkills(true);
     const res = await getFilteredSkills(text);

@@ -209,8 +209,11 @@
     "worker_plural": "Workers",
     "workerByCat": "Workers By Category",
     "categories": "Categories",
-    "noWorkersFound": "No workers found"
-  },
+    "noWorkersFound": "No workers found",
+    "noJobsFound": "No jobs found",
+    "noJobsDetails": "Oops!. No job listings available at the moment. Please check back later.",
+    "noWorkerDetails": "Oops!. No worker profiles available at the moment. Please check back later."
+    },
    "recruiterSlides": {
     "postJob": {
       "title": "Post a Job",

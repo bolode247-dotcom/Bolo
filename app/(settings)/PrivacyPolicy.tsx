@@ -92,7 +92,7 @@ const PrivacyPolicy = () => {
         </Section>
 
         <TouchableOpacity onPress={handleEmailPress}>
-          <Text style={styles.email}>📩 bolode247@gmail.com</Text>
+          <Text style={styles.email}>Email: bolode247@gmail.com</Text>
         </TouchableOpacity>
 
         <Text style={styles.footerText}>© Uniforge — All Rights Reserved</Text>

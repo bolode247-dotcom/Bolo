@@ -39,7 +39,7 @@ const Applicants = () => {
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [jobId]),
+    }, [jobId, refetch]),
   );
   // 🔹 Calculate how many are "seen"
   const selectedCount = applicants?.filter(

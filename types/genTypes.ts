@@ -100,7 +100,7 @@ type Post = {
 };
 
 export interface RecruiterFeedData {
-  mustHaveSkills: Skill[];
+  mostHaveSkills: Skill[];
   recommendedWorkers: Worker[];
   recommendedPosts: Post[];
 }

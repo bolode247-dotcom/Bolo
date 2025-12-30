@@ -1,4 +1,5 @@
 import { getJobsByRecruiterId } from '@/appwriteFuncs/appwriteJobsFuncs';
+import ConfirmModal from '@/component/ConfirmModal';
 import EmptyState from '@/component/EmptyState';
 import ExploreHeader from '@/component/ExploreHeader';
 import JobCard from '@/component/JobCard';
@@ -26,6 +27,7 @@ const MyJobs = () => {
   const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [showBioConfirm, setShowBioConfirm] = React.useState(false);
 
   const fetchApplications = React.useCallback(() => {
     if (!user?.recruiters?.$id) return Promise.resolve([]);
@@ -46,9 +48,21 @@ const MyJobs = () => {
     return (myJobs || []).filter((job) => job.title.toLowerCase().includes(q));
   }, [myJobs, searchQuery]);
 
+  const handleBioCheck = () => {
+    if (
+      user?.bio === '' ||
+      user?.bio === null ||
+      user?.avatar === '' ||
+      user?.avatar === null
+    ) {
+      setShowBioConfirm(true);
+      return false;
+    }
+    router.push('/(screens)/create');
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
-      {/* <StatusBar barStyle="light-content" /> */}
       <ExploreHeader
         title="My Jobs"
         search="Filter jobs..."
@@ -80,7 +94,7 @@ const MyJobs = () => {
               subtitle="You have not posted any job yet"
               icon="briefcase-outline"
               buttonLabel="Post a Job"
-              onPressButton={() => router.push('/(screens)/create')}
+              onPressButton={() => handleBioCheck()}
               iconsStyle={styles.emptyIcon}
             />
           }
@@ -105,12 +119,24 @@ const MyJobs = () => {
           <TouchableOpacity
             style={styles.fabButton}
             activeOpacity={0.8}
-            onPress={() => router.push('/(screens)/create')}
+            onPress={() => handleBioCheck()}
           >
             <AntDesign name="plus-circle" size={28} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
+      <ConfirmModal
+        visible={showBioConfirm}
+        title="Incomplete Profile"
+        message="Please add a bio and profile picture before creating a job post."
+        confirmText="Profile"
+        cancelText="cancel"
+        onConfirm={() => {
+          setShowBioConfirm(false);
+          router.push('/(profile)/profileSettings');
+        }}
+        onCancel={() => setShowBioConfirm(false)}
+      />
     </SafeAreaView>
   );
 };

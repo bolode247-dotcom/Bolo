@@ -21,11 +21,12 @@ const BannerSection = () => {
   const role = user?.role; // "worker" or "recruiter"
   const isVerified = user?.isVerified;
   const { t } = useTranslation();
+  const isProfileComplete = user?.bio && user?.avatar;
 
   const slides =
     role === 'worker'
       ? getWorkerSlides(t, isVerified)
-      : getRecruiterSlides(t, isVerified);
+      : getRecruiterSlides(t, isVerified, isProfileComplete);
 
   const backgroundImage =
     role === 'worker'

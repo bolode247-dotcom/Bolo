@@ -3,6 +3,8 @@ import { getRecruiterFeed } from '@/appwriteFuncs/appwriteWorkFuncs';
 import AppHeader from '@/component/AppHeader';
 import BannerSection from '@/component/BannerSection';
 import CategoryCard from '@/component/CategorySection';
+import ConfirmModal from '@/component/ConfirmModal';
+import EmptyState from '@/component/EmptyState';
 import HomeSkeleton from '@/component/HomeSkeleton';
 import JobCard from '@/component/JobCard';
 import JobOfferCard from '@/component/OfferCard';
@@ -38,6 +40,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const Index = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const [showBioConfirm, setShowBioConfirm] = React.useState(false);
 
   // --- Fetch function
   const fetchFunction = (): Promise<HomeFeedData> => {
@@ -85,7 +88,7 @@ const Index = () => {
         const recruiterData = data as RecruiterFeedData;
         return (
           <FlatList
-            data={recruiterData?.mustHaveSkills || []}
+            data={recruiterData?.mostHaveSkills || []}
             horizontal
             keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
@@ -156,7 +159,9 @@ const Index = () => {
         {/* Recommended Section */}
         {renderSectionHeader(
           t('home.recommendedForYou'),
-          isRecruiter ? () => router.push('/recombWorkers') : undefined,
+          isRecruiter
+            ? () => router.push('/(screens)/recombWorkers')
+            : () => router.push('/(tabs)/jobs'),
         )}
       </View>
     );
@@ -179,6 +184,19 @@ const Index = () => {
         avatar?: string | null;
         isVerified?: boolean;
       };
+
+  const handleBioCheck = () => {
+    if (
+      user?.bio === '' ||
+      user?.bio === null ||
+      user?.avatar === '' ||
+      user?.avatar === null
+    ) {
+      setShowBioConfirm(true);
+      return false;
+    }
+    router.push('/(screens)/create');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'right', 'left']}>
@@ -336,6 +354,21 @@ const Index = () => {
                     </>
                   );
                 }}
+                ListEmptyComponent={() => (
+                  <EmptyState
+                    icon={user?.role === 'recruiter' ? 'people' : 'briefcase'}
+                    title={
+                      user?.role === 'recruiter'
+                        ? t('home.noWorkersFound')
+                        : t('home.noJobsFound')
+                    }
+                    subtitle={
+                      user?.role === 'recruiter'
+                        ? t('home.noWorkerDetails')
+                        : t('home.noJobsDetails')
+                    }
+                  />
+                )}
               />
             );
           })()}
@@ -351,7 +384,7 @@ const Index = () => {
               <TouchableOpacity
                 style={styles.fabButton}
                 activeOpacity={0.8}
-                onPress={() => router.push('/(screens)/create')}
+                onPress={() => handleBioCheck()}
               >
                 <AntDesign name="plus-circle" size={28} color="#fff" />
               </TouchableOpacity>
@@ -359,6 +392,18 @@ const Index = () => {
           )}
         </>
       ) : null}
+      <ConfirmModal
+        visible={showBioConfirm}
+        title="Incomplete Profile"
+        message="Please add a bio and profile picture before creating a job post."
+        confirmText="Profile"
+        cancelText="cancel"
+        onConfirm={() => {
+          setShowBioConfirm(false);
+          router.push('/(profile)/profileSettings');
+        }}
+        onCancel={() => setShowBioConfirm(false)}
+      />
     </SafeAreaView>
   );
 };

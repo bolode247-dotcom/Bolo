@@ -8,9 +8,8 @@ import { useAuth } from '@/context/authContex';
 import { client } from '@/lib/appwrite';
 import { appwriteConfig } from '@/lib/appwriteConfig';
 import useAppwrite from '@/lib/useAppwrite';
-import { ChatPreview } from '@/types/genTypes';
-import { router, useFocusEffect } from 'expo-router';
-import React, { useMemo } from 'react';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,38 +27,28 @@ const Chats = () => {
 
   const { data: chats, isLoading, refetch } = useAppwrite(fetchChats);
 
-  const [realtimeChats, setRealtimeChats] = React.useState<
-    ChatPreview[] | null
-  >(null);
+  const mergedChats = chats;
 
-  const mergedChats = realtimeChats || chats; // use realtime updates if available
+  useEffect(() => {
+    if (!user?.$id) return;
 
-  useFocusEffect(
-    React.useCallback(() => {
-      if (!user?.$id) return;
+    const channel = `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`;
 
-      const unsubscribe = client.subscribe(
-        `databases.${appwriteConfig.dbId}.collections.${appwriteConfig.chatsCol}.documents`,
-        async (event) => {
-          const shouldUpdate = event.events.some(
-            (e) => e.includes('.update') || e.includes('.create'),
-          );
-
-          if (shouldUpdate) {
-            const userId =
-              role === 'recruiter' ? user.recruiters?.$id : user.workers?.$id;
-
-            const updated = await getChats(userId, role);
-            setRealtimeChats(updated);
-          }
-        },
+    const unsubscribe = client.subscribe(channel, (event) => {
+      const hasChange = event.events.some(
+        (e) =>
+          e.includes('.create') ||
+          e.includes('.update') ||
+          e.includes('.delete'),
       );
 
-      return () => {
-        unsubscribe();
-      };
-    }, [user?.$id, role]),
-  );
+      if (!hasChange) return;
+
+      refetch();
+    });
+
+    return () => unsubscribe();
+  }, [user?.$id, role, refetch]);
 
   const handleOpenChat = (chat: any) => {
     router.push({

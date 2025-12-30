@@ -42,7 +42,7 @@ const faqs = [
 ];
 
 const Support = () => {
-  const [openIndex, setOpenIndex] = useState(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const handleEmailPress = () => {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
@@ -52,7 +52,7 @@ const Support = () => {
     Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`);
   };
 
-  const toggleFAQ = (index) => {
+  const toggleFAQ = (index: number): void => {
     LayoutAnimation.easeInEaseOut();
     setOpenIndex(openIndex === index ? null : index);
   };
@@ -103,9 +103,7 @@ const Support = () => {
 
       {/* FOOTER */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          BOLO App – Helping Careers Grow 📌
-        </Text>
+        <Text style={styles.footerText}>BOLO App – Helping Careers Grow</Text>
         <Text style={styles.footerText}>
           © {new Date().getFullYear()} Uniforge
         </Text>

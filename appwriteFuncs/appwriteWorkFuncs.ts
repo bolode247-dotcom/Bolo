@@ -244,7 +244,7 @@ export const getRecruiterFeed = async (
   const recruiterRegion = user?.locations?.region;
   const recruiterSkillId = user?.skills?.$id;
   const industryId = user?.skills?.industry;
-  const [mustHaveSkills, recommendedWorkers, recommendedPosts] =
+  const [mostHaveSkills, recommendedWorkers, recommendedPosts] =
     await Promise.all([
       getTopSkills(5),
       getRecommendedWorkers(recruiterRegion, recruiterSkillId, industryId, 2),
@@ -256,7 +256,7 @@ export const getRecruiterFeed = async (
       ),
     ]);
 
-  return { mustHaveSkills, recommendedWorkers, recommendedPosts };
+  return { mostHaveSkills, recommendedWorkers, recommendedPosts };
 };
 export const getWorkerById = async (workerId: string) => {
   try {
@@ -714,6 +714,15 @@ export const addWorkSample = async (
   image: string,
 ) => {
   try {
+    // check if worker already have a post.
+    const existingPosts = await tables.listRows({
+      databaseId: appwriteConfig.dbId,
+      tableId: appwriteConfig.workSampleCol,
+      queries: [Query.equal('workers', workerId)],
+    });
+    if (existingPosts?.rows?.length) {
+      throw new Error('Worker already have a post.');
+    }
     const imageId = await uploadFile(image);
     await tables.createRow({
       databaseId: appwriteConfig.dbId,

@@ -1,3 +1,4 @@
+import { sendPushNotification } from '@/appwriteFuncs/appwriteGenFunc';
 import {
   getApplicationsByWorkerId,
   withdrawApp,
@@ -33,6 +34,8 @@ const Applications = () => {
   const [showModal, setShowModal] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isAccepting, setIsAccepting] = React.useState(false);
+  const [isDeclining, setIsDeclining] = React.useState(false);
 
   const fetchApplications = React.useCallback(() => {
     if (!user?.workers?.$id) return Promise.resolve([]);
@@ -86,8 +89,22 @@ const Applications = () => {
 
   const handleInterviewResponse = async (response: 'accepted' | 'rejected') => {
     if (!selectedApp) return;
+    if (response === 'accepted') {
+      setIsAccepting(true);
+    } else {
+      setIsDeclining(true);
+    }
     try {
       await updateInterviewStatus(selectedApp.interview.id, response);
+      sendPushNotification({
+        type: 'notify_user',
+        receiverId: selectedApp.recruiterUserId,
+        messageTitle:
+          response === 'accepted' ? 'Interview Accepted' : 'Interview Declined',
+        message: `The applicant has ${
+          response === 'accepted' ? 'accepted' : 'declined'
+        } the interview for the position of ${selectedApp.job.title}.`,
+      });
       showToast(
         `Interview ${response === 'accepted' ? 'accepted' : 'declined'} successfully.`,
         `${response === 'accepted' ? 'success' : 'info'}`,
@@ -96,6 +113,13 @@ const Applications = () => {
       refetch();
     } catch (error) {
       console.error('Error updating interview response:', error);
+      showToast('Error updating interview response.', 'error');
+    } finally {
+      if (response === 'accepted') {
+        setIsAccepting(false);
+      } else {
+        setIsDeclining(false);
+      }
     }
   };
 
@@ -122,10 +146,12 @@ const Applications = () => {
             contentContainerStyle={{ padding: 16 }}
             ListEmptyComponent={
               <EmptyState
+                icon="document"
                 title="No Application"
                 subtitle="You have not applied for any job yet."
                 buttonLabel="Apply for jobs"
                 onPressButton={() => router.push('/(tabs)/jobs')}
+                iconsStyle={{ backgroundColor: Colors.white }}
               />
             }
             refreshControl={
@@ -151,13 +177,22 @@ const Applications = () => {
                   ? 'Interview Invitation'
                   : 'Hired'}
               </Text>
-              <Text style={styles.modalSubtitle} numberOfLines={2}>
+              <Text style={styles.modalSubtitle}>
                 {selectedApp?.status === 'interview'
                   ? 'You have been invited to an interview for the job'
                   : 'You have been hired for the job'}{' '}
                 <Text style={{ fontWeight: 'bold' }}>
                   {selectedApp?.job?.title}
                 </Text>
+                on{' '}
+                <Text style={{ fontWeight: 'bold' }}>
+                  {new Date(selectedApp?.interview?.date).toLocaleDateString()}
+                </Text>{' '}
+                at{' '}
+                <Text style={{ fontWeight: 'bold' }}>
+                  {selectedApp?.interview?.time}
+                </Text>
+                .
               </Text>
 
               {selectedApp?.interview?.instructions ? (
@@ -171,24 +206,36 @@ const Applications = () => {
                 </View>
               ) : null}
 
-              <View style={styles.modalButtons}>
-                {selectedApp?.interview?.status !== 'rejected' && (
+              {selectedApp?.interview?.status === 'pending' && (
+                <View style={styles.modalButtons}>
                   <TouchableOpacity
-                    style={[styles.btn, { backgroundColor: Colors.danger }]}
+                    style={[
+                      styles.btn,
+                      { backgroundColor: Colors.danger },
+                      { opacity: isAccepting || isDeclining ? 0.7 : 1 },
+                    ]}
                     onPress={() => handleInterviewResponse('rejected')}
+                    disabled={isAccepting || isDeclining}
                   >
-                    <Text style={styles.btnText}>Decline</Text>
+                    <Text style={styles.btnText}>
+                      {isDeclining ? 'Declining...' : 'Decline'}
+                    </Text>
                   </TouchableOpacity>
-                )}
-                {selectedApp?.interview?.status !== 'accepted' && (
                   <TouchableOpacity
-                    style={[styles.btn, { backgroundColor: Colors.primary }]}
+                    style={[
+                      styles.btn,
+                      { backgroundColor: Colors.primary },
+                      { opacity: isAccepting || isDeclining ? 0.7 : 1 },
+                    ]}
                     onPress={() => handleInterviewResponse('accepted')}
+                    disabled={isAccepting || isDeclining}
                   >
-                    <Text style={styles.btnText}>Accept</Text>
+                    <Text style={styles.btnText}>
+                      {isAccepting ? 'Accepting...' : 'Accept'}
+                    </Text>
                   </TouchableOpacity>
-                )}
-              </View>
+                </View>
+              )}
             </View>
           </View>
         </Modal>

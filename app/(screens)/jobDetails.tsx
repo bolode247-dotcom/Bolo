@@ -38,6 +38,8 @@ import {
   View,
 } from 'react-native';
 
+import ImageFooter from '@/component/ImageFooter';
+import ImageViewing from 'react-native-image-viewing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface RealtimePayload {
@@ -60,6 +62,9 @@ const JobDetails = () => {
   const [showWidthConfirm, setShowWidthConfirm] = useState(false);
   const [showBioConfirm, setShowBioConfirm] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [imageVisible, setImageVisible] = useState(false);
+  const [imagreSrc, setImageSrc] = useState('');
+  const [recruiterBio, setRecruiterBio] = useState('');
 
   // ✅ Fetch job details dynamically based on the logged-in user
   const fetchJob = useCallback(
@@ -118,7 +123,6 @@ const JobDetails = () => {
   };
 
   const handleBioCheck = () => {
-    console.log('user bio:', user?.bio, 'avatar:', user?.avatar);
     if (
       user?.bio === '' ||
       user?.bio === null ||
@@ -217,14 +221,24 @@ const JobDetails = () => {
   const renderAvatar = () => {
     if (jobDetails?.recruiter?.avatar || jobDetails?.recruiter?.logo) {
       return (
-        <Image
-          source={{
-            uri:
-              viewImage(jobDetails?.recruiter?.avatar) ||
-              viewImage(jobDetails?.recruiter?.logo),
+        <Pressable
+          onPress={() => {
+            setImageSrc(
+              jobDetails?.recruiter?.avatar || jobDetails?.recruiter?.logo,
+            );
+            setRecruiterBio(jobDetails?.recruiter?.bio || '');
+            setImageVisible(true);
           }}
-          style={styles.avatar}
-        />
+        >
+          <Image
+            source={{
+              uri:
+                viewImage(jobDetails?.recruiter?.avatar) ||
+                viewImage(jobDetails?.recruiter?.logo),
+            }}
+            style={styles.avatar}
+          />
+        </Pressable>
       );
     }
     return (
@@ -263,6 +277,9 @@ const JobDetails = () => {
           {/* Profile Header */}
           <View style={styles.header}>
             {renderAvatar()}
+            <Text style={styles.address}>
+              Posted By: {jobDetails?.recruiter?.name || 'N/A'}
+            </Text>
             <Text style={styles.name}>{jobDetails?.title}</Text>
             <Text style={styles.address}>
               {jobDetails?.location?.region}, {jobDetails?.location?.division},{' '}
@@ -509,6 +526,17 @@ const JobDetails = () => {
           />
         </ScrollView>
       </SafeAreaView>
+      <ImageViewing
+        images={[{ uri: viewImage(imagreSrc) }]}
+        imageIndex={0}
+        visible={imageVisible}
+        onRequestClose={() => {
+          setRecruiterBio('');
+          setImageVisible(false);
+        }}
+        doubleTapToZoomEnabled
+        FooterComponent={() => <ImageFooter caption={recruiterBio} />}
+      />
     </>
   );
 };

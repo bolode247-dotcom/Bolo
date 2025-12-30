@@ -27,7 +27,7 @@ const statusStyles: StatusStyles = {
 };
 
 const interviewStatusStyles: StatusStyles = {
-  pending: { color: Colors.gray700, label: 'Pending' },
+  pending: { color: Colors.primary, label: 'Pending' },
   accepted: { color: Colors.success, label: 'Accepted' },
   rejected: { color: Colors.danger, label: 'Declined' },
 };
